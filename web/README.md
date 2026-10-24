@@ -631,8 +631,9 @@ with a post.
 A wide export offers **Make a vertical version too** (for TikTok, Reels and
 Shorts), a vertical one **Make a wide version too** (for YouTube): the same
 edit rendered in the other frame, captions laid out again, shots filmed the
-other way cropped to fill it (keeping the middle). Your project's frame
-stays as it was.
+other way cropped to fill it, the crop moved onto the people in each shot
+(faces found on the Mac; a shot with nobody in it keeps the middle). Your
+project's frame stays as it was.
 
 **Posting to YouTube from VibeCut** ("Or post it to your YouTube channel
 from here…") needs a Google Cloud project of your own, once:

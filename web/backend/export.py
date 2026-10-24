@@ -47,7 +47,7 @@ from pathlib import Path
 
 from cutgrammar import media
 
-from . import audiomix, effects, indexer
+from . import aim, audiomix, effects, indexer
 from . import timeline as tlm
 
 FPS = tlm.FPS
@@ -169,7 +169,8 @@ def create(items: list[dict], clips: dict[str, dict], name: str, music: str | No
            want: str | None = None, sound: dict | None = None, crop: bool = False) -> Job:
     """`crop`: a version in a frame the edit wasn't made for (share.py's
     "vertical version too"): every shot filmed the other way up fills the
-    frame, cut to its middle, instead of sitting small between bars."""
+    frame instead of sitting small between bars, the crop aimed at the
+    people in it (aim.py, when the job runs)."""
     sp = spans(items)
     if not sp:
         raise ValueError("the timeline is empty — choose a story first")
@@ -182,18 +183,12 @@ def create(items: list[dict], clips: dict[str, dict], name: str, music: str | No
     if look and not os.path.isfile(look.get("lut", "")):
         raise ValueError("the borrowed look's file is gone — apply the style again")
     size = frame_size(sp, clips, want)
-    cropped = 0
     if crop:
-        before = sum(1 for it in sp if it.get("fill"))
         sp = cover_mismatched(sp, clips, size)
-        cropped = sum(1 for it in sp if it.get("fill")) - before
     job = Job(id=uuid.uuid4().hex[:10], items=sp, clips=clips, size=size,
               total=sum(s["frames"] for s in sp) / FPS, name=_safe_name(name), music=music, style=style,
               mix=mix, joins=joins, sound=sound)
     job.alt = crop
-    if cropped:
-        job.notes.append(f"{cropped} shot{'s' * (cropped != 1)} filmed the other way {'are' if cropped != 1 else 'is'} "
-                         "cropped to fill the frame, keeping the middle.")
     job.dir.mkdir(parents=True, exist_ok=True)
     (job.dir / "frames").mkdir(exist_ok=True)
     JOBS[job.id] = job
@@ -220,8 +215,38 @@ def cover_mismatched(items: list[dict], clips: dict[str, dict], size: dict) -> l
             pass
         if int(it.get("rotate") or 0) % 180 == 90:
             w, h = h, w
-        out.append({**it, "fill": True} if w and h and (h > w) != tall else it)
+        # `refit`: filled for this version, so its crop is aimed (aim_refits),
+        # unlike a shot filled by hand, which keeps the middle the preview shows
+        out.append({**it, "fill": True, "refit": True, "shown": [w, h]} if w and h and (h > w) != tall and not it.get("fill") else it)
     return out
+
+
+def aim_refits(job: "Job") -> str | None:
+    """Aim each refitted shot's crop at its people (aim.py); the note that
+    says what was done, or None when nothing was cropped."""
+    todo = [it for it in job.items if it.get("refit")]
+    if not todo:
+        return None
+    found = aim.boxes([job.clips[i] for i in {it["clip_id"] for it in todo} if i in job.clips])
+    W, H = job.size["w"], job.size["h"]
+    aimed = 0
+    for it in todo:
+        dw, dh = it["shown"]
+        s = max(W / dw, H / dh)
+        faces = found.get(it["clip_id"])
+        at = aim.aim(it, job.clips[it["clip_id"]], faces, (W / (s * dw), H / (s * dh))) if faces else None
+        if at:
+            it["aim"] = list(at)
+            aimed += 1
+    n = len(todo)
+    head = f"{n} shot{'s' * (n != 1)} filmed the other way {'are' if n != 1 else 'is'} cropped to fill the frame"
+    if not found:
+        return head + ", keeping the middle (finding the people in them needs a Mac)."
+    if aimed == n:
+        return head + ", kept on the people in them."
+    if not aimed:
+        return head + ", keeping the middle (nobody in them to keep in frame)."
+    return head + f": {aimed} kept on the people in them, {n - aimed} with nobody in them keep the middle."
 
 
 def save_frame(job: Job, n: int, data: bytes) -> None:
@@ -309,7 +334,8 @@ def _ff(args: list[str], job: Job, total_s: float | None = None, base: float = 0
         raise RuntimeError((err or "").strip().splitlines()[-1] if err and err.strip() else "ffmpeg failed")
 
 
-def _fit(size: dict, style: dict | None = None, fades: str = "", fill: bool = False) -> str:
+def _fit(size: dict, style: dict | None = None, fades: str = "", fill: bool = False,
+         at: list[float] | None = None) -> str:
     w, h = size["w"], size["h"]
     look = (style or {}).get("look")
     # The grade goes on the picture before padding, so bars stay black, and
@@ -317,8 +343,14 @@ def _fit(size: dict, style: dict | None = None, fades: str = "", fill: bool = Fa
     # black stays lifted through a dip, as it does under a graded edit.
     grade = f"lut3d=file='{_esc(look['lut'])}':interp=tetrahedral," if look else ""
     # `fill` (the shot menu's crop): cover the frame and cut the edges off,
-    # instead of showing the whole picture with bars
-    fit = (f"scale={w}:{h}:force_original_aspect_ratio=increase:flags=bicubic,crop={w}:{h}" if fill
+    # instead of showing the whole picture with bars; `at` (aim.py) moves
+    # the window onto a point -- centred across, at HEAD_AT down -- and stops
+    # at the picture's edge
+    crop = f"crop={w}:{h}"
+    if fill and at:
+        crop += (f":'clip({at[0]:.4f}*iw-{w / 2:.1f},0,iw-{w})'"
+                 f":'clip({at[1]:.4f}*ih-{h * aim.HEAD_AT:.1f},0,ih-{h})'")
+    fit = (f"scale={w}:{h}:force_original_aspect_ratio=increase:flags=bicubic,{crop}" if fill
            else f"scale={w}:{h}:force_original_aspect_ratio=decrease:flags=bicubic")
     chain = (f"{fit},{fades}{grade}"
              f"pad={w}:{h}:(ow-iw)/2:(oh-ih)/2:black,setsar=1,fps={FPS}")
@@ -467,7 +499,7 @@ def _shot(job: Job, it: dict, out: Path, tr: dict | None = None) -> None:
     # A span that runs to the very end of its file can decode a frame or two
     # short; hold the last frame so every shot is exactly its frame count.
     args = [*src, "-map", "0:v:0", *amap, "-vf",
-            turn + retime + _fit(size, job.style, vfade, bool(it.get("fill")))
+            turn + retime + _fit(size, job.style, vfade, bool(it.get("fill")), it.get("aim"))
             + effects.chain(it.get("effect"), float(it.get("effect_amount") or 1.0), size, tr["head"] / FPS, it["frames"], FPS)
             + punch
             + ",tpad=stop_mode=clone:stop_duration=1", *common]
@@ -617,8 +649,12 @@ def _run(job: Job) -> None:
         seg_dir = job.dir / "shots"
         seg_dir.mkdir(exist_ok=True)
         job.of = len(job.items)
+        if job.alt:
+            refit = aim_refits(job)
+            if refit:
+                job.notes.append(refit)
         plan, said = plan_transitions(job.items, job.clips, job.style)
-        job.notes += said          # after what create() already said (a version's crops)
+        job.notes += said
         segs = []
         for k, it in enumerate(job.items):
             if job.cancel:

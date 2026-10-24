@@ -383,11 +383,27 @@ The promise to a user is therefore *not* "this will be beautiful." It is
   exports it without touching the project's own frame; captions are drawn
   again for the new size by the same browser pipeline; `export.create(crop=
   True)` → `cover_mismatched`: shots filmed the other way up (after their
-  quarter turns) fill the frame cut to the middle instead of bars, and the
-  export says how many. Saved as "<name> · vertical …" / "· wide", `alt` on
-  the job and the export record; the dialog lists what it made just now and
-  asks "would you post this?" only of the original. Centre crop is a prior:
-  no subject tracking yet. `test_share.py` (bars vs filled, by brightness).
+  quarter turns) fill the frame instead of bars, and the export says how
+  many. Saved as "<name> · vertical …" / "· wide", `alt` on the job and the
+  export record; the dialog lists what it made just now and asks "would you
+  post this?" only of the original. `test_share.py` (bars vs filled, by
+  brightness). **The crop follows the people** (2026-10-24, the user:
+  "follow the people in each shot instead of always keeping the middle";
+  `web/backend/aim.py`, `export.aim_refits`): one window per shot (a
+  window chasing every frame reads as a robot camera), from Vision's face
+  boxes on the index samples inside the seconds the shot uses (cached as
+  `faceboxes.json`, written at index time from now on, read once for older
+  clips): people who fit in the window together are kept together, else
+  the largest face; the median across samples; centred across, `HEAD_AT`
+  0.4 down (headroom); stops at the picture's edge; the shot's mirror and
+  quarter turns applied to the point. Faces on under `MIN_SEEN` 0.3 of its
+  samples, no Vision (not a Mac) or a shot filled by hand (the preview
+  shows it centred) → the middle, and the note says how many were kept on
+  people. Only the other-frame version aims; preview has no crop to match.
+  On six real vertical clips cut wide, every aimed crop kept the face where
+  the middle showed a neck. Numbers are priors. `tests/test_aim.py`
+  (a person left / right of centre centred, the middle crop as control,
+  headroom, turned shots, the note).
 - **Watch, then Fine-tune** (2026-10-18, `App.tsx` `watching`): a made or
   remixed video opens as the video, full-size, with four chips under it —
   music (the bed switch), length (`LengthButton`), look (cycles the looks

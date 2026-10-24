@@ -201,6 +201,8 @@ def add_vision(recs: list[dict]) -> str:
             boxes = [found.get(str(clip_dir(r["id"]) / f), []) for f in r["samples"]["files"]]
             track = vision.face_track(boxes, r["samples"]["times"], len(r["signals"]["quality"])) if found else []
             (clip_dir(r["id"]) / "faces.json").write_text(json.dumps(track))
+            if found:   # where they are, for aiming a crop (aim.py)
+                (clip_dir(r["id"]) / "faceboxes.json").write_text(json.dumps(boxes))
     for r in recs:
         r["faces"] = json.loads((clip_dir(r["id"]) / "faces.json").read_text())
 
@@ -238,6 +240,7 @@ def refresh_faces(recs: list[dict]) -> int:
         boxes = [found.get(str(clip_dir(r["id"]) / f), []) for f in r["samples"]["files"]]
         r["faces"] = vision.face_track(boxes, r["samples"]["times"], len(r["signals"]["quality"]))
         (clip_dir(r["id"]) / "faces.json").write_text(json.dumps(r["faces"]))
+        (clip_dir(r["id"]) / "faceboxes.json").write_text(json.dumps(boxes))
     return len(need)
 
 
