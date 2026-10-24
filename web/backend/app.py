@@ -33,7 +33,7 @@ from cutgrammar import grade
 
 from . import board as bd
 from . import projects as pj
-from . import audiomix, bed, brief, cloud, defaults, habits, make, vibes, vlog, tempo, ink, moment, cut, export, looks, pitch, seams, selfcheck, smooth, sound, subtitles, places, indexer, llm, locate, musiclib, oai, overlays, reference, remix, share, speech, story, storyboard, talk, timeline, vision, voiceover, youtube
+from . import audiomix, bed, brief, cloud, defaults, habits, make, vibes, vlog, tempo, ink, moment, cut, export, looks, pitch, seams, selfcheck, smooth, sound, subtitles, places, indexer, llm, locate, musiclib, oai, overlays, reference, remix, share, covers, postcopy, speech, story, storyboard, talk, timeline, vision, voiceover, youtube
 from .preferences import PreferenceError, Preferences
 from .workflow import GATE, Workflow, WorkflowError
 
@@ -2542,8 +2542,86 @@ def api_export_share(jid: str) -> dict:
     if job.stage != "done" or not job.path:
         raise HTTPException(404, "not finished")
     w, h = (job.size or {}).get("w", 0), (job.size or {}).get("h", 0)
+    rec = _export_rec(jid)
     return {"shape": share.shape(w, h), "seconds": round(job.total, 2), "platforms": share.targets(w, h, job.total),
-            "mac": sys.platform == "darwin"}
+            "mac": sys.platform == "darwin",
+            # words to post with it (postcopy.py) and the licence's credit, kept apart
+            "post": _post_words(job), "credit": _credit(job),
+            "covers": [{"t": t, "url": f"/api/export/{jid}/still/{int(round(t * 1000))}"} for t in covers.candidates(job.items)],
+            "cover": _cover_public(jid, rec)}
+
+
+def _export_rec(jid: str) -> dict | None:
+    pr = PROJECT["p"]
+    return next((e for e in pr.exports if e.get("job") == jid), None) if pr else None
+
+
+def _is_short(job: export.Job) -> bool:
+    w, h = (job.size or {}).get("w", 0), (job.size or {}).get("h", 0)
+    return share.fit("youtube", w, h, job.total)["name"] == "YouTube Shorts"
+
+
+def _post_words(job: export.Job) -> dict:
+    with LOCK:
+        ovs = overlays.resolve(SESSION.board)
+    return postcopy.draft(job.items, job.clips, ovs, job.total, _is_short(job))
+
+
+def _credit(job: export.Job) -> str | None:
+    return (_music_public() or {}).get("credit") if job.music else None   # the licence asks for it
+
+
+def _cover_public(jid: str, rec: dict | None) -> dict | None:
+    c = (rec or {}).get("cover")
+    if not c or not os.path.isfile(c.get("path") or ""):
+        return None
+    return {"t": c["t"], "file": Path(c["path"]).name, "url": f"/api/export/{jid}/cover?v={int(c['t'] * 1000)}"}
+
+
+@app.get("/api/export/{jid}/still/{ms}")
+def api_export_still(jid: str, ms: int) -> FileResponse:
+    """A small frame of the exported file, for the cover picker."""
+    job = _job(jid)
+    if job.stage != "done" or not job.path or not 0 <= ms <= job.total * 1000:
+        raise HTTPException(404)
+    try:
+        return FileResponse(covers.still(job.path, jid, ms / 1000), media_type="image/jpeg")
+    except ValueError as e:
+        raise HTTPException(500, str(e)) from e
+
+
+class CoverReq(BaseModel):
+    t: float
+
+
+@app.post("/api/export/{jid}/cover")
+def api_export_cover(jid: str, req: CoverReq) -> dict:
+    """The creator's cover: that frame of the file, full size, saved beside
+    it (covers.py) and kept on the export's record for YouTube."""
+    job = _job(jid)
+    if job.stage != "done" or not job.path:
+        raise HTTPException(404, "not finished")
+    if not 0 <= req.t <= job.total:
+        raise HTTPException(400, "That moment isn't in the video.")
+    try:
+        dest = covers.save(job.path, jid, req.t)
+    except (ValueError, OSError) as e:
+        raise HTTPException(500, str(e)) from e
+    rec = _export_rec(jid)
+    if rec is not None:
+        with LOCK:
+            rec["cover"] = {"t": round(req.t, 3), "path": str(dest)}
+    else:
+        rec = {"cover": {"t": round(req.t, 3), "path": str(dest)}}
+    return _cover_public(jid, rec)
+
+
+@app.get("/api/export/{jid}/cover")
+def api_export_cover_file(jid: str) -> FileResponse:
+    c = (_export_rec(jid) or {}).get("cover")
+    if not c or not os.path.isfile(c.get("path") or ""):
+        raise HTTPException(404, "no cover chosen")
+    return FileResponse(c["path"], media_type="image/jpeg", filename=Path(c["path"]).name)
 
 
 class SharedReq(BaseModel):
@@ -2619,12 +2697,16 @@ def api_youtube_prepare(jid: str) -> dict:
     code = secrets.token_urlsafe(16)
     YT_CONFIRMS[code] = (jid, now)
     w, h = (job.size or {}).get("w", 0), (job.size or {}).get("h", 0)
-    title = next((o["text"] for o in (SESSION.board or {}).get("overlays", []) if o["kind"] == "title"), None) \
-        or (PROJECT["p"].name if PROJECT["p"] else "") or Path(job.path).stem
-    credit = (_music_public() or {}).get("credit") if job.music else None   # the licence asks for it
-    return {"confirm": code, "channel": ch, "title": title.replace("<", "").replace(">", "")[:youtube.TITLE_MAX],
-            "description": f"Music: {credit}" if credit else "", "fit": share.fit("youtube", w, h, job.total),
-            "seconds": round(job.total, 2), "file": Path(job.path).name}
+    yt = _post_words(job)["youtube"]
+    credit = _credit(job)
+    clean = lambda x: x.replace("<", "").replace(">", "")  # noqa: E731 -- YouTube refuses both
+    short = _is_short(job)
+    cover = _cover_public(jid, _export_rec(jid))
+    return {"confirm": code, "channel": ch, "title": clean(yt["title"])[:youtube.TITLE_MAX],
+            "description": clean(yt["description"] + (f"\n\nMusic: {credit}" if credit else "")),
+            "fit": share.fit("youtube", w, h, job.total), "seconds": round(job.total, 2), "file": Path(job.path).name,
+            # the cover goes with the post (not for a Short: YouTube picks those in its app)
+            "cover": {**cover, "sent": not short} if cover else None}
 
 
 class YouTubePostReq(BaseModel):
@@ -2633,6 +2715,7 @@ class YouTubePostReq(BaseModel):
     description: str = ""
     privacy: str
     made_for_kids: bool | None = None
+    cover_t: float | None = None      # the cover the confirm screen showed; None = none
 
 
 @app.post("/api/export/{jid}/youtube")
@@ -2661,7 +2744,7 @@ def api_youtube_post(jid: str, req: YouTubePostReq) -> dict:
         with LOCK:
             n = next((k for k, e in enumerate(pr.exports) if e.get("job") == jid), None)
             rec = {"platform": "youtube", "video": post.video, "privacy": post.privacy, "asked": req.privacy,
-                   "short": short, "at": time.time()}
+                   "short": short, "cover": post.cover_state, "at": time.time()}
             pr.events.append({"kind": "share", "how": "youtube_post", "export": n, "at": rec["at"],
                               "video": post.video, "privacy": post.privacy})
             if n is not None:
@@ -2671,7 +2754,11 @@ def api_youtube_post(jid: str, req: YouTubePostReq) -> dict:
         else:
             pj.save(pr)
 
-    post = _yt(youtube.start, job.path, meta, short, landed)
+    # only the cover the creator saw on the confirm screen goes with the post
+    c = (_export_rec(jid) or {}).get("cover")
+    if not c or req.cover_t is None or abs(c["t"] - req.cover_t) > 0.01:
+        c = None
+    post = _yt(youtube.start, job.path, meta, short, landed, c["path"] if c and os.path.isfile(c["path"]) else None)
     return post.public()
 
 

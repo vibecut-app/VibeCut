@@ -622,6 +622,12 @@ Show in Finder, Share… (AirDrop / Messages / Mail, where the browser can
 hand over a file) and one link each for TikTok, YouTube and Instagram: the
 click copies the caption + credit and opens that platform's upload page.
 Each platform is checked against the file first (frame, length).
+Above them, **Words to post with it** is a first draft from where and when
+you filmed (a line, a few hashtags; on YouTube also chapters), yours to
+change; the music credit is added when you copy. **Cover** offers a few
+frames of the finished video; the one you pick is saved beside it as
+"… cover.jpg" for TikTok's and Instagram's cover step, and goes to YouTube
+with a post.
 
 **Posting to YouTube from VibeCut** ("Or post it to your YouTube channel
 from here…") needs a Google Cloud project of your own, once:

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api, type YouTubePost as Post, type YouTubePrep, type YouTubeState } from '../api'
+import { api, type ShareCover, type YouTubePost as Post, type YouTubePrep, type YouTubeState } from '../api'
 import type { ExportJob } from '../types'
 
 // Post to the creator's own YouTube channel, from VibeCut. Every post goes
@@ -14,7 +14,8 @@ const PRIVACY = [
   ['public', 'Everyone', 'Public'],
 ] as const
 
-export function YouTubePost({ job, onClose }: { job: ExportJob; onClose: () => void }) {
+// `cover`: the one picked in the Share box now -- what this screen shows is what is sent
+export function YouTubePost({ job, cover, onClose }: { job: ExportJob; cover: ShareCover | null; onClose: () => void }) {
   const [yt, setYt] = useState<YouTubeState | null>(null)
   const [signIn, setSignIn] = useState<string | null>(null)
   const [prep, setPrep] = useState<YouTubePrep | null>(null)
@@ -73,7 +74,7 @@ export function YouTubePost({ job, onClose }: { job: ExportJob; onClose: () => v
     setSending(true)
     setError(null)
     try {
-      setPost(await api.youtubePost(job.id, { confirm: prep.confirm, title, description, privacy, made_for_kids: kids }))
+      setPost(await api.youtubePost(job.id, { confirm: prep.confirm, title, description, privacy, made_for_kids: kids, cover_t: cover?.t ?? null }))
     } catch (e) {
       setError((e as Error).message)
       // a used or refused code can't be sent again: get a fresh one
@@ -112,6 +113,8 @@ export function YouTubePost({ job, onClose }: { job: ExportJob; onClose: () => v
         </>}
         {post.stage === 'done' && <div className="mt-2 space-y-1.5 text-[12px] text-zinc-200">
           <p>On YouTube{post.privacy ? ` as ${post.privacy[0].toUpperCase()}${post.privacy.slice(1)}` : ''}. It can take a few minutes before it plays everywhere.</p>
+          {post.cover && <p className={`text-[11px] ${post.cover === 'set' ? 'text-muted' : 'text-amber-200'}`}>
+            {post.cover === 'set' ? 'Your cover is on it.' : post.cover}</p>}
           {post.privacy && post.privacy !== post.asked && <p className="text-[11px] text-amber-200">
             You asked for {post.asked}; YouTube set it to {post.privacy}. You can change that in YouTube Studio.</p>}
           <div className="flex gap-3 text-[12px]">
@@ -183,6 +186,12 @@ export function YouTubePost({ job, onClose }: { job: ExportJob; onClose: () => v
                   className={`rounded-md px-2.5 py-1 text-[12px] ${kids === v ? 'bg-accent font-semibold text-accent-ink' : 'border border-line text-zinc-200 hover:bg-raised'}`}>{label}</button>
         ))}
       </div>
+
+      {cover && <div className="mt-2 flex items-center gap-2">
+        <img src={cover.url} alt="" className={`${job.size.h > job.size.w ? 'h-[54px] w-[30px]' : 'h-[30px] w-[54px]'} rounded bg-black object-cover`} />
+        <span className="text-[11px] leading-snug text-muted">{prep.fit.name !== 'YouTube Shorts' ? 'Your cover goes with it.' : 'YouTube picks a Short’s cover in its own app; yours is saved beside the video.'}</span>
+      </div>}
+      {!cover && <p className="mt-2 text-[11px] text-muted">No cover picked — YouTube will choose a frame. Pick one under Cover first if you like.</p>}
 
       <p className={`mt-2 text-[11px] leading-snug ${prep.fit.ok ? 'text-muted' : 'text-amber-200'}`}>
         {prep.fit.why ?? prep.fit.note ?? (prep.fit.name === 'YouTube Shorts' ? 'It will be a Short: vertical and under 3 minutes.' : 'It will be a normal YouTube video.')}</p>

@@ -418,6 +418,8 @@ class Post:
     privacy: str | None = None        # what YouTube says it is, after
     error: str | None = None
     stop: bool = False
+    cover: str | None = None          # the chosen cover's JPEG, sent once the video is up
+    cover_state: str | None = None    # "set", or why it wasn't
     started: float = field(default_factory=time.time)
 
     def public(self) -> dict:
@@ -428,7 +430,7 @@ class Post:
                 "title": self.meta["snippet"]["title"], "asked": asked, "privacy": self.privacy,
                 "video": self.video, "url": url,
                 "studio": f"https://studio.youtube.com/video/{self.video}/edit" if self.video else None,
-                "error": self.error, "elapsed": round(time.time() - self.started, 1)}
+                "error": self.error, "cover": self.cover_state, "elapsed": round(time.time() - self.started, 1)}
 
 
 POSTS: dict[str, Post] = {}
@@ -529,6 +531,8 @@ def _run(post: Post, on_done) -> None:
     except Exception as e:  # noqa: BLE001 -- the job reports, never crashes the app
         post.stage, post.error = "error", f"The upload stopped: {e}"
     finally:
+        if post.stage == "done" and post.cover and post.video:
+            post.cover_state = set_thumbnail(post.video, post.cover)
         if on_done:
             try:
                 on_done(post)
@@ -536,10 +540,34 @@ def _run(post: Post, on_done) -> None:
                 pass
 
 
-def start(path: str, meta: dict, short: bool, on_done=None) -> Post:
+def set_thumbnail(video: str, jpeg: str) -> str:
+    """The creator's chosen cover as the video's thumbnail. A refusal never
+    undoes the post: it is said, and the cover stays beside the file."""
+    try:
+        body = Path(jpeg).read_bytes()
+    except OSError:
+        return "The cover file is gone, so YouTube kept its own."
+    req = urllib.request.Request(f"{_urls()['upload']}/thumbnails/set?{urllib.parse.urlencode({'videoId': video})}",
+                                 method="POST", data=body,
+                                 headers={"Authorization": "Bearer " + access_token(), "Content-Type": "image/jpeg",
+                                          "Content-Length": str(len(body))})
+    try:
+        with urllib.request.urlopen(req, timeout=TIMEOUT_S):
+            return "set"
+    except urllib.error.HTTPError as e:
+        if e.code == 403:
+            return ("YouTube didn't take the cover: custom covers need a verified channel "
+                    "(youtube.com/verify). It's saved beside the video for later.")
+        return "YouTube didn't take the cover. " + _say(e.code, e.read())
+    except (OSError, YouTubeError):
+        return "Couldn't send the cover — it's saved beside the video; add it in YouTube Studio."
+
+
+def start(path: str, meta: dict, short: bool, on_done=None, cover: str | None = None) -> Post:
     if not os.path.isfile(path):
         raise YouTubeError("The exported file is no longer where it was saved.")
-    post = Post(id=uuid.uuid4().hex[:12], path=path, meta=meta, short=short, total=os.path.getsize(path))
+    post = Post(id=uuid.uuid4().hex[:12], path=path, meta=meta, short=short, total=os.path.getsize(path),
+                cover=cover if cover and not short else None)
     POSTS[post.id] = post
     threading.Thread(target=_run, args=(post, on_done), daemon=True).start()
     return post

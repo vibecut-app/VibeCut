@@ -8,14 +8,19 @@ export type MomentAnswer = { reply: string; choices: string[]; ops: Record<strin
 // Who answers the chat: OpenAI on the course key (AI switch on), Claude (its own key), or nobody.
 export type ChatProvider = 'openai' | 'claude' | null
 export type SharePlatform = { id: 'tiktok' | 'youtube' | 'instagram'; name: string; url: string; where: string; ok: boolean; why: string | null; note: string | null }
-export type ShareTargets = { shape: 'tall' | 'wide' | 'square' | 'unknown'; seconds: number; platforms: SharePlatform[]; mac: boolean }
+export type ShareCover = { t: number; file: string; url: string }
+export type PostWords = { line: string; hashtags: string[]; caption: string; chapters: { t: number; name: string }[]; youtube: { title: string; description: string } }
+export type ShareTargets = { shape: 'tall' | 'wide' | 'square' | 'unknown'; seconds: number; platforms: SharePlatform[]; mac: boolean
+  post: PostWords; credit: string | null; covers: { t: number; url: string }[]; cover: ShareCover | null }
 export type ShareHow = 'download' | 'sheet' | 'caption' | SharePlatform['id']
 // posting to the creator's own YouTube channel (backend youtube.py)
 export type YouTubeChannel = { id: string; title: string; thumb: string | null }
 export type YouTubeState = { configured: boolean; connected: boolean; channel: YouTubeChannel | null; signing_in: boolean; error: string | null; keychain: boolean }
-export type YouTubePrep = { confirm: string; channel: YouTubeChannel; title: string; description: string; fit: SharePlatform; seconds: number; file: string }
+export type YouTubePrep = { confirm: string; channel: YouTubeChannel; title: string; description: string; fit: SharePlatform; seconds: number; file: string
+  cover: (ShareCover & { sent: boolean }) | null }
 export type YouTubePost = { id: string; stage: 'uploading' | 'done' | 'error' | 'stopped'; sent: number; total: number; progress: number
-  title: string; asked: string; privacy: string | null; video: string | null; url: string | null; studio: string | null; error: string | null; elapsed: number }
+  title: string; asked: string; privacy: string | null; video: string | null; url: string | null; studio: string | null; error: string | null
+  cover: string | null; elapsed: number }
 // What one chat message would cost before it's sent, and what AI has cost on this video.
 // per_char: what each typed character adds (the estimate already counts base_chars of them).
 export type ChatEstimate = { on: boolean; provider: ChatProvider; model: string | null; tokens_in: number
@@ -158,12 +163,13 @@ export const api = {
   exportPhotos: (id: string) => j<{ ok: boolean }>(post(`/api/export/${id}/photos`, {})),
   // where a finished file can go next, each platform checked against it (backend share.py)
   exportShare: (id: string) => j<ShareTargets>(fetch(`/api/export/${id}/share`)),
+  exportCover: (id: string, t: number) => j<ShareCover>(post(`/api/export/${id}/cover`, { t })),
   exportShared: (id: string, how: ShareHow) => j<{ ok: boolean }>(post(`/api/export/${id}/shared`, { how })),
   youtube: () => j<YouTubeState>(fetch('/api/youtube')),
   youtubeConnect: () => j<{ url: string }>(post('/api/youtube/connect', {})),
   youtubeDisconnect: () => j<YouTubeState>(post('/api/youtube/disconnect', {})),
   youtubePrepare: (id: string) => j<YouTubePrep>(post(`/api/export/${id}/youtube/prepare`, {})),
-  youtubePost: (id: string, req: { confirm: string; title: string; description: string; privacy: string; made_for_kids: boolean | null }) =>
+  youtubePost: (id: string, req: { confirm: string; title: string; description: string; privacy: string; made_for_kids: boolean | null; cover_t: number | null }) =>
     j<YouTubePost>(post(`/api/export/${id}/youtube`, req)),
   youtubePostStatus: (pid: string) => j<YouTubePost>(fetch(`/api/youtube/posts/${pid}`)),
   youtubePostStop: (pid: string) => j<YouTubePost>(post(`/api/youtube/posts/${pid}/stop`, {})),

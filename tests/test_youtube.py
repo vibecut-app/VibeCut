@@ -6,7 +6,9 @@ page connects nothing, the token is kept out of youtube.json; a post needs
 the single-use code from this export's confirm screen and an answer to
 "made for kids?", and goes up whole in chunks, even when one is dropped;
 what YouTube says (private when public was asked) is reported; a used-up
-quota is said plainly; Stop leaves nothing; a revoked sign-in is forgotten;
+quota is said plainly; Stop leaves nothing; the cover goes up as the
+thumbnail of a video (not a Short), and a refused cover leaves the post
+standing; a revoked sign-in is forgotten;
 the post is on the project's record and launchlog counts it.
 
     python tests/test_youtube.py
@@ -186,6 +188,26 @@ def main() -> int:
                             total=len(data), stop=True)
         youtube._run(post, None)
         check("Stop leaves nothing on YouTube", post.stage == "stopped" and len(fake.uploads) == n)
+
+        # the words and the cover
+        prep = c.post(f"/api/export/{jid}/youtube/prepare").json()
+        check("the confirm screen starts from the drafted words", prep["title"] and "#shorts" in prep["description"], prep["description"])
+        t0 = c.get(f"/api/export/{jid}/share").json()["covers"][0]["t"]
+        cv = c.post(f"/api/export/{jid}/cover", json={"t": t0}).json()
+        p = wait_post(c, c.post(f"/api/export/{jid}/youtube", json={**body, "confirm": prep["confirm"], "cover_t": t0}).json()["id"])
+        check("a Short's cover isn't sent (YouTube picks those in its app)", p["stage"] == "done" and p["cover"] is None and not fake.thumbs)
+        cover_path = os.path.join(os.path.dirname(job["path"]), cv["file"])
+        wide = youtube.start(job["path"], youtube.check_meta("Wide", "", "private", False), False, None, cover_path)
+        for _ in range(400):
+            if wide.stage != "uploading":
+                break
+            time.sleep(0.05)
+        check("a video's cover goes up after it, as its thumbnail", wide.public()["cover"] == "set" and fake.thumbs
+              and fake.thumbs[-1]["bytes"] == open(cover_path, "rb").read() and fake.thumbs[-1]["video"] == wide.video
+              and fake.thumbs[-1]["type"] == "image/jpeg", json.dumps(wide.public()))
+        fake.thumb_refuse = True
+        check("a refused cover is said and the post stands", "verified channel" in youtube.set_thumbnail(wide.video, cover_path))
+        fake.thumb_refuse = False
         backend._close_project()
 
         fake.revoked.append(fake.refresh)
@@ -203,7 +225,7 @@ def main() -> int:
         check("disconnect revokes at Google and forgets here", not s["connected"] and fake.refresh in fake.revoked
               and not tok.exists() and not youtube._info_path().exists())
     summ = launchlog.summary()
-    check("launchlog counts what was posted from VibeCut", summ["posted"] == 2 and "posted from VibeCut 2" in launchlog.page(summ),
+    check("launchlog counts what was posted from VibeCut", summ["posted"] == 3 and "posted from VibeCut 3" in launchlog.page(summ),
           json.dumps({k: summ[k] for k in ("posted", "shares")}))
     print(f"\n{'all passed' if not failures else f'{len(failures)} failed: ' + ', '.join(failures)}")
     return 1 if failures else 0

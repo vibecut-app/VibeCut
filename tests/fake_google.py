@@ -6,7 +6,8 @@ against the challenge and the redirect against the one asked for, the
 channel list needs the bearer token, and a resumable upload is put
 together from its chunks by Content-Range (308 + Range until the last,
 then the video). Switches: `deny`, `no_channel`, `quota`, `drop_once`
-(one chunk answered 503 and not kept), `force_private`.
+(one chunk answered 503 and not kept), `force_private`, `thumb_refuse`;
+thumbnails.set keeps what it was sent.
 
     python tests/fake_google.py 8790     # serve it, for a walkthrough
 """
@@ -34,6 +35,8 @@ class Fake:
         self.uploads: list[dict] = []          # finished: {meta, data}
         self.deny = self.no_channel = self.quota = self.drop_once = self.force_private = False
         self.dropped = False
+        self.thumbs: list[dict] = []           # {video, bytes}
+        self.thumb_refuse = False
         self.srv: http.server.ThreadingHTTPServer | None = None
 
     @property
@@ -102,6 +105,15 @@ class Fake:
                 if u.path == "/revoke":
                     fake.revoked.append(dict(urllib.parse.parse_qsl(body.decode())).get("token", ""))
                     return self._send(200, {})
+                if u.path == "/upload/youtube/v3/thumbnails/set":
+                    if not self._authed():
+                        return
+                    if fake.thumb_refuse:
+                        return self._send(403, {"error": {"code": 403, "message": "The authenticated user doesn't have permissions to upload and set custom video thumbnails.",
+                                                          "errors": [{"reason": "forbidden"}]}})
+                    vid = dict(urllib.parse.parse_qsl(u.query)).get("videoId")
+                    fake.thumbs.append({"video": vid, "bytes": body, "type": self.headers.get("Content-Type")})
+                    return self._send(200, {"items": [{"default": {"url": "https://i.ytimg.com/x.jpg"}}]})
                 if u.path == "/upload/youtube/v3/videos":
                     if not self._authed():
                         return

@@ -352,6 +352,28 @@ The promise to a user is therefore *not* "this will be beautiful." It is
   posted again by itself. `tests/test_youtube.py` against a stand-in Google
   (`tests/fake_google.py`); walked through in the app against the stand-in,
   not yet against real Google (needs the creator's client id).
+  **Words and a cover to post with** (2026-10-24, the user: "think about
+  what other feature is missing, keep building"; the Share box said "No
+  caption to copy" on most edits). `web/backend/postcopy.py`: a draft from
+  the edit alone, never the model — the title on screen, else where and
+  when it was filmed ("A Saturday in Lisbon, morning to night", "3 days in
+  Lisbon", from the edit's clips' times and the place names places.py has
+  cached, no new lookups); ≤ `MAX_TAGS` 5 hashtags (#dayinmylife /
+  #weekendvlog / #travel, #vlog, city, a named place, #shorts for a Short);
+  YouTube chapters by YouTube's rules (first 0:00, ≥ 3, each ≥ 10 s; chapter
+  titles on screen first, else stops by place; none for a Short). The Share
+  box's "Words to post with it" is that draft, the creator's to change; the
+  music credit is added to whatever they write. YouTube's confirm screen
+  starts from its title / description. `web/backend/covers.py`: the cover
+  is a frame of the export itself (captions and look included, never made
+  up): up to 6 stills, the hook then the longest-held shots, picked in the
+  Share box, saved full size as "<name> cover.jpg" beside the video (≤ 2 MB)
+  and on the export's record; YouTube gets it with the post through
+  `thumbnails.set` (`youtube.set_thumbnail`, not for a Short; a refusal,
+  e.g. an unverified channel, is said and the post stands). The post sends
+  only the cover the confirm screen showed (`cover_t`). Tests:
+  `tests/test_postcopy.py`, additions in `test_share.py`, `test_youtube.py`.
+  Tags and the cover rule are priors.
 - **Watch, then Fine-tune** (2026-10-18, `App.tsx` `watching`): a made or
   remixed video opens as the video, full-size, with four chips under it —
   music (the bed switch), length (`LengthButton`), look (cycles the looks

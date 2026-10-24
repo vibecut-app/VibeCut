@@ -87,6 +87,21 @@ def through_api() -> None:
         check("a short lists TikTok, YouTube Shorts and Instagram, all fitting",
               [p["name"] for p in t["platforms"]] == ["TikTok", "YouTube Shorts", "Instagram"]
               and all(p["ok"] for p in t["platforms"]) and t["shape"] == "tall", json.dumps(t)[:240])
+        check("there are words to post with, never empty", t["post"]["caption"].strip() != "" and "#vlog" in t["post"]["hashtags"]
+              and "#shorts" in t["post"]["hashtags"], json.dumps(t["post"])[:200])
+        check("cover stills are offered, the hook first, none chosen yet", t["covers"] and t["cover"] is None
+              and t["covers"][0]["t"] < 2.5, json.dumps(t["covers"]))
+        r = c.get(t["covers"][0]["url"])
+        check("a still is a small JPEG of the file", r.status_code == 200 and r.content[:2] == b"\xff\xd8"
+              and r.headers["content-type"] == "image/jpeg")
+        check("a moment outside the video is refused", c.post(f"/api/export/{jid}/cover", json={"t": 999}).status_code == 400)
+        cv = c.post(f"/api/export/{jid}/cover", json={"t": t["covers"][0]["t"]}).json()
+        beside = os.path.join(os.path.dirname(job["path"]), cv["file"])
+        check("the chosen cover is saved full size beside the video", cv["file"].endswith(" cover.jpg") and os.path.isfile(beside)
+              and os.path.getsize(beside) > os.path.getsize(os.path.join(os.environ["VIBECUT_CACHE"], "covers", jid,
+                                                                          f"{int(round(t['covers'][0]['t'] * 1000))}.jpg")), json.dumps(cv))
+        check("it is on the export's record, and served", c.get(f"/api/export/{jid}/share").json()["cover"]["file"] == cv["file"]
+              and c.get(f"/api/export/{jid}/cover").content == open(beside, "rb").read())
         for how in ("download", "tiktok", "caption"):
             check(f"{how} is recorded", c.post(f"/api/export/{jid}/shared", json={"how": how}).status_code == 200)
         check("an unknown share is refused", c.post(f"/api/export/{jid}/shared", json={"how": "fax"}).status_code == 400)
