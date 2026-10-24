@@ -4,6 +4,7 @@ import { bytes, dur } from '../format'
 import { renderSchedule, type Part } from '../overlayDraw'
 import type { BoardStyle, ExportJob, ExportRecord, Overlays, TimelineData } from '../types'
 import { ago } from '../ui'
+import { SharePanel } from './SharePanel'
 
 type Phase = { kind: 'ready' } | { kind: 'drawing'; done: number; of: number } | { kind: 'rendering'; job: ExportJob }
   | { kind: 'done'; job: ExportJob } | { kind: 'error'; message: string }
@@ -74,8 +75,10 @@ export function Export({ tl, overlays, parts, music, credit, style, history = []
   }
 
   const [verdict, setVerdict] = useState<null | 'sending' | 'sent'>(null)
-  const [saved, setSaved] = useState<string | null>(null)
   const [note, setNote] = useState('')
+  // The caption to paste: the title line, and the music credit its licence asks for
+  const title = overlays.items.find((o) => o.kind === 'title')?.text ?? ''
+  const caption = [title, credit && phase.kind === 'done' && phase.job.music ? `Music: ${credit}` : ''].filter(Boolean).join('\n')
   const pct = phase.kind === 'drawing' ? phase.done / Math.max(1, phase.of)
     : phase.kind === 'rendering' ? phase.job.progress : phase.kind === 'done' ? 1 : 0
   const status = phase.kind === 'drawing' ? `Drawing the captions… ${phase.done}/${phase.of} frames`
@@ -87,7 +90,7 @@ export function Export({ tl, overlays, parts, music, credit, style, history = []
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 backdrop-blur-[2px]" onPointerDown={(e) => { if (e.target === e.currentTarget && !busy) onClose() }}>
-      <div role="dialog" aria-labelledby="export-title" className="w-[440px] max-w-[92vw] rounded-2xl border border-line bg-panel p-5 shadow-2xl shadow-black/60">
+      <div role="dialog" aria-labelledby="export-title" className="max-h-[92vh] w-[460px] max-w-[92vw] overflow-y-auto rounded-2xl border border-line bg-panel p-5 shadow-2xl shadow-black/60">
         <div className="flex items-baseline gap-2">
           <h2 id="export-title" className="font-serif text-[24px] text-zinc-100">Export</h2>
           <span className="text-[12px] text-muted">{frame.w}×{frame.h} · {dur(tl.total)} · 30 fps</span>
@@ -126,6 +129,7 @@ export function Export({ tl, overlays, parts, music, credit, style, history = []
               <p className="mt-1.5 text-[12px] text-zinc-200">Saved <span className="font-medium">{phase.job.file}</span> in {phase.job.elapsed.toFixed(0)}s.
                 {phase.job.notes?.length ? <span className="block text-muted">{phase.job.notes.join(' ')}</span> : null}</p>
             )}
+            {phase.kind === 'done' && <SharePanel job={phase.job} caption={caption} />}
             {phase.kind === 'done' && (
               // The one question that is the launch metric: would you post this?
               <div className="mt-3 rounded-lg border border-line px-2.5 py-2">
@@ -167,18 +171,6 @@ export function Export({ tl, overlays, parts, music, credit, style, history = []
 
         <div className="mt-5 flex justify-end gap-2">
           {phase.kind === 'done' ? <>
-            {navigator.platform.startsWith('Mac') && <button type="button" onClick={async () => { setSaved('…'); try { await api.exportPhotos(phase.job.id); setSaved('In Photos.') } catch (e) { setSaved((e as Error).message) } }}
-                                                             className="rounded-lg bg-accent/20 px-3 py-1.5 text-[12px] text-zinc-100 hover:bg-accent/30">Save to Photos</button>}
-            {saved && <span className="self-center text-[11px] text-muted">{saved}</span>}
-            <button type="button" title="The caption to paste: the title line, and the music credit its licence asks for"
-                    onClick={() => {
-                      const title = overlays.items.find((o) => o.kind === 'title')?.text ?? ''
-                      const text = [title, credit ? `Music: ${credit}` : ''].filter(Boolean).join('\n')
-                      navigator.clipboard?.writeText(text).then(() => setSaved('Caption copied.')).catch(() => setSaved('Copy failed.'))
-                    }}
-                    className="rounded-lg border border-line px-3 py-1.5 text-[12px] text-zinc-200 hover:bg-raised">Copy caption{credit ? ' + credit' : ''}</button>
-            {navigator.platform.startsWith('Mac') && <button type="button" onClick={() => api.exportReveal(phase.job.id)} className="rounded-lg border border-line px-3 py-1.5 text-[12px] text-zinc-200 hover:bg-raised">Show in Finder</button>}
-            <a href={`/api/export/${phase.job.id}/file`} download className="rounded-lg border border-line px-3 py-1.5 text-[12px] text-zinc-200 hover:bg-raised">Download</a>
             <button type="button" onClick={onClose} className="rounded-lg bg-accent px-3 py-1.5 text-[12px] font-semibold text-accent-ink">Done</button>
           </> : busy ? (
             <button type="button" onClick={cancel} className="rounded-lg border border-line px-3 py-1.5 text-[12px] text-zinc-200 hover:bg-raised">Cancel</button>

@@ -615,6 +615,46 @@ overlays exported in 139 s on an M5; an 11 s voiceover edit in 4 s.
 `tests/test_export.py` checks frame-exact length, the overlay window to the
 frame, and one audio track through silent clips and gaps.
 
+## Share it, and posting to YouTube
+
+After an export the dialog's **Share it** box has Download, Save to Photos,
+Show in Finder, Share… (AirDrop / Messages / Mail, where the browser can
+hand over a file) and one link each for TikTok, YouTube and Instagram: the
+click copies the caption + credit and opens that platform's upload page.
+Each platform is checked against the file first (frame, length).
+
+**Posting to YouTube from VibeCut** ("Or post it to your YouTube channel
+from here…") needs a Google Cloud project of your own, once:
+
+1. In the Google Cloud console make a project, and enable **YouTube Data
+   API v3** for it.
+2. **OAuth consent screen**: user type External, app name VibeCut, your
+   e-mail; add the scopes `.../auth/youtube.upload` and
+   `.../auth/youtube.readonly`; under **Test users** add the Google account
+   that owns your channel. (While the app is in Testing, the sign-in lasts
+   7 days; then VibeCut asks you to connect again.)
+3. **Credentials → Create credentials → OAuth client ID → Desktop app**.
+   No redirect address to fill in: VibeCut listens on 127.0.0.1 for the
+   answer, once.
+4. Put it in `web/.env` and restart the server:
+
+   ```
+   YOUTUBE_CLIENT_ID=….apps.googleusercontent.com
+   YOUTUBE_CLIENT_SECRET=…        # if Google showed one
+   ```
+
+Then the first post asks you to sign in with Google (VibeCut asks only to
+upload and to see your channel's name); the sign-in stays in this Mac's
+Keychain until you press "Use another account". Every post opens a confirm
+screen — channel, video, title, description, who can see it (Only me by
+default), made for kids? (YouTube asks of every video) — and nothing goes
+up until you press **Post to YouTube**; the button carries a single-use
+code, so the server refuses a post that didn't come from that screen. The
+upload is resumable (Stop between chunks leaves nothing on YouTube); when
+it lands you get the video's link and YouTube Studio's, and the privacy
+YouTube actually set. `tests/test_youtube.py` runs the whole thing against
+a stand-in Google (`tests/fake_google.py`).
+
 ## What the launch tracks
 
 One workflow counts: drop a day's clips, make the two picks, watch, export.

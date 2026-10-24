@@ -309,6 +309,49 @@ The promise to a user is therefore *not* "this will be beautiful." It is
   line plus the track's licence credit, now on `session.music.credit`);
   the no-music export is the dialog's Music switch; "Would you post this?"
   stays the number.
+  **Share it** (2026-10-23, the user: "after the video is created how to
+  move it to like tiktok youtube … publish share it save it";
+  `web/backend/share.py`, `SharePanel.tsx`): after an export the dialog
+  shows Download, Save to Photos, Show in Finder (Mac) and Share… (the
+  system sheet, AirDrop / Messages / Mail, through `navigator.share` with
+  the file, fetched ahead so the click opens it; where the browser can't
+  share files it says so and the button isn't there), then one link each
+  for TikTok, YouTube (Shorts when vertical and ≤ 3 min, else a normal
+  upload) and Instagram: the click copies the caption + credit (the credit
+  only when the file has the music) and opens that platform's own upload
+  page in a new tab, and the line under it says which file to pick from
+  which folder. Each platform is checked against the file first
+  (`GET /api/export/{jid}/share`: frame and length, e.g. "Too long for a
+  Short", "Wide — TikTok shows it small with bars"), said in amber, never
+  hidden. Limits are the platforms' own numbers as of 2026-10, in one
+  table. Every way out is a `Project.events` entry (kind `share`, `how`,
+  `export`; browser-side ones through `POST /api/export/{jid}/shared`,
+  Photos and Finder by their own endpoints) and `launchlog` counts
+  projects shared and each way next to "would you post this?". **VibeCut
+  never posts by itself**: posting through TikTok's and Instagram's APIs
+  (OAuth, app review, audits) is written up in `web/feature-roadmap.md` and
+  waits for the user's go-ahead. `tests/test_share.py`.
+  **Posting to YouTube** (the user, 2026-10-23: "start direct posting with
+  YouTube … with a confirm before every post"; `web/backend/youtube.py`,
+  `YouTubePost.tsx`): the creator's own Google Cloud "Desktop app" OAuth
+  client (`YOUTUBE_CLIENT_ID` in web/.env; setup in web/README.md), else
+  the Share box says it isn't set up. Sign-in = Google's page + a one-time
+  listener on 127.0.0.1 (random port, closed after the answer), PKCE + state;
+  scopes `youtube.upload` + `youtube.readonly` (to name the channel on the
+  confirm screen); refresh token in the Keychain (`security`), channel in
+  `$VIBECUT_CACHE/youtube.json`; disconnect revokes at Google. **Every post
+  is confirmed**: `POST /api/export/{jid}/youtube/prepare` returns the
+  channel, title, description (the music credit), whether it'll be a Short
+  and a single-use code; `POST /api/export/{jid}/youtube` refuses without
+  that code for that export, or without a made-for-kids answer; privacy
+  defaults to Only me. Resumable upload over urllib in 8 MiB chunks, a
+  dropped chunk asks where it stands and carries on, Stop between chunks
+  leaves nothing; the reply reports the privacy YouTube actually set.
+  Landed posts are a `share` event (`how: youtube_post`, video id) and
+  `posted` on the export; launchlog counts `posted`. Never retried, never
+  posted again by itself. `tests/test_youtube.py` against a stand-in Google
+  (`tests/fake_google.py`); walked through in the app against the stand-in,
+  not yet against real Google (needs the creator's client id).
 - **Watch, then Fine-tune** (2026-10-18, `App.tsx` `watching`): a made or
   remixed video opens as the video, full-size, with four chips under it —
   music (the bed switch), length (`LengthButton`), look (cycles the looks

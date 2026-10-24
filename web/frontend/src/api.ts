@@ -7,6 +7,15 @@ export type MomentAnswer = { reply: string; choices: string[]; ops: Record<strin
   preview: { lines: string[]; skipped: string[] } | null; header: string; cost: number | null; spent: number }
 // Who answers the chat: OpenAI on the course key (AI switch on), Claude (its own key), or nobody.
 export type ChatProvider = 'openai' | 'claude' | null
+export type SharePlatform = { id: 'tiktok' | 'youtube' | 'instagram'; name: string; url: string; where: string; ok: boolean; why: string | null; note: string | null }
+export type ShareTargets = { shape: 'tall' | 'wide' | 'square' | 'unknown'; seconds: number; platforms: SharePlatform[]; mac: boolean }
+export type ShareHow = 'download' | 'sheet' | 'caption' | SharePlatform['id']
+// posting to the creator's own YouTube channel (backend youtube.py)
+export type YouTubeChannel = { id: string; title: string; thumb: string | null }
+export type YouTubeState = { configured: boolean; connected: boolean; channel: YouTubeChannel | null; signing_in: boolean; error: string | null; keychain: boolean }
+export type YouTubePrep = { confirm: string; channel: YouTubeChannel; title: string; description: string; fit: SharePlatform; seconds: number; file: string }
+export type YouTubePost = { id: string; stage: 'uploading' | 'done' | 'error' | 'stopped'; sent: number; total: number; progress: number
+  title: string; asked: string; privacy: string | null; video: string | null; url: string | null; studio: string | null; error: string | null; elapsed: number }
 // What one chat message would cost before it's sent, and what AI has cost on this video.
 // per_char: what each typed character adds (the estimate already counts base_chars of them).
 export type ChatEstimate = { on: boolean; provider: ChatProvider; model: string | null; tokens_in: number
@@ -147,6 +156,17 @@ export const api = {
   talkApply: (captions: boolean, profile: Record<string, unknown>) => j<Session>(post('/api/talk/apply', { captions, profile })),
   exportReveal: (id: string) => fetch(`/api/export/${id}/reveal`, { method: 'POST' }),
   exportPhotos: (id: string) => j<{ ok: boolean }>(post(`/api/export/${id}/photos`, {})),
+  // where a finished file can go next, each platform checked against it (backend share.py)
+  exportShare: (id: string) => j<ShareTargets>(fetch(`/api/export/${id}/share`)),
+  exportShared: (id: string, how: ShareHow) => j<{ ok: boolean }>(post(`/api/export/${id}/shared`, { how })),
+  youtube: () => j<YouTubeState>(fetch('/api/youtube')),
+  youtubeConnect: () => j<{ url: string }>(post('/api/youtube/connect', {})),
+  youtubeDisconnect: () => j<YouTubeState>(post('/api/youtube/disconnect', {})),
+  youtubePrepare: (id: string) => j<YouTubePrep>(post(`/api/export/${id}/youtube/prepare`, {})),
+  youtubePost: (id: string, req: { confirm: string; title: string; description: string; privacy: string; made_for_kids: boolean | null }) =>
+    j<YouTubePost>(post(`/api/export/${id}/youtube`, req)),
+  youtubePostStatus: (pid: string) => j<YouTubePost>(fetch(`/api/youtube/posts/${pid}`)),
+  youtubePostStop: (pid: string) => j<YouTubePost>(post(`/api/youtube/posts/${pid}/stop`, {})),
   habits: () => j<{ habits: Habit[]; phrases: string[]; last: { id: string; text: string }[] }>(fetch('/api/habits')),
   habitSwitch: (id: string, off: boolean, remake = false) => j<MakeJob & { habit?: Habit }>(post(`/api/habits/${encodeURIComponent(id)}`, { off, remake })),
   // "Which do you like better?" after Make (backend prefer.py)

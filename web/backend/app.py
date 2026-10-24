@@ -9,6 +9,7 @@ from __future__ import annotations
 import copy
 import json
 import os
+import secrets
 import shutil
 import subprocess
 import sys
@@ -32,7 +33,7 @@ from cutgrammar import grade
 
 from . import board as bd
 from . import projects as pj
-from . import audiomix, bed, brief, cloud, defaults, habits, make, vibes, vlog, tempo, ink, moment, cut, export, looks, pitch, seams, selfcheck, smooth, sound, subtitles, places, indexer, llm, locate, musiclib, oai, overlays, reference, remix, speech, story, storyboard, talk, timeline, vision, voiceover
+from . import audiomix, bed, brief, cloud, defaults, habits, make, vibes, vlog, tempo, ink, moment, cut, export, looks, pitch, seams, selfcheck, smooth, sound, subtitles, places, indexer, llm, locate, musiclib, oai, overlays, reference, remix, share, speech, story, storyboard, talk, timeline, vision, voiceover, youtube
 from .preferences import PreferenceError, Preferences
 from .workflow import GATE, Workflow, WorkflowError
 
@@ -248,6 +249,7 @@ def _capabilities() -> dict:
         "sound": sound.status(),
         "links": reference.ytdlp() is not None,
         "music_folder": musiclib.STATE.get("folder"),
+        "youtube": youtube.configured(),
         "platform": sys.platform,
     }
 
@@ -256,8 +258,9 @@ def _capabilities() -> dict:
 # they succeed the project is written to disk. Uploads, the finished-video
 # tool and the reference library stand apart: they are not project state.
 _NO_PROJECT_OK = ("/api/projects", "/api/upload", "/api/locate", "/api/polish", "/api/music/folder",
-                  "/api/references", "/api/profile", "/api/vibes")
-_NOT_SAVED = ("/api/projects", "/api/upload", "/api/locate", "/api/polish", "/api/music/folder", "/api/profile", "/api/vibes")
+                  "/api/references", "/api/profile", "/api/vibes", "/api/youtube")
+_NOT_SAVED = ("/api/projects", "/api/upload", "/api/locate", "/api/polish", "/api/music/folder", "/api/profile", "/api/vibes",
+              "/api/youtube")
 
 
 @app.middleware("http")
@@ -2503,6 +2506,7 @@ def api_export_photos(jid: str) -> dict:
     p = subprocess.run(["osascript", "-e", script], capture_output=True, text=True, timeout=120)
     if p.returncode != 0:
         raise HTTPException(500, "Photos didn't take it: " + (p.stderr.strip()[-200:] or "unknown error"))
+    _shared(jid, "photos")
     return {"ok": True}
 
 
@@ -2513,7 +2517,181 @@ def api_export_reveal(jid: str) -> Response:
         raise HTTPException(404, "not finished")
     if sys.platform == "darwin":
         subprocess.Popen(["open", "-R", job.path])
+        _shared(jid, "finder")
     return Response(status_code=204)
+
+
+def _shared(jid: str, how: str) -> None:
+    """A share is on the project's record (kind "share"), against the export
+    it moved on, so launchlog.py counts shares next to "would you post this?"."""
+    pr = PROJECT["p"]
+    if pr is None:
+        return
+    with LOCK:
+        n = next((k for k, e in enumerate(pr.exports) if e.get("job") == jid), None)
+        pr.events.append({"kind": "share", "how": how, "export": n, "at": time.time()})
+    _save()
+
+
+@app.get("/api/export/{jid}/share")
+def api_export_share(jid: str) -> dict:
+    """Where this file can go next: one button per platform, each checked
+    against the file's frame and length (share.py). Nothing is posted --
+    a button copies the caption and opens the platform's own upload page."""
+    job = _job(jid)
+    if job.stage != "done" or not job.path:
+        raise HTTPException(404, "not finished")
+    w, h = (job.size or {}).get("w", 0), (job.size or {}).get("h", 0)
+    return {"shape": share.shape(w, h), "seconds": round(job.total, 2), "platforms": share.targets(w, h, job.total),
+            "mac": sys.platform == "darwin"}
+
+
+class SharedReq(BaseModel):
+    how: str
+
+
+@app.post("/api/export/{jid}/shared")
+def api_export_shared(jid: str, req: SharedReq) -> dict:
+    """What the browser did with the file (download, the share sheet, a
+    platform's page, the caption copied), for the record only."""
+    job = _job(jid)
+    if job.stage != "done" or not job.path:
+        raise HTTPException(404, "not finished")
+    if req.how not in share.HOWS or req.how in share.SERVER_HOWS:
+        raise HTTPException(400, f"unknown share: {req.how}")
+    _shared(jid, req.how)
+    return {"ok": True}
+
+
+# --------------------------------------------------------------------------
+# posting to YouTube: the creator's own channel, one confirmed post at a time
+# --------------------------------------------------------------------------
+
+# Single-use codes from the confirm screen: code -> (export job, when).
+# A post must carry one, so nothing reaches YouTube that the creator didn't
+# see (title, channel, who can see it) and press Post on.
+YT_CONFIRMS: dict[str, tuple[str, float]] = {}
+YT_CONFIRM_S = 60 * 60
+
+
+def _yt(fn, *a):
+    try:
+        return fn(*a)
+    except youtube.YouTubeError as e:
+        raise HTTPException(409, str(e)) from e
+
+
+@app.get("/api/youtube")
+def api_youtube() -> dict:
+    return youtube.status()
+
+
+@app.post("/api/youtube/connect")
+def api_youtube_connect() -> dict:
+    """Google's sign-in page for the creator to open; the answer comes back
+    to a one-time listener on this Mac (youtube.py)."""
+    return {"url": _yt(youtube.connect)}
+
+
+@app.post("/api/youtube/disconnect")
+def api_youtube_disconnect() -> dict:
+    youtube.disconnect()
+    return youtube.status()
+
+
+@app.post("/api/export/{jid}/youtube/prepare")
+def api_youtube_prepare(jid: str) -> dict:
+    """What the confirm screen shows -- the channel it would land on, the
+    title and description to start from, whether it will be a Short -- and
+    the single-use code its Post button carries."""
+    job = _job(jid)
+    if job.stage != "done" or not job.path:
+        raise HTTPException(404, "not finished")
+    if not youtube.status()["connected"]:
+        raise HTTPException(409, "Connect your YouTube channel first.")
+    ch = _yt(youtube.channel)
+    if not ch:
+        raise HTTPException(409, "This Google account has no YouTube channel yet. Make one on youtube.com, then connect again.")
+    now = time.time()
+    for k, (_, at) in list(YT_CONFIRMS.items()):
+        if now - at > YT_CONFIRM_S:
+            YT_CONFIRMS.pop(k, None)
+    code = secrets.token_urlsafe(16)
+    YT_CONFIRMS[code] = (jid, now)
+    w, h = (job.size or {}).get("w", 0), (job.size or {}).get("h", 0)
+    title = next((o["text"] for o in (SESSION.board or {}).get("overlays", []) if o["kind"] == "title"), None) \
+        or (PROJECT["p"].name if PROJECT["p"] else "") or Path(job.path).stem
+    credit = (_music_public() or {}).get("credit") if job.music else None   # the licence asks for it
+    return {"confirm": code, "channel": ch, "title": title.replace("<", "").replace(">", "")[:youtube.TITLE_MAX],
+            "description": f"Music: {credit}" if credit else "", "fit": share.fit("youtube", w, h, job.total),
+            "seconds": round(job.total, 2), "file": Path(job.path).name}
+
+
+class YouTubePostReq(BaseModel):
+    confirm: str
+    title: str
+    description: str = ""
+    privacy: str
+    made_for_kids: bool | None = None
+
+
+@app.post("/api/export/{jid}/youtube")
+def api_youtube_post(jid: str, req: YouTubePostReq) -> dict:
+    """Post this export to the creator's channel. Only with the code from
+    this export's confirm screen, once."""
+    job = _job(jid)
+    if job.stage != "done" or not job.path:
+        raise HTTPException(404, "not finished")
+    held = YT_CONFIRMS.get(req.confirm)
+    if not held or held[0] != jid or time.time() - held[1] > YT_CONFIRM_S:
+        raise HTTPException(409, "Open the YouTube confirm screen for this video and press Post there.")
+    try:
+        meta = youtube.check_meta(req.title, req.description, req.privacy, req.made_for_kids)
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+    YT_CONFIRMS.pop(req.confirm, None)
+    pr = PROJECT["p"]
+    w, h = (job.size or {}).get("w", 0), (job.size or {}).get("h", 0)
+    short = share.fit("youtube", w, h, job.total)["name"] == "YouTube Shorts"
+
+    def landed(post: youtube.Post) -> None:
+        # on the project's record: a share event, and the post on its export
+        if pr is None or post.stage != "done":
+            return
+        with LOCK:
+            n = next((k for k, e in enumerate(pr.exports) if e.get("job") == jid), None)
+            rec = {"platform": "youtube", "video": post.video, "privacy": post.privacy, "asked": req.privacy,
+                   "short": short, "at": time.time()}
+            pr.events.append({"kind": "share", "how": "youtube_post", "export": n, "at": rec["at"],
+                              "video": post.video, "privacy": post.privacy})
+            if n is not None:
+                pr.exports[n].setdefault("posted", []).append(rec)
+        if PROJECT["p"] is pr:
+            _save()
+        else:
+            pj.save(pr)
+
+    post = _yt(youtube.start, job.path, meta, short, landed)
+    return post.public()
+
+
+@app.get("/api/youtube/posts/{pid}")
+def api_youtube_post_status(pid: str) -> dict:
+    post = youtube.POSTS.get(pid)
+    if not post:
+        raise HTTPException(404, "no such post")
+    return post.public()
+
+
+@app.post("/api/youtube/posts/{pid}/stop")
+def api_youtube_post_stop(pid: str) -> dict:
+    """Stop between chunks; an upload that never finishes leaves nothing on YouTube."""
+    post = youtube.POSTS.get(pid)
+    if not post:
+        raise HTTPException(404, "no such post")
+    if post.stage == "uploading":
+        post.stop = True
+    return post.public()
 
 
 # --------------------------------------------------------------------------
