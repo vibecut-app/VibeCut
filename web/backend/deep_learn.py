@@ -166,12 +166,13 @@ class FullBlueprint:
     cut_rhythm: CutRhythmAnalysis
     composition: ShotCompositionAnalysis
     text: TextOverlayAnalysis
-    emotional_blueprint: emotional_analysis.EmotionalBlueprint | None = None
 
     # Human-readable summary
     style_one_liner: str  # "Fast-paced vlog with warm tones, heavy motion blur, beat-locked cuts"
     key_techniques: list[str]  # ["Cut on motion", "Zoom transitions", "Glitch effects", ...]
     difficulty_level: str  # "beginner" | "intermediate" | "advanced" | "expert"
+    # last: a field with a default can't come before ones without
+    emotional_blueprint: emotional_analysis.EmotionalBlueprint | None = None
 
 
 def analyze_transitions(style_data: dict) -> TransitionAnalysis:
