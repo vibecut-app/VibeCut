@@ -231,7 +231,7 @@ export type ExportJob = {
   id: string; stage: 'waiting' | 'shots' | 'joining' | 'finishing' | 'done' | 'error' | 'cancelled'
   done: number; of: number; progress: number; error: string | null; file: string | null; path: string | null
   size: { w: number; h: number }; total: number; overlays: number; music: boolean; elapsed: number
-  style?: string | null; notes?: string[]
+  style?: string | null; notes?: string[]; alt?: boolean   // a version in the other frame
 }
 
 // What edits teach -- only once the creator has sorted them.

@@ -76,3 +76,20 @@ def fit(platform: str, w: int, h: int, seconds: float) -> dict:
 
 def targets(w: int, h: int, seconds: float) -> list[dict]:
     return [fit(k, w, h, seconds) for k in PLATFORMS]
+
+
+def other_version(w: int, h: int, seconds: float, alt: bool = False) -> dict | None:
+    """The same edit in the other frame, for the platforms this one doesn't
+    fit: a wide video gets a vertical version for TikTok / Reels (/ Shorts
+    when short enough), a vertical one a wide version for YouTube. None for
+    a version that already is the other one, or a square."""
+    sh = shape(w, h)
+    if alt or sh not in ("tall", "wide"):
+        return None
+    if sh == "wide":
+        short = seconds <= PLATFORMS["youtube"]["short_s"]
+        reels = seconds <= PLATFORMS["instagram"]["max_s"]
+        where = ["TikTok"] + (["Reels"] if reels else []) + (["Shorts"] if short else [])
+        return {"frame": "tall", "label": "vertical", "for": ", ".join(where[:-1]) + (" and " if len(where) > 1 else "") + where[-1]}
+    return {"frame": "wide", "label": "wide", "for": "YouTube"}
+

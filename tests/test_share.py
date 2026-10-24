@@ -7,7 +7,10 @@ video is a normal YouTube upload and is said to sit small on TikTok and
 Reels. Through the API: a finished export lists its three platforms, each
 browser-side share is recorded as a "share" event against that export, an
 unknown one is refused, Show in Finder records itself, nothing is posted,
-and launchlog counts the shares.
+and launchlog counts the shares. The same edit in the other frame: a
+vertical export offers a wide version for YouTube (and the other way),
+which renders at 16:9 the same length, crops shots filmed the other way
+to fill the frame instead of bars, and is kept on the record as a version.
 
     python tests/test_share.py
 """
@@ -16,9 +19,12 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
 import sys
 import tempfile
 import time
+
+import numpy as np
 
 os.environ.setdefault("VIBECUT_CACHE", tempfile.mkdtemp(prefix="vibecut-share-"))
 os.environ.setdefault("VIBECUT_EXPORTS", os.path.join(os.environ["VIBECUT_CACHE"], "out"))
@@ -52,6 +58,12 @@ def rules() -> None:
     check("wide past 15 min: a note, not a refusal", by(1920, 1080, 20 * 60)["youtube"]["note"] is not None
           and by(1920, 1080, 20 * 60)["youtube"]["ok"])
     check("every platform opens its own https upload page", all(p["url"].startswith("https://") for p in short.values()))
+    check("a wide one is offered a vertical version for TikTok, Reels and Shorts",
+          share.other_version(1920, 1080, 60) == {"frame": "tall", "label": "vertical", "for": "TikTok, Reels and Shorts"})
+    check("… a long wide one for TikTok only", share.other_version(1920, 1080, 600)["for"] == "TikTok")
+    check("a vertical one is offered a wide version for YouTube", share.other_version(1080, 1920, 30)["frame"] == "wide")
+    check("a version that is already the other one isn't offered another", share.other_version(1920, 1080, 30, alt=True) is None
+          and share.other_version(1080, 1080, 30) is None)
     check("shapes", (share.shape(1080, 1920), share.shape(1920, 1080), share.shape(1080, 1080), share.shape(0, 0))
           == ("tall", "wide", "square", "unknown"))
 
@@ -102,6 +114,44 @@ def through_api() -> None:
                                                                           f"{int(round(t['covers'][0]['t'] * 1000))}.jpg")), json.dumps(cv))
         check("it is on the export's record, and served", c.get(f"/api/export/{jid}/share").json()["cover"]["file"] == cv["file"]
               and c.get(f"/api/export/{jid}/cover").content == open(beside, "rb").read())
+        # the same edit in the other frame
+        check("this vertical export offers a wide version for YouTube", t["other"] == {"frame": "wide", "label": "wide", "for": "YouTube"})
+        check("a made-up frame is refused", c.post("/api/export", json={"music": False, "frame": "square"}).status_code == 400)
+
+        def render(frame):
+            j = c.post("/api/export", json={"music": False, "frame": frame}).json()
+            j = c.post(f"/api/export/{j['id']}/start", json={"schedule": []}).json()
+            for _ in range(600):
+                if j["stage"] in ("done", "error"):
+                    break
+                time.sleep(0.25)
+                j = c.get(f"/api/export/{j['id']}").json()
+            return j
+
+        def top_band(path, w, h):
+            """Mean brightness of the top tenth of a middle frame (black bars ≈ 0)."""
+            raw = subprocess.run(["ffmpeg", "-v", "error", "-ss", "1.5", "-i", path, "-frames:v", "1", "-f", "rawvideo",
+                                  "-pix_fmt", "gray", "-"], capture_output=True, check=True).stdout
+            return float(np.frombuffer(raw, np.uint8).reshape(h, w)[: h // 10].mean())
+
+        wide = render("wide")
+        check("the wide version: 16:9, the same length, marked as a version", wide["stage"] == "done"
+              and wide["size"] == {"w": 1920, "h": 1080} and abs(wide["total"] - job["total"]) < 0.05 and wide["alt"]
+              and "wide" in wide["file"], json.dumps({k: wide.get(k) for k in ("stage", "size", "total", "alt", "file", "error")}))
+        tw = c.get(f"/api/export/{wide['id']}/share").json()
+        check("… which fits YouTube as a normal video and offers no further version",
+              tw["platforms"][1]["name"] == "YouTube" and tw["platforms"][1]["ok"] and tw["other"] is None)
+        from web.backend import export as ex
+        check("wide footage in a wide version isn't cropped, and says nothing about it",
+              not any(it.get("fill") for it in ex.JOBS[wide["id"]].items) and not wide["notes"])
+        tall = render("tall")
+        check("a vertical version of wide footage fills the frame (cropped), the original has bars",
+              all(it.get("fill") for it in ex.JOBS[tall["id"]].items if it["kind"] == "shot")
+              and top_band(tall["path"], 1080, 1920) > top_band(job["path"], 1080, 1920) + 20
+              and any("2 shots filmed the other way are cropped" in n for n in tall["notes"]),
+              f"{top_band(tall['path'], 1080, 1920):.1f} vs {top_band(job['path'], 1080, 1920):.1f} {tall['notes']}")
+        recs = c.get("/api/session").json()["exports"]
+        check("both versions are on the record, as versions", [bool(e.get("alt")) for e in recs] == [False, True, True], json.dumps([e.get("alt") for e in recs]))
         for how in ("download", "tiktok", "caption"):
             check(f"{how} is recorded", c.post(f"/api/export/{jid}/shared", json={"how": how}).status_code == 200)
         check("an unknown share is refused", c.post(f"/api/export/{jid}/shared", json={"how": "fax"}).status_code == 400)

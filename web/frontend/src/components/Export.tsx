@@ -38,10 +38,17 @@ export function Export({ tl, overlays, parts, music, credit, style, history = []
     return () => window.removeEventListener('keydown', esc)
   }, [busy, onClose])
 
-  const go = async () => {
+  // Versions made in this sitting before the one shown (the Share box's
+  // "make a vertical version too" starts another from the same edit).
+  const [made, setMade] = useState<ExportJob[]>([])
+  // the export's place in the project's list, for "would you post this?"
+  const base = useRef(history.length)
+
+  const go = async (other?: 'tall' | 'wide') => {
     cancelled.current = false
+    if (phase.kind === 'done') setMade((m) => [...m, phase.job])
     try {
-      const job = await api.exportCreate(withMusic)
+      const job = await api.exportCreate(withMusic, other)
       jobId.current = job.id
       let schedule: { frame: number | null; start: number; end: number }[] = []
       if (withWords && overlays.items.length) {
@@ -93,7 +100,7 @@ export function Export({ tl, overlays, parts, music, credit, style, history = []
       <div role="dialog" aria-labelledby="export-title" className="max-h-[92vh] w-[460px] max-w-[92vw] overflow-y-auto rounded-2xl border border-line bg-panel p-5 shadow-2xl shadow-black/60">
         <div className="flex items-baseline gap-2">
           <h2 id="export-title" className="font-serif text-[24px] text-zinc-100">Export</h2>
-          <span className="text-[12px] text-muted">{frame.w}×{frame.h} · {dur(tl.total)} · 30 fps</span>
+          <span className="text-[12px] text-muted">{phase.kind === 'done' ? `${phase.job.size.w}×${phase.job.size.h}` : `${frame.w}×${frame.h}`} · {dur(tl.total)} · 30 fps</span>
         </div>
         <p className="mt-1 text-[12px] leading-snug text-zinc-400">
           Renders the timeline to one MP4 in <span className="text-zinc-300">Movies/VibeCut</span>. Your original clips are only read.
@@ -126,11 +133,20 @@ export function Export({ tl, overlays, parts, music, credit, style, history = []
             {status && <p className="mt-1.5 text-[11px] tabular-nums text-muted">{status}</p>}
             {phase.kind === 'error' && <p className="mt-1.5 text-[12px] text-rose-300">{phase.message}</p>}
             {phase.kind === 'done' && (
-              <p className="mt-1.5 text-[12px] text-zinc-200">Saved <span className="font-medium">{phase.job.file}</span> in {phase.job.elapsed.toFixed(0)}s.
+              <p className="mt-1.5 text-[12px] text-zinc-200">Saved <span className="font-medium">{phase.job.file}</span>
+                {phase.job.alt ? ` (${phase.job.size.h > phase.job.size.w ? 'vertical' : 'wide'} version)` : ''} in {phase.job.elapsed.toFixed(0)}s.
                 {phase.job.notes?.length ? <span className="block text-muted">{phase.job.notes.join(' ')}</span> : null}</p>
             )}
-            {phase.kind === 'done' && <SharePanel job={phase.job} caption={caption} />}
-            {phase.kind === 'done' && (
+            {phase.kind === 'done' && made.length > 0 && (
+              <ul className="mt-1.5 space-y-0.5 text-[11px] text-muted">
+                {made.map((m) => (
+                  <li key={m.id} className="flex gap-2"><span className="min-w-0 flex-1 truncate">Also made just now: {m.file}</span>
+                    <a href={`/api/export/${m.id}/file`} download className="shrink-0 text-accent hover:underline">Download</a></li>
+                ))}
+              </ul>
+            )}
+            {phase.kind === 'done' && <SharePanel job={phase.job} caption={caption} onOther={(f) => go(f)} />}
+            {phase.kind === 'done' && !phase.job.alt && (
               // The one question that is the launch metric: would you post this?
               <div className="mt-3 rounded-lg border border-line px-2.5 py-2">
                 {verdict === 'sent' ? <p className="text-[12px] text-zinc-300">Noted — thank you.</p> : <>
@@ -142,7 +158,7 @@ export function Export({ tl, overlays, parts, music, credit, style, history = []
                       <button key={k} type="button" disabled={verdict === 'sending'}
                               onClick={async () => {
                                 setVerdict('sending')
-                                try { await api.exportVerdict(history.length, k === 'yes', note); setVerdict('sent') }
+                                try { await api.exportVerdict(base.current + made.length, k === 'yes', note); setVerdict('sent') }
                                 catch { setVerdict(null) }
                               }}
                               className={`rounded-md px-2.5 py-1 text-[12px] ${k === 'yes' ? 'bg-accent font-semibold text-accent-ink' : 'border border-line text-zinc-200 hover:bg-raised'}`}>{label}</button>
@@ -176,7 +192,7 @@ export function Export({ tl, overlays, parts, music, credit, style, history = []
             <button type="button" onClick={cancel} className="rounded-lg border border-line px-3 py-1.5 text-[12px] text-zinc-200 hover:bg-raised">Cancel</button>
           ) : <>
             <button type="button" onClick={onClose} className="rounded-lg px-3 py-1.5 text-[12px] text-muted hover:text-zinc-200">Close</button>
-            <button type="button" onClick={go} disabled={!tl.items.length} className="rounded-lg bg-accent px-3 py-1.5 text-[12px] font-semibold text-accent-ink disabled:opacity-30">
+            <button type="button" onClick={() => go()} disabled={!tl.items.length} className="rounded-lg bg-accent px-3 py-1.5 text-[12px] font-semibold text-accent-ink disabled:opacity-30">
               {phase.kind === 'error' ? 'Try again' : 'Export video'}
             </button>
           </>}

@@ -10,7 +10,9 @@ export type ChatProvider = 'openai' | 'claude' | null
 export type SharePlatform = { id: 'tiktok' | 'youtube' | 'instagram'; name: string; url: string; where: string; ok: boolean; why: string | null; note: string | null }
 export type ShareCover = { t: number; file: string; url: string }
 export type PostWords = { line: string; hashtags: string[]; caption: string; chapters: { t: number; name: string }[]; youtube: { title: string; description: string } }
+export type OtherVersion = { frame: 'tall' | 'wide'; label: string; for: string }
 export type ShareTargets = { shape: 'tall' | 'wide' | 'square' | 'unknown'; seconds: number; platforms: SharePlatform[]; mac: boolean
+  other: OtherVersion | null
   post: PostWords; credit: string | null; covers: { t: number; url: string }[]; cover: ShareCover | null }
 export type ShareHow = 'download' | 'sheet' | 'caption' | SharePlatform['id']
 // posting to the creator's own YouTube channel (backend youtube.py)
@@ -148,7 +150,8 @@ export const api = {
   rule: (id: string, action: 'forget' | 'narrow') => j<Session>(post(`/api/preferences/${id}/${action}`, {})),
   suggestOverlays: (req: { profile: Record<string, unknown>; title?: string; kinds?: string[] }) =>
     j<Session>(post('/api/overlays/suggest', req)),
-  exportCreate: (music: boolean) => j<ExportJob>(post('/api/export', { music })),
+  // frame: the same edit in the other frame ('tall' / 'wide'), cropped to fill it
+  exportCreate: (music: boolean, frame?: 'tall' | 'wide') => j<ExportJob>(post('/api/export', { music, frame: frame ?? null })),
   exportFrame: (id: string, n: number, png: Blob) =>
     j<{ ok: boolean }>(fetch(`/api/export/${id}/frames/${n}`, { method: 'POST', body: png })),
   exportStart: (id: string, schedule: { frame: number | null; start: number; end: number }[]) =>

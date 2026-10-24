@@ -374,6 +374,20 @@ The promise to a user is therefore *not* "this will be beautiful." It is
   only the cover the confirm screen showed (`cover_t`). Tests:
   `tests/test_postcopy.py`, additions in `test_share.py`, `test_youtube.py`.
   Tags and the cover rule are priors.
+  **The other frame, one click** (2026-10-24, the user: "when an export is
+  wide, add a one-click 'make a vertical version too' … and the other way
+  round for YouTube"): the Share box offers the same edit in the other
+  frame (`share.other_version`: wide → vertical "for TikTok, Reels and
+  Shorts" as far as the length allows; vertical → wide "for YouTube"; not
+  for a version or a square). `POST /api/export {frame: tall | wide}`
+  exports it without touching the project's own frame; captions are drawn
+  again for the new size by the same browser pipeline; `export.create(crop=
+  True)` → `cover_mismatched`: shots filmed the other way up (after their
+  quarter turns) fill the frame cut to the middle instead of bars, and the
+  export says how many. Saved as "<name> · vertical …" / "· wide", `alt` on
+  the job and the export record; the dialog lists what it made just now and
+  asks "would you post this?" only of the original. Centre crop is a prior:
+  no subject tracking yet. `test_share.py` (bars vs filled, by brightness).
 - **Watch, then Fine-tune** (2026-10-18, `App.tsx` `watching`): a made or
   remixed video opens as the video, full-size, with four chips under it —
   music (the bed switch), length (`LengthButton`), look (cycles the looks

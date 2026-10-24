@@ -26,7 +26,8 @@ export function canShareFiles(): boolean {
 
 const btn = 'rounded-lg border border-line px-3 py-1.5 text-[12px] text-zinc-200 hover:bg-raised'
 
-export function SharePanel({ job, caption: fallback }: { job: ExportJob; caption: string }) {
+// `onOther`: export the same edit in the other frame (the dialog runs it)
+export function SharePanel({ job, caption: fallback, onOther }: { job: ExportJob; caption: string; onOther?: (frame: 'tall' | 'wide') => void }) {
   const [targets, setTargets] = useState<ShareTargets | null>(null)
   const [words, setWords] = useState<string | null>(null)        // null = the draft, untouched
   const [cover, setCover] = useState<ShareCover | null>(null)
@@ -149,6 +150,15 @@ export function SharePanel({ job, caption: fallback }: { job: ExportJob; caption
             </li>
           ))}
         </ul>
+        {targets.other && onOther && (
+          <button type="button" onClick={() => onOther(targets.other!.frame)}
+                  className="mt-2 flex w-full items-center justify-between gap-2 rounded-lg border border-dashed border-line px-3 py-2 text-left hover:bg-raised">
+            <span className="text-[12px] text-zinc-100">Make a {targets.other.label} version too
+              <span className="block text-[11px] text-muted">For {targets.other.for} — the same edit, captions laid out again; any {targets.other.frame === 'tall'
+                ? 'wide' : 'upright'} shots are cropped to fill the frame.</span></span>
+            <span aria-hidden className="text-[16px] text-muted">{targets.other.frame === 'tall' ? '▯' : '▭'}</span>
+          </button>
+        )}
         {ytReady ? (
           <button type="button" onClick={() => setPosting(true)} className="mt-2 text-[12px] text-accent hover:underline">
             Or post it to your YouTube channel from here…</button>

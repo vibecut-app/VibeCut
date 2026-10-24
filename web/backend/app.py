@@ -2344,6 +2344,10 @@ def api_overlays_suggest(req: SuggestReq) -> dict:
 
 class ExportReq(BaseModel):
     music: bool = True
+    # "tall" / "wide": the same edit in the other frame, for the other
+    # platforms (the Share box's "make a vertical version too"); the
+    # project's own frame is unchanged. None = the frame picked up front.
+    frame: str | None = None
 
 
 @app.post("/api/export")
@@ -2354,13 +2358,19 @@ def api_export(req: ExportReq) -> dict:
             raise HTTPException(409, "Choose a story first — there's nothing to export yet.")
         tl = timeline.build(SESSION.board, CLIPS, _track())
         track = _track() if req.music else None
+        if req.frame not in (None, "tall", "wide"):
+            raise HTTPException(400, "frame is tall or wide")
         try:
             # Named after what the video says it is: its title, else the story.
-            title = next((o["text"] for o in SESSION.board.get("overlays", []) if o["kind"] == "title"), None)
+            title = next((o["text"] for o in SESSION.board.get("overlays", []) if o["kind"] == "title"), None) \
+                or SESSION.board.get("name", "")
+            if req.frame:
+                title += " · " + ("vertical" if req.frame == "tall" else "wide")
             job = export.create(looks.camera(tl["items"], SESSION.board), dict(CLIPS), title or SESSION.board.get("name", ""),
                                 track.path if track else None, _style(SESSION.board, for_export=True),
-                                mix=SESSION.board.get("music"), joins=SESSION.board.get("joins"), want=_want(),
-                                sound=audiomix.strips_of(SESSION.board))
+                                mix=SESSION.board.get("music"), joins=SESSION.board.get("joins"),
+                                want=req.frame or _want(), sound=audiomix.strips_of(SESSION.board),
+                                crop=bool(req.frame))
         except ValueError as e:
             raise HTTPException(400, str(e)) from e
         return job.public()
@@ -2410,7 +2420,7 @@ def api_export_status(jid: str) -> dict:
                            "seconds": pub["total"], "size": pub["size"], "music": pub["music"],
                            "overlays": pub["overlays"], "bytes": os.path.getsize(pub["path"]) if pub["path"] and os.path.isfile(pub["path"]) else None,
                            # for launchlog.py: how it was made and what it cost
-                           "elapsed": pub["elapsed"], "style": pub.get("style"),
+                           "elapsed": pub["elapsed"], "style": pub.get("style"), "alt": pub.get("alt", False),
                            "turns": len(live), "undone": sum(t.undone for t in SESSION.turns),
                            "chat_turns": sum(1 for t in live if t.kind == "chat" and t.ops),
                            "default_path": not any(t.kind == "chat" and t.ops for t in live)})
@@ -2548,6 +2558,8 @@ def api_export_share(jid: str) -> dict:
             # words to post with it (postcopy.py) and the licence's credit, kept apart
             "post": _post_words(job), "credit": _credit(job),
             "covers": [{"t": t, "url": f"/api/export/{jid}/still/{int(round(t * 1000))}"} for t in covers.candidates(job.items)],
+            # the same edit in the other frame, one click away
+            "other": share.other_version(w, h, job.total, job.alt),
             "cover": _cover_public(jid, rec)}
 
 

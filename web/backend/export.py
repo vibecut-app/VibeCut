@@ -133,6 +133,7 @@ class Job:
     cancel: bool = False
     style: dict | None = None
     notes: list[str] = field(default_factory=list)
+    alt: bool = False               # a version in the other frame (cover_mismatched)
     # How the music sits under the picture (remix.py): where in the track to
     # start, how loud, where to duck under the original sound, and any sound
     # effects to drop in. None keeps the plain mix.
@@ -152,7 +153,7 @@ class Job:
                 "file": Path(self.path).name if self.path else None, "path": self.path,
                 "size": self.size, "total": round(self.total, 2), "overlays": self.overlays,
                 "music": bool(self.music), "elapsed": round(self.elapsed, 1),
-                "style": (self.style or {}).get("name"), "notes": self.notes}
+                "style": (self.style or {}).get("name"), "notes": self.notes, "alt": self.alt}
 
 
 JOBS: dict[str, Job] = {}
@@ -165,7 +166,10 @@ def _safe_name(s: str) -> str:
 
 def create(items: list[dict], clips: dict[str, dict], name: str, music: str | None,
            style: dict | None = None, mix: dict | None = None, joins: dict | None = None,
-           want: str | None = None, sound: dict | None = None) -> Job:
+           want: str | None = None, sound: dict | None = None, crop: bool = False) -> Job:
+    """`crop`: a version in a frame the edit wasn't made for (share.py's
+    "vertical version too"): every shot filmed the other way up fills the
+    frame, cut to its middle, instead of sitting small between bars."""
     sp = spans(items)
     if not sp:
         raise ValueError("the timeline is empty — choose a story first")
@@ -177,13 +181,47 @@ def create(items: list[dict], clips: dict[str, dict], name: str, music: str | No
     look = (style or {}).get("look")
     if look and not os.path.isfile(look.get("lut", "")):
         raise ValueError("the borrowed look's file is gone — apply the style again")
-    job = Job(id=uuid.uuid4().hex[:10], items=sp, clips=clips, size=frame_size(sp, clips, want),
+    size = frame_size(sp, clips, want)
+    cropped = 0
+    if crop:
+        before = sum(1 for it in sp if it.get("fill"))
+        sp = cover_mismatched(sp, clips, size)
+        cropped = sum(1 for it in sp if it.get("fill")) - before
+    job = Job(id=uuid.uuid4().hex[:10], items=sp, clips=clips, size=size,
               total=sum(s["frames"] for s in sp) / FPS, name=_safe_name(name), music=music, style=style,
               mix=mix, joins=joins, sound=sound)
+    job.alt = crop
+    if cropped:
+        job.notes.append(f"{cropped} shot{'s' * (cropped != 1)} filmed the other way {'are' if cropped != 1 else 'is'} "
+                         "cropped to fill the frame, keeping the middle.")
     job.dir.mkdir(parents=True, exist_ok=True)
     (job.dir / "frames").mkdir(exist_ok=True)
     JOBS[job.id] = job
     return job
+
+
+def cover_mismatched(items: list[dict], clips: dict[str, dict], size: dict) -> list[dict]:
+    """Shots whose picture (after their quarter turns) lies the other way to
+    the frame fill it -- cover and crop to the middle -- so a wide shot in a
+    vertical version isn't a strip between bars. Shots that already match,
+    and gaps, are left alone."""
+    tall = size["h"] > size["w"]
+    out = []
+    for it in items:
+        c = clips.get(it.get("clip_id") or "")
+        if it.get("kind") != "shot" or not c:
+            out.append(it)
+            continue
+        w, h = c.get("width", 0), c.get("height", 0)
+        try:
+            d = _display(c["path"])
+            w, h = d["w"], d["h"]
+        except Exception:  # noqa: BLE001 -- a probe failure keeps the index's size
+            pass
+        if int(it.get("rotate") or 0) % 180 == 90:
+            w, h = h, w
+        out.append({**it, "fill": True} if w and h and (h > w) != tall else it)
+    return out
 
 
 def save_frame(job: Job, n: int, data: bytes) -> None:
@@ -579,7 +617,8 @@ def _run(job: Job) -> None:
         seg_dir = job.dir / "shots"
         seg_dir.mkdir(exist_ok=True)
         job.of = len(job.items)
-        plan, job.notes = plan_transitions(job.items, job.clips, job.style)
+        plan, said = plan_transitions(job.items, job.clips, job.style)
+        job.notes += said          # after what create() already said (a version's crops)
         segs = []
         for k, it in enumerate(job.items):
             if job.cancel:
