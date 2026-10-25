@@ -253,16 +253,6 @@ def aim_refits(job: "Job") -> str | None:
     return head + f": {aimed} kept on the people in them, {n - aimed} with nobody in them keep the middle."
 
 
-def save_frame(job: Job, n: int, data: bytes) -> None:
-    if job.stage != "waiting":
-        raise ValueError("this export has already started")
-    if not (0 <= n < MAX_FRAMES):
-        raise ValueError("frame number out of range")
-    if not data.startswith(b"\x89PNG\r\n\x1a\n"):
-        raise ValueError("overlay frames must be PNG")
-    (job.dir / "frames" / f"{n:05d}.png").write_bytes(data)
-
-
 FACE_MAX = 40   # rects a shot sends at most (one per face per sample; ~1 s apart)
 
 
@@ -328,6 +318,16 @@ def face_areas(job: "Job") -> list[dict]:
         if boxes:
             out.append({"start": round(start, 3), "end": round(at / FPS, 3), "boxes": boxes[:FACE_MAX]})
     return out
+
+
+def save_frame(job: Job, n: int, data: bytes) -> None:
+    if job.stage != "waiting":
+        raise ValueError("this export has already started")
+    if not (0 <= n < MAX_FRAMES):
+        raise ValueError("frame number out of range")
+    if not data.startswith(b"\x89PNG\r\n\x1a\n"):
+        raise ValueError("overlay frames must be PNG")
+    (job.dir / "frames" / f"{n:05d}.png").write_bytes(data)
 
 
 def start(job: Job, schedule: list[dict]) -> None:

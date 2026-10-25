@@ -2420,32 +2420,22 @@ async def api_export_frame(jid: str, n: int, request: Request) -> dict:
 
 class ExportStartReq(BaseModel):
     schedule: list[dict] = []
+    moved: int = 0      # captions the browser moved off faces (a version in the other frame)
 
 
 @app.post("/api/export/{jid}/start")
 def api_export_start(jid: str, req: ExportStartReq) -> dict:
     job = _job(jid)
+    if req.moved > 0 and job.stage == "waiting":
+        job.notes.append(f"{req.moved} caption{'s' * (req.moved != 1)} moved so {'they don’t' if req.moved != 1 else 'it doesn’t'} "
+                         "sit on anyone’s face in this frame.")
     try:
         export.start(job, req.schedule)
     except (ValueError, KeyError, TypeError) as e:
         raise HTTPException(400, str(e)) from e
     return job.public()
-    moved: int = 0      # captions the browser moved off faces (a version in the other frame)
 
 
-@app.get("/api/export/{jid}")
-def api_export_status(jid: str) -> dict:
-    job = _job(jid)
-    if req.moved > 0 and job.stage == "waiting":
-        job.notes.append(f"{req.moved} caption{'s' * (req.moved != 1)} moved so {'they don’t' if req.moved != 1 else 'it doesn’t'} "
-                         "sit on anyone’s face in this frame.")
-    pub = job.public()
-    # A finished export is part of the project's record: the dashboard and
-    # the Export stage list it, and it is how "done" is known after a restart.
-    pr = PROJECT["p"]
-    if pub["stage"] == "done" and pr is not None and not any(e.get("job") == jid for e in pr.exports):
-        live = [t for t in SESSION.turns if not t.undone]
-        pr.exports.append({"job": jid, "file": pub["file"], "path": pub["path"], "at": time.time(),
 @app.get("/api/export/{jid}/faces")
 def api_export_faces(jid: str) -> dict:
     """Where faces sit in a version's frame, for laying its captions out
@@ -2457,6 +2447,16 @@ def api_export_faces(jid: str) -> dict:
     return {"faces": export.face_areas(job)}
 
 
+@app.get("/api/export/{jid}")
+def api_export_status(jid: str) -> dict:
+    job = _job(jid)
+    pub = job.public()
+    # A finished export is part of the project's record: the dashboard and
+    # the Export stage list it, and it is how "done" is known after a restart.
+    pr = PROJECT["p"]
+    if pub["stage"] == "done" and pr is not None and not any(e.get("job") == jid for e in pr.exports):
+        live = [t for t in SESSION.turns if not t.undone]
+        pr.exports.append({"job": jid, "file": pub["file"], "path": pub["path"], "at": time.time(),
                            "seconds": pub["total"], "size": pub["size"], "music": pub["music"],
                            "overlays": pub["overlays"], "bytes": os.path.getsize(pub["path"]) if pub["path"] and os.path.isfile(pub["path"]) else None,
                            # for launchlog.py: how it was made and what it cost
