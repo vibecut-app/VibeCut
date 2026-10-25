@@ -28,6 +28,17 @@ const NAV = [
 const display = 'font-serif font-normal tracking-[-0.02em]'
 const label = 'text-[11px] font-medium uppercase tracking-[0.16em] text-muted'
 
+// Premium aesthetic colors
+const COLORS = {
+  accent1: '#FFD93D',      // Bold gold/yellow
+  accent2: '#FF6B6B',      // Vibrant coral/red
+  accent3: '#4ECDC4',      // Teal
+  accent4: '#A78BFA',      // Purple accent for depth
+  dark: '#0B0F14',
+  card: '#1A1F2E',
+  glass: 'rgba(255, 255, 255, 0.05)',
+}
+
 export function Landing() {
   const [scrolled, setScrolled] = useState(false)
   useEffect(() => { document.title = 'VibeCut — a hundred clips in, one video out' }, [])
@@ -97,12 +108,13 @@ function Btn({ children, onClick, ghost, small, className }: {
 }) {
   return (
     <button type="button" onClick={onClick}
-            className={cx('group inline-flex shrink-0 items-center justify-center gap-2 rounded-[6px] font-medium transition-colors',
-              small ? 'h-9 px-3.5 text-[13px]' : 'h-11 px-5 text-[14px]',
-              ghost ? 'border border-white/15 text-zinc-100 hover:border-white/35 hover:bg-white/[0.03]' : 'bg-zinc-100 text-ink hover:bg-white',
+            className={cx('group inline-flex shrink-0 items-center justify-center gap-2 rounded-[12px] font-semibold transition-all duration-300 backdrop-blur-sm',
+              small ? 'h-9 px-3.5 text-[13px]' : 'h-12 px-6 text-[15px]',
+              ghost ? 'border border-white/30 text-zinc-100 hover:border-white/60 hover:bg-white/[0.12] hover:backdrop-blur-md' : 'bg-gradient-to-r text-ink shadow-lg shadow-[#FFD93D]/40 hover:shadow-xl hover:shadow-[#FFD93D]/50 hover:scale-105',
+              !ghost && 'from-[#FFD93D] via-[#FFC107] to-[#FFB700]',
               className)}>
       {children}
-      {!ghost && <span aria-hidden className="transition-transform group-hover:translate-x-0.5">→</span>}
+      {!ghost && <span aria-hidden className="transition-transform duration-300 group-hover:translate-x-1">→</span>}
     </button>
   )
 }
@@ -156,21 +168,36 @@ function Ticks() {
 
 function Hero({ onStart }: { onStart: () => void }) {
   return (
-    <section className="relative mx-auto max-w-[1120px] px-6 pt-20 pb-16 sm:pt-28">
+    <section className="relative mx-auto max-w-[1120px] px-6 pt-20 pb-16 sm:pt-28 overflow-hidden">
+      {/* Premium gradient background layers */}
+      <div aria-hidden className="absolute -top-40 -right-40 w-96 h-96 rounded-full blur-3xl animate-pulse" style={{ background: `radial-gradient(circle, ${COLORS.accent1}25, transparent)`, animationDuration: '6s' }} />
+      <div aria-hidden className="absolute top-20 -left-32 w-80 h-80 rounded-full blur-3xl animate-pulse" style={{ background: `radial-gradient(circle, ${COLORS.accent3}20, transparent)`, animationDuration: '8s' }} />
+      <div aria-hidden className="absolute bottom-20 right-1/3 w-72 h-72 rounded-full blur-3xl" style={{ background: `radial-gradient(circle, ${COLORS.accent2}15, transparent)`, animationDuration: '10s' }} />
+
       <button type="button" onClick={() => jump('how')}
-              className="lc-rise group inline-flex items-center gap-2.5 text-[13px] text-zinc-400 transition-colors hover:text-zinc-100">
-        <span className="rounded-[4px] border border-accent/40 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-accent">New</span>
+              className="lc-rise group inline-flex items-center gap-2.5 text-[13px] text-zinc-300 transition-colors hover:text-zinc-100">
+        <span className="rounded-[6px] border border-accent/60 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-accent">New</span>
         Cut your day like a reel you love
         <span aria-hidden className="transition-transform group-hover:translate-x-0.5">→</span>
       </button>
 
-      <h1 className={cx(display, 'lc-rise mt-8 text-[38px] leading-[1] sm:text-[104px] sm:leading-[0.98]')} style={{ animationDelay: '60ms' }}>
-        A hundred <span className="whitespace-nowrap">clips in.</span><br /><span className="text-zinc-500">One video</span> <span className="whitespace-nowrap"><Em accent>you'd post.</Em></span>
+      <h1 className={cx(display, 'lc-rise mt-12 text-[48px] leading-[1.1] sm:text-[120px] sm:leading-[1.05] font-bold tracking-tight')} style={{ animationDelay: '60ms' }}>
+        A hundred <span className="whitespace-nowrap">clips in.</span><br />
+        <span className="relative inline-block">
+          <span className="text-zinc-400">One video</span>{' '}
+          <span className="whitespace-nowrap ml-2" style={{
+            background: `linear-gradient(135deg, ${COLORS.accent1} 0%, ${COLORS.accent2} 50%, ${COLORS.accent3} 100%)`,
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            filter: 'drop-shadow(0 0 20px rgba(255, 217, 61, 0.2))'
+          }}>you'd post.</span>
+        </span>
       </h1>
 
-      <div className="lc-rise mt-10 flex flex-wrap items-end justify-between gap-8" style={{ animationDelay: '120ms' }}>
-        <p className="max-w-[420px] text-[17px] leading-relaxed text-zinc-400">
-          Drop your clips. Get a video with <span className="text-zinc-100">no amateur tells</span>.
+      <div className="lc-rise mt-12 flex flex-wrap items-end justify-between gap-8" style={{ animationDelay: '120ms' }}>
+        <p className="max-w-[420px] text-[18px] leading-relaxed text-zinc-300">
+          Drop your clips. Get a video with <span className="font-semibold text-white">no amateur tells</span>.
         </p>
         <div className="flex flex-wrap gap-3">
           <Btn onClick={onStart}>Start with your clips</Btn>
@@ -178,16 +205,16 @@ function Hero({ onStart }: { onStart: () => void }) {
         </div>
       </div>
 
-      <div className={cx(label, 'lc-rise mt-10 flex flex-wrap gap-x-8 gap-y-2 border-t border-line pt-5')} style={{ animationDelay: '180ms' }}>
+      <div className={cx(label, 'lc-rise mt-12 flex flex-wrap gap-x-8 gap-y-2 border-t border-zinc-700/50 pt-6')} style={{ animationDelay: '180ms' }}>
         <span>Runs on your Mac</span><span>No upload</span><span>Nothing generated</span><span>Free in early access</span>
       </div>
 
-      <figure className="lc-rise mt-16" style={{ animationDelay: '240ms' }}>
+      <figure className="lc-rise mt-20" style={{ animationDelay: '240ms' }}>
         <div className="relative">
           <Ticks />
           <BeforeAfter />
         </div>
-        <figcaption className="mt-5 font-serif text-[15px] text-zinc-500 italic">Fig. 1 — a day's clips, and the video made from them.</figcaption>
+        <figcaption className="mt-6 font-serif text-[15px] text-zinc-500 italic">Fig. 1 — a day's clips, and the video made from them.</figcaption>
       </figure>
     </section>
   )
@@ -308,14 +335,16 @@ function Mock() {
 function Marquee() {
   const tells = ['exposure jumps', 'cuts off the beat', 'a caption over a face', 'the same shot twice', 'wind in the mic', 'a 0.6 s flash of nothing', 'music drowning your voice', 'five fonts in one video', 'shaky openers', 'dark words on a dark coat', 'a chat that runs 14 s']
   const row = tells.map((t, i) => (
-    <span key={i} className="flex shrink-0 items-center gap-8 pr-8 font-serif text-[24px] text-zinc-500 italic">
-      <span className="line-through decoration-white/30 decoration-1">{t}</span>
-      <span className="size-1 rounded-full bg-zinc-600" />
+    <span key={i} className="flex shrink-0 items-center gap-8 pr-8 font-serif text-[24px] text-zinc-400 italic">
+      <span className="line-through decoration-zinc-600/60 decoration-1">{t}</span>
+      <span className="size-1.5 rounded-full" style={{ background: COLORS.accent3 }} />
     </span>
   ))
   return (
-    <section className="border-y border-line py-8" aria-label="Amateur tells VibeCut catches">
-      <div className={cx(label, 'mx-auto mb-5 max-w-[1120px] px-6')}>Caught before you ever see them</div>
+    <section className="border-y border-zinc-800/60 py-10 bg-gradient-to-r from-zinc-900/20 to-transparent" aria-label="Amateur tells VibeCut catches">
+      <div className={cx(label, 'mx-auto mb-6 max-w-[1120px] px-6')}>
+        <span className="text-accent">✓</span> Caught before you ever see them
+      </div>
       <div className="lc-fade overflow-hidden">
         <div className="lc-marquee flex w-max">{row}{row}</div>
       </div>
@@ -389,11 +418,14 @@ function Moves() {
   const pad = { paddingInline: 'max(24px, calc((100% - 1072px) / 2))', scrollPaddingInline: 'max(24px, calc((100% - 1072px) / 2))' }
 
   return (
-    <section id="moves" aria-roledescription="carousel" aria-label="What VibeCut can do" className="scroll-mt-20 py-24">
-      <div className="mx-auto flex max-w-[1120px] flex-wrap items-end gap-6 px-6">
+    <section id="moves" aria-roledescription="carousel" aria-label="What VibeCut can do" className="scroll-mt-20 py-24 relative overflow-hidden">
+      {/* Background gradient accent */}
+      <div aria-hidden className="absolute -right-40 top-0 w-96 h-96 rounded-full blur-3xl" style={{ background: `radial-gradient(circle, ${COLORS.accent2}15, transparent)` }} />
+
+      <div className="relative mx-auto flex max-w-[1120px] flex-wrap items-end gap-6 px-6">
         <div className="flex-1">
           <Label n="01">What it can do</Label>
-          <H2>Every move, <Em>built in.</Em></H2>
+          <H2><span style={{ background: `linear-gradient(135deg, #fff, ${COLORS.accent1})`, backgroundClip: 'text', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Every move,</span> <Em>built in.</Em></H2>
         </div>
         <div className="flex gap-2">
           {([[-1, '←', 'Previous'], [1, '→', 'Next']] as const).map(([d, a, text]) => (
@@ -412,19 +444,19 @@ function Moves() {
         ))}
       </div>
       <div ref={track} style={pad}
-           className="lc-track mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4"
+           className="lc-track mt-10 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4"
            onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
            onPointerDown={() => setAuto(false)} onWheel={(e) => { if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) setAuto(false) }}>
         {list.map((m, i) => (
           <figure key={m.kind + m.name} className="w-[168px] shrink-0 snap-start sm:w-[184px]">
             {/* each card starts its loop at a different point, so a row never plays in lockstep */}
-            <div className="lc-card relative aspect-[9/16] overflow-hidden rounded-[8px] border border-line bg-black"
+            <div className="lc-card relative aspect-[9/16] overflow-hidden rounded-[14px] border border-white/10 bg-gradient-to-br from-zinc-900/80 via-black to-zinc-950 shadow-xl backdrop-blur-xl transition-all hover:border-white/30 hover:shadow-2xl hover:shadow-[0_0_40px_rgba(255,217,61,0.15)] hover:from-zinc-800/90"
                  style={{ '--lc-d': `-${((i * 0.9) % 2.4).toFixed(2)}s` } as React.CSSProperties}>
               <MoveArt m={m} i={i} />
             </div>
-            <figcaption className="mt-3 flex items-baseline justify-between gap-2 px-0.5">
-              <span className="text-[14px] text-zinc-100">{m.name}</span>
-              <span className="text-[10px] tracking-[0.14em] whitespace-nowrap text-zinc-500 uppercase">{m.kind}</span>
+            <figcaption className="mt-4 flex items-baseline justify-between gap-2 px-0.5">
+              <span className="text-[14px] font-semibold text-zinc-100">{m.name}</span>
+              <span className="text-[10px] tracking-[0.14em] whitespace-nowrap text-accent/70 uppercase">{m.kind}</span>
             </figcaption>
           </figure>
         ))}
@@ -518,28 +550,33 @@ function How({ onStart }: { onStart: () => void }) {
     { n: '03', title: 'Watch, then post', text: 'Tweak in one tap. Save to Photos.', art: <ArtWatch /> },
   ]
   return (
-    <section id="how" className="mx-auto max-w-[1120px] scroll-mt-20 px-6 py-24">
-      <Label n="02">How it works</Label>
-      <H2>Three steps. <Em>That’s it.</Em></H2>
-      <div className="mt-14 grid divide-y divide-line border-y border-line md:grid-cols-3 md:divide-x md:divide-y-0">
-        {steps.map((s) => (
-          <div key={s.n} className="py-8 md:px-8 md:first:pl-0 md:last:pr-0">
-            <div className="grid h-[168px] place-items-center overflow-hidden rounded-[8px] border border-line bg-panel">{s.art}</div>
-            <div className="mt-6 flex items-baseline gap-3">
-              <span className="font-serif text-[15px] text-zinc-500 italic">{s.n}</span>
-              <h3 className={cx(display, 'text-[26px]')}>{s.title}</h3>
+    <section id="how" className="mx-auto max-w-[1120px] scroll-mt-20 px-6 py-24 relative">
+      {/* Background accent */}
+      <div aria-hidden className="absolute -left-40 top-40 w-96 h-96 rounded-full blur-3xl" style={{ background: `radial-gradient(circle, ${COLORS.accent1}12, transparent)` }} />
+
+      <div className="relative">
+        <Label n="02">How it works</Label>
+        <H2>Three steps. <Em>That’s it.</Em></H2>
+      <div className="mt-16 grid divide-y divide-zinc-800/60 border-y border-zinc-800/60 md:grid-cols-3 md:divide-x md:divide-y-0">
+        {steps.map((s, idx) => (
+          <div key={s.n} className="py-10 md:px-8 md:first:pl-0 md:last:pr-0">
+            <div className="grid h-[168px] place-items-center overflow-hidden rounded-[14px] border border-white/15 bg-gradient-to-br from-zinc-900/60 via-black to-zinc-950 shadow-lg backdrop-blur-md hover:border-white/30 hover:shadow-xl transition-all">{s.art}</div>
+            <div className="mt-7 flex items-baseline gap-3">
+              <span className="font-serif text-[16px] font-bold" style={{ color: [COLORS.accent1, COLORS.accent2, COLORS.accent3][idx] }}>{s.n}</span>
+              <h3 className={cx(display, 'text-[26px] font-semibold')}>{s.title}</h3>
             </div>
-            <p className="mt-1.5 text-[15px] text-zinc-400">{s.text}</p>
+            <p className="mt-2 text-[15px] text-zinc-400">{s.text}</p>
           </div>
         ))}
       </div>
-      <div className="mt-8 flex flex-wrap items-center gap-x-8 gap-y-4 rounded-[10px] border border-line bg-panel p-6 sm:p-8">
-        <span aria-hidden className="grid size-11 shrink-0 place-items-center rounded-[6px] border border-line text-[17px] text-accent">↗</span>
-        <div className="min-w-0 flex-1 basis-[300px]">
-          <h3 className={cx(display, 'text-[24px]')}>Or paste a reel you love.</h3>
-          <p className="mt-1 text-[15px] text-zinc-400">Your day, cut to its rhythm. Never its frames.</p>
+        <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4 rounded-[12px] border border-zinc-700/60 bg-gradient-to-r from-zinc-900/60 to-black p-8 shadow-lg">
+          <span aria-hidden className="grid size-12 shrink-0 place-items-center rounded-[8px] border border-accent/30 text-[18px] font-bold" style={{ color: COLORS.accent1 }}>↗</span>
+          <div className="min-w-0 flex-1 basis-[300px]">
+            <h3 className={cx(display, 'text-[24px] font-semibold')}>Or paste a reel you love.</h3>
+            <p className="mt-1 text-[15px] text-zinc-400">Your day, cut to its rhythm. Never its frames.</p>
+          </div>
+          <Btn ghost onClick={onStart}>Try it with a reel</Btn>
         </div>
-        <Btn ghost onClick={onStart}>Try it with a reel</Btn>
       </div>
     </section>
   )
@@ -728,31 +765,36 @@ function Fixes() {
 function Pricing({ onStart }: { onStart: () => void }) {
   const inc = ['Unlimited videos', 'Music, captions, looks, effects', 'Cut like any reel', 'Straight to Photos']
   return (
-    <section id="pricing" className="mx-auto max-w-[1120px] scroll-mt-20 px-6 py-24">
-      <Label n="05">Pricing</Label>
-      <H2>Free in <Em>early access.</Em></H2>
-      <div className="mt-14 grid gap-px overflow-hidden rounded-[10px] border border-line bg-line md:grid-cols-2">
-        <div className="flex flex-col bg-panel p-8 sm:p-10">
-          <div className="flex items-center justify-between">
-            <span className={label}>Early access</span>
-            <span className="rounded-[4px] border border-accent/40 px-1.5 py-0.5 text-[10px] font-semibold tracking-[0.14em] text-accent uppercase">Now</span>
+    <section id="pricing" className="mx-auto max-w-[1120px] scroll-mt-20 px-6 py-24 relative">
+      {/* Background accent */}
+      <div aria-hidden className="absolute -right-40 bottom-20 w-96 h-96 rounded-full blur-3xl" style={{ background: `radial-gradient(circle, ${COLORS.accent3}15, transparent)` }} />
+
+      <div className="relative">
+        <Label n="05">Pricing</Label>
+        <H2>Free in <Em>early access.</Em></H2>
+        <div className="mt-16 grid gap-6 overflow-visible md:grid-cols-2">
+          <div className="flex flex-col rounded-[16px] border border-white/15 bg-gradient-to-br from-zinc-900/80 via-zinc-900/60 to-black p-8 sm:p-10 shadow-xl backdrop-blur-xl ring-1 ring-accent/30 hover:ring-accent/50 hover:shadow-2xl transition-all duration-500">
+            <div className="flex items-center justify-between">
+              <span className={label}>Early access</span>
+              <span className="rounded-[6px] border border-accent/60 px-2 py-1 text-[10px] font-bold tracking-[0.16em] text-accent uppercase">Now</span>
+            </div>
+            <div className="mt-8 font-serif text-[72px] leading-none font-bold">$0</div>
+            <p className="mt-3 text-[16px] text-zinc-300">Everything, on your Mac.</p>
+            <ul className="mt-8 flex-1 space-y-3 border-t border-zinc-700/50 pt-6 text-[14px] text-zinc-300">
+              {inc.map((x) => <li key={x} className="flex gap-3"><span style={{ color: COLORS.accent1 }}>+</span>{x}</li>)}
+            </ul>
+            <Btn className="mt-10 w-full" onClick={onStart}>Start with your clips</Btn>
           </div>
-          <div className="mt-6 font-serif text-[72px] leading-none">$0</div>
-          <p className="mt-3 text-[15px] text-zinc-400">Everything, on your Mac.</p>
-          <ul className="mt-8 flex-1 space-y-3 border-t border-line pt-6 text-[14px] text-zinc-300">
-            {inc.map((x) => <li key={x} className="flex gap-3"><span className="text-accent">+</span>{x}</li>)}
-          </ul>
-          <Btn className="mt-10 w-full" onClick={onStart}>Start with your clips</Btn>
-        </div>
-        <div className="flex flex-col bg-ink p-8 sm:p-10">
-          <span className={label}>Creator</span>
-          <div className="mt-6 font-serif text-[48px] leading-none text-zinc-400 italic">Coming later</div>
-          <p className="mt-3 text-[15px] text-zinc-500">For one person posting every week.</p>
-          <ul className="mt-8 space-y-3 border-t border-line pt-6 text-[14px] text-zinc-400">
-            {['Everything in early access', 'Smarter picks, no key needed', 'Your taste on every Mac'].map((x) => (
-              <li key={x} className="flex gap-3"><span className="text-zinc-600">+</span>{x}</li>
-            ))}
-          </ul>
+          <div className="flex flex-col rounded-[14px] border border-zinc-800/60 bg-gradient-to-br from-zinc-900/40 to-black p-8 sm:p-10 shadow-md">
+            <span className={label}>Creator</span>
+            <div className="mt-8 font-serif text-[48px] leading-none font-semibold text-zinc-400">Coming later</div>
+            <p className="mt-3 text-[16px] text-zinc-500">For one person posting every week.</p>
+            <ul className="mt-8 space-y-3 border-t border-zinc-800/50 pt-6 text-[14px] text-zinc-400">
+              {['Everything in early access', 'Smarter picks, no key needed', 'Your taste on every Mac'].map((x) => (
+                <li key={x} className="flex gap-3"><span className="text-zinc-700">+</span>{x}</li>
+              ))}
+            </ul>
+          </div>
         </div>
       </div>
     </section>
@@ -796,14 +838,14 @@ function Faq() {
 
 function Closing({ onStart }: { onStart: () => void }) {
   return (
-    <section className="relative overflow-hidden border-t border-line">
-      <div aria-hidden className="lc-glow-low absolute inset-0" />
-      <div className="relative mx-auto max-w-[1120px] px-6 py-28 text-center sm:py-36">
-        <h2 className={cx(display, 'mx-auto max-w-[860px] text-[48px] leading-[1] text-balance sm:text-[88px]')}>
-          Your video is <Em accent>one drop away.</Em>
+    <section className="relative overflow-hidden border-t border-zinc-800/60 bg-gradient-to-b from-zinc-900/40 to-black">
+      <div aria-hidden className="absolute inset-0 opacity-40" style={{ background: `radial-gradient(circle at 50% -50%, ${COLORS.accent1}30, transparent 70%)` }} />
+      <div className="relative mx-auto max-w-[1120px] px-6 py-32 text-center sm:py-40">
+        <h2 className={cx(display, 'mx-auto max-w-[860px] text-[52px] leading-[1.1] text-balance font-bold sm:text-[96px] sm:leading-[1.05]')}>
+          Your video is <span style={{ background: `linear-gradient(120deg, ${COLORS.accent1}, ${COLORS.accent2})`, backgroundClip: 'text', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>one drop away.</span>
         </h2>
-        <div className="mt-10 flex justify-center"><Btn onClick={onStart}>Start with your clips</Btn></div>
-        <p className={cx(label, 'mt-6')}>No account · No upload</p>
+        <div className="mt-12 flex justify-center"><Btn onClick={onStart}>Start with your clips</Btn></div>
+        <p className={cx(label, 'mt-8 text-zinc-500')}>No account · No upload</p>
       </div>
     </section>
   )
@@ -814,9 +856,9 @@ function Closing({ onStart }: { onStart: () => void }) {
 // Kept here rather than in index.css: nothing else in the app moves like this.
 const NOISE = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`
 const CSS = `
-.lc ::selection { background: #b9d9eb; color: #0b2233; }
-.lc-glow { background: radial-gradient(55% 55% at 50% 0%, rgba(185,217,235,.10), transparent 70%); }
-.lc-glow-low { background: radial-gradient(50% 75% at 50% 100%, rgba(185,217,235,.12), transparent 70%); }
+.lc ::selection { background: #FFD93D; color: #0b2233; }
+.lc-glow { background: radial-gradient(55% 55% at 50% 0%, rgba(255,217,61,.08), transparent 70%); }
+.lc-glow-low { background: radial-gradient(50% 75% at 50% 100%, rgba(78,205,196,.1), transparent 70%); }
 .lc-grain { opacity: .06; background-image: ${NOISE}; }
 .lc-fade { -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent); mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent); }
 @keyframes lc-rise { from { opacity: 0; transform: translateY(12px) } to { opacity: 1; transform: none } }
@@ -906,4 +948,18 @@ const CSS = `
 @media (prefers-reduced-motion: reduce) {
   .lc *, .lc *::before { animation: none !important; transition: none !important; }
 }
+/* Premium aesthetic enhancements */
+@keyframes subtle-glow { 0%, 100% { opacity: 0.5; } 50% { opacity: 0.8; } }
+@keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
+.lc-card { transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.lc-card:hover { transform: translateY(-4px) scale(1.02); filter: brightness(1.08); }
+.lc-rise { animation: float 4s ease-in-out infinite; }
+/* Subtle text glow on hover */
+.lc h2:hover { text-shadow: 0 0 30px rgba(255, 217, 61, 0.15); }
+/* Interactive link hover */
+a:hover { transition: all 0.3s ease; }
+/* Button premium effects */
+button:active { transform: scale(0.97); }
+/* Smooth transitions */
+* { transition: color 0.3s ease, background-color 0.3s ease; }
 `

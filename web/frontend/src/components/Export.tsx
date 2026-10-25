@@ -4,6 +4,7 @@ import { bytes, dur } from '../format'
 import { renderSchedule, type Part } from '../overlayDraw'
 import type { BoardStyle, ExportJob, ExportRecord, Overlays, TimelineData } from '../types'
 import { ago } from '../ui'
+import { SharePanel } from './SharePanel'
 
 type Phase = { kind: 'ready' } | { kind: 'drawing'; done: number; of: number } | { kind: 'rendering'; job: ExportJob }
   | { kind: 'done'; job: ExportJob } | { kind: 'error'; message: string }
@@ -37,22 +38,33 @@ export function Export({ tl, overlays, parts, music, credit, style, history = []
     return () => window.removeEventListener('keydown', esc)
   }, [busy, onClose])
 
-  const go = async () => {
+  // Versions made in this sitting before the one shown (the Share box's
+  // "make a vertical version too" starts another from the same edit).
+  const [made, setMade] = useState<ExportJob[]>([])
+  // the export's place in the project's list, for "would you post this?"
+  const base = useRef(history.length)
+
+  const go = async (other?: 'tall' | 'wide') => {
     cancelled.current = false
+    if (phase.kind === 'done') setMade((m) => [...m, phase.job])
     try {
-      const job = await api.exportCreate(withMusic)
+      const job = await api.exportCreate(withMusic, other)
       jobId.current = job.id
       let schedule: { frame: number | null; start: number; end: number }[] = []
+      let moved = 0
       if (withWords && overlays.items.length) {
         setPhase({ kind: 'drawing', done: 0, of: 1 })
+        // a version in the other frame lays its captions out again: off the faces in it
+        const faces = job.alt ? (await api.exportFaces(job.id).catch(() => ({ faces: [] }))).faces : []
         schedule = await renderSchedule({
           items: overlays.items, style: overlays.style, parts, fps: tl.fps, total: job.total, w: job.size.w, h: job.size.h,
+          faces, onMoved: (n) => { moved = n },
           upload: async (n, png) => { await api.exportFrame(job.id, n, png) },
           onProgress: (done, of) => setPhase({ kind: 'drawing', done, of }),
           cancelled: () => cancelled.current,
         })
       }
-      let s = await api.exportStart(job.id, schedule)
+      let s = await api.exportStart(job.id, schedule, moved)
       setPhase({ kind: 'rendering', job: s })
       while (s.stage !== 'done' && s.stage !== 'error' && s.stage !== 'cancelled') {
         await new Promise((r) => setTimeout(r, 400))
@@ -74,8 +86,10 @@ export function Export({ tl, overlays, parts, music, credit, style, history = []
   }
 
   const [verdict, setVerdict] = useState<null | 'sending' | 'sent'>(null)
-  const [saved, setSaved] = useState<string | null>(null)
   const [note, setNote] = useState('')
+  // The caption to paste: the title line, and the music credit its licence asks for
+  const title = overlays.items.find((o) => o.kind === 'title')?.text ?? ''
+  const caption = [title, credit && phase.kind === 'done' && phase.job.music ? `Music: ${credit}` : ''].filter(Boolean).join('\n')
   const pct = phase.kind === 'drawing' ? phase.done / Math.max(1, phase.of)
     : phase.kind === 'rendering' ? phase.job.progress : phase.kind === 'done' ? 1 : 0
   const status = phase.kind === 'drawing' ? `Drawing the captions… ${phase.done}/${phase.of} frames`
@@ -87,10 +101,10 @@ export function Export({ tl, overlays, parts, music, credit, style, history = []
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 backdrop-blur-[2px]" onPointerDown={(e) => { if (e.target === e.currentTarget && !busy) onClose() }}>
-      <div role="dialog" aria-labelledby="export-title" className="w-[440px] max-w-[92vw] rounded-2xl border border-line bg-panel p-5 shadow-2xl shadow-black/60">
+      <div role="dialog" aria-labelledby="export-title" className="max-h-[92vh] w-[460px] max-w-[92vw] overflow-y-auto rounded-2xl border border-line bg-panel p-5 shadow-2xl shadow-black/60">
         <div className="flex items-baseline gap-2">
           <h2 id="export-title" className="font-serif text-[24px] text-zinc-100">Export</h2>
-          <span className="text-[12px] text-muted">{frame.w}×{frame.h} · {dur(tl.total)} · 30 fps</span>
+          <span className="text-[12px] text-muted">{phase.kind === 'done' ? `${phase.job.size.w}×${phase.job.size.h}` : `${frame.w}×${frame.h}`} · {dur(tl.total)} · 30 fps</span>
         </div>
         <p className="mt-1 text-[12px] leading-snug text-zinc-400">
           Renders the timeline to one MP4 in <span className="text-zinc-300">Movies/VibeCut</span>. Your original clips are only read.
@@ -123,10 +137,20 @@ export function Export({ tl, overlays, parts, music, credit, style, history = []
             {status && <p className="mt-1.5 text-[11px] tabular-nums text-muted">{status}</p>}
             {phase.kind === 'error' && <p className="mt-1.5 text-[12px] text-rose-300">{phase.message}</p>}
             {phase.kind === 'done' && (
-              <p className="mt-1.5 text-[12px] text-zinc-200">Saved <span className="font-medium">{phase.job.file}</span> in {phase.job.elapsed.toFixed(0)}s.
+              <p className="mt-1.5 text-[12px] text-zinc-200">Saved <span className="font-medium">{phase.job.file}</span>
+                {phase.job.alt ? ` (${phase.job.size.h > phase.job.size.w ? 'vertical' : 'wide'} version)` : ''} in {phase.job.elapsed.toFixed(0)}s.
                 {phase.job.notes?.length ? <span className="block text-muted">{phase.job.notes.join(' ')}</span> : null}</p>
             )}
-            {phase.kind === 'done' && (
+            {phase.kind === 'done' && made.length > 0 && (
+              <ul className="mt-1.5 space-y-0.5 text-[11px] text-muted">
+                {made.map((m) => (
+                  <li key={m.id} className="flex gap-2"><span className="min-w-0 flex-1 truncate">Also made just now: {m.file}</span>
+                    <a href={`/api/export/${m.id}/file`} download className="shrink-0 text-accent hover:underline">Download</a></li>
+                ))}
+              </ul>
+            )}
+            {phase.kind === 'done' && <SharePanel job={phase.job} caption={caption} onOther={(f) => go(f)} />}
+            {phase.kind === 'done' && !phase.job.alt && (
               // The one question that is the launch metric: would you post this?
               <div className="mt-3 rounded-lg border border-line px-2.5 py-2">
                 {verdict === 'sent' ? <p className="text-[12px] text-zinc-300">Noted — thank you.</p> : <>
@@ -138,7 +162,7 @@ export function Export({ tl, overlays, parts, music, credit, style, history = []
                       <button key={k} type="button" disabled={verdict === 'sending'}
                               onClick={async () => {
                                 setVerdict('sending')
-                                try { await api.exportVerdict(history.length, k === 'yes', note); setVerdict('sent') }
+                                try { await api.exportVerdict(base.current + made.length, k === 'yes', note); setVerdict('sent') }
                                 catch { setVerdict(null) }
                               }}
                               className={`rounded-md px-2.5 py-1 text-[12px] ${k === 'yes' ? 'bg-accent font-semibold text-accent-ink' : 'border border-line text-zinc-200 hover:bg-raised'}`}>{label}</button>
@@ -167,24 +191,12 @@ export function Export({ tl, overlays, parts, music, credit, style, history = []
 
         <div className="mt-5 flex justify-end gap-2">
           {phase.kind === 'done' ? <>
-            {navigator.platform.startsWith('Mac') && <button type="button" onClick={async () => { setSaved('…'); try { await api.exportPhotos(phase.job.id); setSaved('In Photos.') } catch (e) { setSaved((e as Error).message) } }}
-                                                             className="rounded-lg bg-accent/20 px-3 py-1.5 text-[12px] text-zinc-100 hover:bg-accent/30">Save to Photos</button>}
-            {saved && <span className="self-center text-[11px] text-muted">{saved}</span>}
-            <button type="button" title="The caption to paste: the title line, and the music credit its licence asks for"
-                    onClick={() => {
-                      const title = overlays.items.find((o) => o.kind === 'title')?.text ?? ''
-                      const text = [title, credit ? `Music: ${credit}` : ''].filter(Boolean).join('\n')
-                      navigator.clipboard?.writeText(text).then(() => setSaved('Caption copied.')).catch(() => setSaved('Copy failed.'))
-                    }}
-                    className="rounded-lg border border-line px-3 py-1.5 text-[12px] text-zinc-200 hover:bg-raised">Copy caption{credit ? ' + credit' : ''}</button>
-            {navigator.platform.startsWith('Mac') && <button type="button" onClick={() => api.exportReveal(phase.job.id)} className="rounded-lg border border-line px-3 py-1.5 text-[12px] text-zinc-200 hover:bg-raised">Show in Finder</button>}
-            <a href={`/api/export/${phase.job.id}/file`} download className="rounded-lg border border-line px-3 py-1.5 text-[12px] text-zinc-200 hover:bg-raised">Download</a>
             <button type="button" onClick={onClose} className="rounded-lg bg-accent px-3 py-1.5 text-[12px] font-semibold text-accent-ink">Done</button>
           </> : busy ? (
             <button type="button" onClick={cancel} className="rounded-lg border border-line px-3 py-1.5 text-[12px] text-zinc-200 hover:bg-raised">Cancel</button>
           ) : <>
             <button type="button" onClick={onClose} className="rounded-lg px-3 py-1.5 text-[12px] text-muted hover:text-zinc-200">Close</button>
-            <button type="button" onClick={go} disabled={!tl.items.length} className="rounded-lg bg-accent px-3 py-1.5 text-[12px] font-semibold text-accent-ink disabled:opacity-30">
+            <button type="button" onClick={() => go()} disabled={!tl.items.length} className="rounded-lg bg-accent px-3 py-1.5 text-[12px] font-semibold text-accent-ink disabled:opacity-30">
               {phase.kind === 'error' ? 'Try again' : 'Export video'}
             </button>
           </>}
