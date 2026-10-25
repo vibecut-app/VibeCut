@@ -404,6 +404,23 @@ The promise to a user is therefore *not* "this will be beautiful." It is
   the middle showed a neck. Numbers are priors. `tests/test_aim.py`
   (a person left / right of centre centred, the middle crop as control,
   headroom, turned shots, the note).
+  **Captions off faces** (2026-10-24, the user: "move any caption that
+  would sit over a face, using the same face boxes as the crop"): a
+  version's captions are laid out again for its size, so they could land
+  on the person the crop just centred. `export.face_areas` maps the same
+  face boxes into the version's frame shot by shot (crop at its aim, or the
+  picture between bars), `GET /api/export/{jid}/faces` (versions only: an
+  export in the edit's own frame keeps the captions the preview showed),
+  and the browser's `overlayDraw.faceShifts` slides each caption up or down
+  (never sideways: the alignment is the look's) to the nearest place clear
+  of every face on screen at any moment it's shown (`FACE_MARGIN` 0.02 of
+  the short side), else the place that covers least, inside the safe area
+  (the frame for words placed by hand); one shift for its whole time on
+  screen, so words don't jump at a cut. The count rides on the start
+  request (`moved`) into the export's notes. Priors. `tests/test_aim.py`
+  (each face area against where the person is in the rendered file),
+  `faceShifts.test.ts`; `design/eval/2026-10-24-captions-off-faces.png`
+  (before / after, a stand-in face on the synthetic test shoot).
 - **Watch, then Fine-tune** (2026-10-18, `App.tsx` `watching`): a made or
   remixed video opens as the video, full-size, with four chips under it —
   music (the bed switch), length (`LengthButton`), look (cycles the looks
@@ -837,6 +854,25 @@ The promise to a user is therefore *not* "this will be beautiful." It is
   from the index (no pixel decode). Story marks rough cuts (! + numbers on
   hover); each turn gets a second look in chat. The place axis now gives a
   return visit its own chapter in day order. Thresholds are priors.
+  **Check my cut** (2026-10-24, the user: "timestamped notes on my own
+  hand edit, from the cut checks you already have, report only"; idea from
+  Eddie AI's feedback mode, `design/research/09-competitors-2026-10.md`;
+  `web/backend/cutnotes.py`, `POST /api/cutnotes`, `CutNotes.tsx` under
+  Smoother cuts in the Edit tab with nothing clicked). The same per-cut
+  findings (`seams.check`, now carrying each finding's numbers as `data`)
+  and caption findings (`overlays.check`), as a list in edit order: the
+  time, "Cut from shot 4 to 5" or the caption's first words, what's off in
+  plain words with the numbers ("much brighter at the cut (40 → 200 on a
+  0–255 scale)"), and "Usually helps: …" in words only. A click plays
+  through the cut from 1.5 s before (a caption: shows it); after any later
+  turn the list says the edit changed since. Checks the media couldn't
+  support are listed as not checked; the report says its limits are first
+  guesses. Never an op, no model, free; each check is a `cut_check` event
+  on the project (turn, notes, which checks fired) for calibration. Works
+  on any edit, hand-cut or made. `tests/test_cutnotes.py` (a bright shot
+  gives one note at its cut with the built-in numbers, an evenly lit one
+  none, moving the shot moves the note; captions; through the API, nothing
+  changes).
 - **Smoother cuts** (`web/backend/smooth.py`, P3-1/P3-2). Only when asked,
   one undoable turn: beam search over join roughness + filming-order
   penalty inside a part (move_shot), and window nudges ≤2 s onto movement,

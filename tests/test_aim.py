@@ -15,7 +15,10 @@ test runs anywhere), the crop has to move onto them:
   centred); the note says how many were kept on people;
 - two people who fit are kept together, two who don't keep the larger;
 - a point is turned the way export._shot turns the picture (checked
-  against numpy's own rotation of an image).
+  against numpy's own rotation of an image);
+- the face areas sent to the browser (export.face_areas, for moving
+  captions off faces) sit where the person is in the rendered file, cropped
+  or between bars, and only a version sends them; moved captions are noted.
 
 Needs ffmpeg. Takes ~15 s.
 
@@ -182,9 +185,54 @@ def through_export() -> None:
     check("a shot turned by hand is aimed in its turned picture", p is not None and abs(p[0] - W / 2) < 40, str(p))
 
 
+def faces_in_frame() -> None:
+    """Where the faces land in the version's frame -- what the browser moves
+    captions off -- checked against where the person really is in the file."""
+    clips = {"left": clip("left", 1280, 720, (0.15, 0.3, 0.1, 0.2)),
+             "boxed": clip("boxed", 720, 960, (0.4, 0.4, 0.2, 0.2))}    # 3:4 in 9:16: shown whole, bars above and below
+    job = render(shots([("left", {}), ("boxed", {})]), clips, "tall")
+    W, H = 1080, 1920
+    areas = export.face_areas(job)
+    check("a face area for each shot with a face, timed to the shot", [(a["start"], a["end"]) for a in areas] == [(0.0, 2.0), (2.0, 4.0)],
+          json.dumps(areas))
+    for k, a in enumerate(areas):
+        x, y, w, h = a["boxes"][0]
+        got = white(job.path, 2 * k + 1.0, W, H)
+        check(f"shot {k + 1}: the face area is where the person is in the file",
+              got is not None and abs((x + w / 2) * W - got[0]) < 0.02 * W and abs((y + h / 2) * H - got[1]) < 0.02 * H,
+              f"area centre ({(x + w / 2) * W:.0f}, {(y + h / 2) * H:.0f}) vs file {got}")
+    x, y, w, h = areas[0]["boxes"][0]
+    check("the face the crop centred is in the middle across", abs(x + w / 2 - 0.5) < 0.02, f"{x + w / 2:.3f}")
+    bx, by, bw, bh = areas[1]["boxes"][0]
+    band = (H - 1440) / 2 / H
+    check("a shot shown whole between bars maps inside the picture band", by >= band and by + bh <= 1 - band, f"{by:.3f}–{by + bh:.3f}")
+    check("asking again doesn't aim twice or say it twice", export.face_areas(job) == areas
+          and sum("cropped to fill the frame" in n for n in job.notes) == 1, str(job.notes))
+
+    from web.backend import app as A
+    plain = export.create(shots([("left", {})]), clips, "plain", None, want="tall")
+    check("an export in the edit's own frame sends no faces (its captions are as the preview showed)",
+          A.api_export_faces(plain.id) == {"faces": []})
+    alt = export.create(shots([("left", {})]), clips, "alt", None, want="tall", crop=True)
+    check("a version sends its faces", A.api_export_faces(alt.id)["faces"][0]["boxes"])
+    started = A.api_export_start(alt.id, A.ExportStartReq(schedule=[], moved=2))
+    check("captions the browser moved are said in the export's notes",
+          "2 captions moved so they don’t sit on anyone’s face in this frame." in started["notes"], str(started["notes"]))
+    one = export.create(shots([("left", {})]), clips, "one", None, want="tall", crop=True)
+    check("… one in the singular, none says nothing",
+          "1 caption moved so it doesn’t sit on anyone’s face in this frame." in A.api_export_start(one.id, A.ExportStartReq(moved=1))["notes"]
+          and not any("moved" in n for n in A.api_export_start(plain.id, A.ExportStartReq())["notes"]))
+    for j in (alt, one, plain):
+        for _ in range(300):
+            if j.stage in ("done", "error"):
+                break
+            time.sleep(0.1)
+
+
 def main() -> int:
     rules()
     through_export()
+    faces_in_frame()
     print(f"\n{'all passed' if not failures else f'{len(failures)} failed: ' + ', '.join(failures)}")
     return 1 if failures else 0
 

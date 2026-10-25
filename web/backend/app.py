@@ -33,7 +33,7 @@ from cutgrammar import grade
 
 from . import board as bd
 from . import projects as pj
-from . import audiomix, bed, brief, cloud, defaults, habits, make, vibes, vlog, tempo, ink, moment, cut, export, looks, pitch, seams, selfcheck, smooth, sound, subtitles, places, indexer, llm, locate, musiclib, oai, overlays, reference, remix, share, covers, postcopy, speech, story, storyboard, talk, timeline, vision, voiceover, youtube
+from . import audiomix, bed, brief, cloud, cutnotes, defaults, habits, make, vibes, vlog, tempo, ink, moment, cut, export, looks, pitch, seams, selfcheck, smooth, sound, subtitles, places, indexer, llm, locate, musiclib, oai, overlays, reference, remix, share, covers, postcopy, speech, story, storyboard, talk, timeline, vision, voiceover, youtube
 from .preferences import PreferenceError, Preferences
 from .workflow import GATE, Workflow, WorkflowError
 
@@ -379,6 +379,31 @@ def _session() -> dict:
 class SmoothReq(BaseModel):
     order: bool = True
     nudge: bool = True
+
+
+@app.post("/api/cutnotes")
+def api_cutnotes() -> dict:
+    """Check my cut: timestamped notes on the edit as it stands, from the
+    checks every turn already runs (cutnotes.py). Free, no model, changes
+    nothing; the check is kept on the project (kind `cut_check`) with what
+    it found, so later turns can show whether the notes were acted on."""
+    with LOCK:
+        b = SESSION.board
+        if not b:
+            raise HTTPException(400, "There's no edit to check yet.")
+        tl = timeline.build(b, CLIPS, _track())
+        rep = cutnotes.notes(tl["items"], seams.check(tl["items"], CLIPS), overlays.resolve(b),
+                             overlays.check(b, CATALOG["cat"]))
+        last = SESSION.last_active()
+        rep["turn"] = last.id if last else None
+        if PROJECT["p"]:
+            by: dict[str, int] = {}
+            for n in rep["notes"]:
+                for k in n["checks"]:
+                    by[k] = by.get(k, 0) + 1
+            PROJECT["p"].events.append({"kind": "cut_check", "turn": rep["turn"], "notes": len(rep["notes"]),
+                                        "checks": by, "at": time.time()})
+        return rep
 
 
 @app.post("/api/smooth")
@@ -2405,11 +2430,15 @@ def api_export_start(jid: str, req: ExportStartReq) -> dict:
     except (ValueError, KeyError, TypeError) as e:
         raise HTTPException(400, str(e)) from e
     return job.public()
+    moved: int = 0      # captions the browser moved off faces (a version in the other frame)
 
 
 @app.get("/api/export/{jid}")
 def api_export_status(jid: str) -> dict:
     job = _job(jid)
+    if req.moved > 0 and job.stage == "waiting":
+        job.notes.append(f"{req.moved} caption{'s' * (req.moved != 1)} moved so {'they don’t' if req.moved != 1 else 'it doesn’t'} "
+                         "sit on anyone’s face in this frame.")
     pub = job.public()
     # A finished export is part of the project's record: the dashboard and
     # the Export stage list it, and it is how "done" is known after a restart.
@@ -2417,6 +2446,17 @@ def api_export_status(jid: str) -> dict:
     if pub["stage"] == "done" and pr is not None and not any(e.get("job") == jid for e in pr.exports):
         live = [t for t in SESSION.turns if not t.undone]
         pr.exports.append({"job": jid, "file": pub["file"], "path": pub["path"], "at": time.time(),
+@app.get("/api/export/{jid}/faces")
+def api_export_faces(jid: str) -> dict:
+    """Where faces sit in a version's frame, for laying its captions out
+    again off them; none for an export in the edit's own frame, whose
+    captions are where the creator saw them in the preview."""
+    job = _job(jid)
+    if not job.alt:
+        return {"faces": []}
+    return {"faces": export.face_areas(job)}
+
+
                            "seconds": pub["total"], "size": pub["size"], "music": pub["music"],
                            "overlays": pub["overlays"], "bytes": os.path.getsize(pub["path"]) if pub["path"] and os.path.isfile(pub["path"]) else None,
                            # for launchlog.py: how it was made and what it cost

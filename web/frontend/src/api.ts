@@ -1,5 +1,6 @@
 import type { SetupData } from './components/Setup'
-import type { Habit, Capabilities, CutData, ExportJob, Job, LengthSlider, LookFit, PrefClass, Project, ProjectMeta, RefCard, RefJob, RefSummary, Session, StyleAnswers, StyleQuestion, TalkState } from './types'
+import type { FaceArea } from './overlayDraw'
+import type { Habit, Capabilities, CutData, CutReport, ExportJob, Job, LengthSlider, LookFit, PrefClass, Project, ProjectMeta, RefCard, RefJob, RefSummary, Session, StyleAnswers, StyleQuestion, TalkState } from './types'
 
 export type MomentInfo = { header: string; key: string; llm: boolean; provider: ChatProvider
   estimate: { tokens_in: number; usd: [number, number] } }
@@ -138,6 +139,7 @@ export const api = {
   length: () => j<LengthSlider & { current: number }>(fetch('/api/length')),
   setLength: (seconds: number) => j<Session & { length_note: string }>(post('/api/length', { seconds })),
   smooth: (order: boolean, nudge: boolean) => j<Session>(post('/api/smooth', { order, nudge })),
+  cutNotes: () => j<CutReport>(post('/api/cutnotes', {})),
   // chat on pause: what the paused moment is (free), then one message about it (calls the model)
   moment: (t: number) => j<MomentInfo>(post('/api/moment', { t })),
   momentChat: (t: number, message: string, history: { who: 'you' | 'ai'; text: string }[], ai_ok?: number | null) =>
@@ -154,8 +156,9 @@ export const api = {
   exportCreate: (music: boolean, frame?: 'tall' | 'wide') => j<ExportJob>(post('/api/export', { music, frame: frame ?? null })),
   exportFrame: (id: string, n: number, png: Blob) =>
     j<{ ok: boolean }>(fetch(`/api/export/${id}/frames/${n}`, { method: 'POST', body: png })),
-  exportStart: (id: string, schedule: { frame: number | null; start: number; end: number }[]) =>
-    j<ExportJob>(post(`/api/export/${id}/start`, { schedule })),
+  exportStart: (id: string, schedule: { frame: number | null; start: number; end: number }[], moved = 0) =>
+    j<ExportJob>(post(`/api/export/${id}/start`, { schedule, moved })),
+  exportFaces: (id: string) => j<{ faces: FaceArea[] }>(fetch(`/api/export/${id}/faces`)),
   exportStatus: (id: string) => j<ExportJob>(fetch(`/api/export/${id}`)),
   exportCancel: (id: string) => j<ExportJob>(post(`/api/export/${id}/cancel`, {})),
   talkStart: (req: { locale: string; script: string }) => j<TalkState>(post('/api/talk', req)),

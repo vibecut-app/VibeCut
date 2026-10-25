@@ -134,6 +134,7 @@ class Job:
     style: dict | None = None
     notes: list[str] = field(default_factory=list)
     alt: bool = False               # a version in the other frame (cover_mismatched)
+    aimed: bool = False             # its crops aimed (aim_refits), once
     # How the music sits under the picture (remix.py): where in the track to
     # start, how loud, where to duck under the original sound, and any sound
     # effects to drop in. None keeps the plain mix.
@@ -223,7 +224,10 @@ def cover_mismatched(items: list[dict], clips: dict[str, dict], size: dict) -> l
 
 def aim_refits(job: "Job") -> str | None:
     """Aim each refitted shot's crop at its people (aim.py); the note that
-    says what was done, or None when nothing was cropped."""
+    says what was done, or None when nothing was cropped. Once per job."""
+    if job.aimed:
+        return None
+    job.aimed = True
     todo = [it for it in job.items if it.get("refit")]
     if not todo:
         return None
@@ -257,6 +261,73 @@ def save_frame(job: Job, n: int, data: bytes) -> None:
     if not data.startswith(b"\x89PNG\r\n\x1a\n"):
         raise ValueError("overlay frames must be PNG")
     (job.dir / "frames" / f"{n:05d}.png").write_bytes(data)
+
+
+FACE_MAX = 40   # rects a shot sends at most (one per face per sample; ~1 s apart)
+
+
+def face_areas(job: "Job") -> list[dict]:
+    """Where faces are in this export's frame, shot by shot: [{start, end,
+    boxes: [[x, y, w, h], …]}] in shares of the frame, top-left origin, from
+    the same boxes the crops aim by. For a version in the other frame,
+    whose captions are laid out again for its size: the browser moves any
+    caption that would sit on one (overlayDraw.faceShifts). Aims the crops
+    first, so the boxes land where the crop will put them."""
+    note = aim_refits(job)
+    if note:
+        job.notes.append(note)
+    shots = [it for it in job.items if it.get("kind") == "shot" and it.get("clip_id") in job.clips]
+    found = aim.boxes([job.clips[i] for i in {it["clip_id"] for it in shots}])
+    W, H = job.size["w"], job.size["h"]
+    out, at = [], 0
+    for it in job.items:
+        start, at = at / FPS, at + it["frames"]
+        faces = found.get(it.get("clip_id") or "")
+        c = job.clips.get(it.get("clip_id") or "")
+        if it.get("kind") != "shot" or not faces or not c:
+            continue
+        times = (c.get("samples") or {}).get("times") or []
+        a, b = float(it.get("src_start", 0)), float(it.get("src_end", 0))
+        inside = [i for i, t in enumerate(times) if a <= t <= b and i < len(faces)]
+        if not inside and times:
+            inside = [min(range(min(len(times), len(faces))), key=lambda i: abs(times[i] - (a + b) / 2))]
+        if "shown" in it:
+            dw, dh = it["shown"]
+        else:
+            try:
+                d = _display(c["path"])
+                dw, dh = d["w"], d["h"]
+            except Exception:  # noqa: BLE001
+                dw, dh = c.get("width", 0), c.get("height", 0)
+            if int(it.get("rotate") or 0) % 180 == 90:
+                dw, dh = dh, dw
+        if not dw or not dh:
+            continue
+        # where the picture lands: covered and cropped (at its aim, else the
+        # middle) or shown whole between bars -- as _fit does it
+        fill = bool(it.get("fill"))
+        sc = max(W / dw, H / dh) if fill else min(W / dw, H / dh)
+        iw, ih = dw * sc, dh * sc
+        if fill:
+            ax, ay = it.get("aim") or (0.5, None)
+            ox = -min(max(ax * iw - W / 2, 0), iw - W)
+            oy = -(min(max(ay * ih - H * aim.HEAD_AT, 0), ih - H) if ay is not None else (ih - H) / 2)
+        else:
+            ox, oy = (W - iw) / 2, (H - ih) / 2
+        boxes = []
+        for i in inside:
+            for f in faces[i]:
+                (x0, y0), (x1, y1) = (aim.turned((f[0], 1 - f[1] - f[3]), it.get("rotate") or 0, bool(it.get("mirror"))),
+                                      aim.turned((f[0] + f[2], 1 - f[1]), it.get("rotate") or 0, bool(it.get("mirror"))))
+                l, r = (min(x0, x1) * iw + ox) / W, (max(x0, x1) * iw + ox) / W
+                t, btm = (min(y0, y1) * ih + oy) / H, (max(y0, y1) * ih + oy) / H
+                l, r, t, btm = max(0.0, l), min(1.0, r), max(0.0, t), min(1.0, btm)
+                box = [round(l, 4), round(t, 4), round(r - l, 4), round(btm - t, 4)]
+                if r > l and btm > t and box not in boxes:   # a still face on every sample is one box
+                    boxes.append(box)
+        if boxes:
+            out.append({"start": round(start, 3), "end": round(at / FPS, 3), "boxes": boxes[:FACE_MAX]})
+    return out
 
 
 def start(job: Job, schedule: list[dict]) -> None:

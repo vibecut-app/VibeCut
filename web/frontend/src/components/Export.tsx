@@ -51,16 +51,20 @@ export function Export({ tl, overlays, parts, music, credit, style, history = []
       const job = await api.exportCreate(withMusic, other)
       jobId.current = job.id
       let schedule: { frame: number | null; start: number; end: number }[] = []
+      let moved = 0
       if (withWords && overlays.items.length) {
         setPhase({ kind: 'drawing', done: 0, of: 1 })
+        // a version in the other frame lays its captions out again: off the faces in it
+        const faces = job.alt ? (await api.exportFaces(job.id).catch(() => ({ faces: [] }))).faces : []
         schedule = await renderSchedule({
           items: overlays.items, style: overlays.style, parts, fps: tl.fps, total: job.total, w: job.size.w, h: job.size.h,
+          faces, onMoved: (n) => { moved = n },
           upload: async (n, png) => { await api.exportFrame(job.id, n, png) },
           onProgress: (done, of) => setPhase({ kind: 'drawing', done, of }),
           cancelled: () => cancelled.current,
         })
       }
-      let s = await api.exportStart(job.id, schedule)
+      let s = await api.exportStart(job.id, schedule, moved)
       setPhase({ kind: 'rendering', job: s })
       while (s.stage !== 'done' && s.stage !== 'error' && s.stage !== 'cancelled') {
         await new Promise((r) => setTimeout(r, 400))
