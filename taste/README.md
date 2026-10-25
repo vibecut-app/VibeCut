@@ -210,3 +210,92 @@ without them (training here reproduces the Mac's to 1e-8):
   too. Still no story-job model for shorts (55% against 50% guessing).
 - **Long vlogs**: 90% on an unseen creator (24 by 8).
 
+
+## The mistakes it was blind to (2026-10-23)
+
+sarah tapped "Build it" on teaching the model the mistakes it missed: an
+opening or ending cut short, a talk with its cutaways taken out, a few
+shots swapped with the next one. Only how an edit is read changed
+(`features_of`, `FAR`); the damages, pairs, folds, data and L2 are as they
+were. Five ways were tried side by side, then the result was reviewed for
+readings that only catch a damage the way the computer makes it. New
+readings, each with a discrimination check in `test_taste_model`:
+
+- `longest_hold` (both ways): the longest shot inside the edit against the
+  others' 90th percentile (`INNER_Q`) -- one take left running.
+- `talk_longest` (both ways): the longest talking shot against the other
+  talking shots' median; the last shot is the ending's.
+- `flow_seen`: how unlike neighbouring shots' labels are, against two
+  shots at random.
+- `continuity`: how much each shot follows on from the one before -- the
+  labels they share (the video's common ones counting least), the look,
+  the movement out of one against the movement into the next (cut on
+  action), how busy -- against two shots at random. Never the joins'
+  kinds, which stay put when shots move.
+- `music_under_talk` (both ways): music share times voice share.
+
+A reel's shot under `OWN_FRAME_S` 0.5 s has no still of its own at two
+frames a second, so its labels and look aren't read (they may be its
+neighbour's); a board's are always its own.
+
+8-seed means, before → after (unseen creator / damage never shown):
+
+| | long (24 / 8 creators) | shorts (28 / 12) |
+| --- | --- | --- |
+| overall | 89.5% → 93.0% / 27.6% → 34.2% | 84.5% → 85.1% / 24.5% → 23.3% |
+| a few shots swapped | 68% → 89% / 65% → 84% | 63% → 70% / 62% → 66% |
+| cutaways taken out of a talk | 47% → 78% / 12% → 18% | 80% → 85% / 78% → 70% |
+| opening cut short | 11% → 14% / 9% → 9% | 10% → 9% / 5% → 4% |
+| ending cut short | (long vlogs stop at 5 min) | 30% → 27% / 23% → 23% |
+
+Swaps read again the way the reel's reader would read the swapped video
+(sound and faces blurred over the new neighbours): long 63% → 85%, shorts
+61% → 64%. Openings dragged 1.5–4× are caught as before. On shorts
+`permute_durations` lost 4 points and the endings 2–3.
+
+Still blind: a cold opening or ending. Half the good long vlogs open on a
+shot of ordinary length (median 0.99× the typical shot; shorts 1.2×), so
+the good edits don't say a held one is better, and any reading that does
+says it on its own authority.
+
+Tried and dropped: `ends_beat`, a bump peaking at 1.6× the typical shot,
+caught cold openings only at the damage's exact target (cut to 1.0×; at
+1.3× not), preferred openings dragged 1.5–2× over the creator's own, and
+gave Make's "hold the opening" (1.6×) a fixed lead. `flow_heard` /
+`flow_who` (voice, laughs, faces from one shot to the next): sound and
+faces are read a second at a time, so a short shot carries its
+neighbours' readings and moves with them in a swap; read again, the gain
+was gone. Also the grammar's log-probability of the first and last
+shots; the opening against its kind, its music, a regression on its
+readings, or caption reading speed; counting cutaways that break the talk
+(it counts exactly what the damage takes out).
+
+## Third training (2026-10-24, more creators)
+
+sarah: "lets do a little more training ... explore more vloggers other than
+the ones we had to avoid overfitting", then "a bit more us centric". 20 new
+creators, mostly American and in other kinds of vlog (hiking, road trips,
+trucking, RV and van life, family, pregnancy), went into
+`data/candidate-creators.csv`; the run on her Mac read 45 new videos for
+$1.50 of the course key ($3.78 of the $5.00 cap in all). 10 long downloads
+timed out and are `failed`, so the next run tries them again. Of the 45, 10
+weren't vlogs (a storytime, outfit styling, a haul, two sponsored pitches, a
+getting-ready routine, a Q&A, advice to camera, a hairstyle tutorial posted
+twice): marked `not a vlog` and left out.
+
+8-seed means, unseen creator / damage never shown:
+
+| | long | shorts |
+| --- | --- | --- |
+| before (24 by 8 / 28 by 12) | 93.0% / 34.2% | 85.1% / 23.3% |
+| after (50 by 20 / 37 by 17) | 91.9% / 34.0% | 86.7% / 25.7% |
+| the creators it had before (seed 0) | 93.0% → 94.5% | 83.9% → 85.7% |
+| the new creators (seed 0) | 91.4% | 87.8% |
+
+So more creators made it better on the ones it already knew; long's overall
+number dips because the test now covers 20 creators and the new ones are
+further from the old (near-silent hiking films, trucking days). On long,
+a cold opening is caught 14% → 34% of the time; swapped shots 89% → 78%
+and talk left running 78% → 72%. Story jobs on long: 48% against 28% for
+guessing the commonest. At seed 0 the saved models read 93% / 87%, as the
+Mac's own retrain did with the non-vlogs still in.

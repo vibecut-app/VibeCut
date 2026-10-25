@@ -95,6 +95,15 @@ NO_BEAT_GRID = 0.5   # no tempo known: the half-second grid a metronome edit fal
 FLAT = 0.05          # shot lengths this even (spread of their logs) have no rhythm to read
 MIN_D = 0.01         # shorter than this is a reading error, not a shot (s)
 MAX_CUTAWAY = 4      # more b-roll than this between two talks is a montage, not a cutaway [prior]
+INNER_Q = 0.9        # the longest shot inside the edit is read against this quantile of the other
+                     # shots inside it, so one take left running stands out from the edit's ordinary
+                     # long shots and a few outliers don't swamp the reading [prior]
+MIN_INNER = 6        # shots an edit needs before its longest inner shot can stand out [prior]
+# A reel's shot shorter than this has no frame of its own in a reading at
+# two frames a second (describe.FRAME_FPS): the still its labels and look
+# were read from may belong to the shot beside it, so it says nothing about
+# how one shot follows another. A board's readings are each shot's own. [prior]
+OWN_FRAME_S = 0.5
 
 # Amounts where too much and too little both read as amateur -- every shot
 # one length and lengths all over the place, no words at all and words over
@@ -105,8 +114,13 @@ MAX_CUTAWAY = 4      # more b-roll than this between two talks is a montage, not
 # The joins and the words' look are weighed both ways too, so how many
 # effects, top-band words or capitals is right comes from the real edits'
 # middle, not from which way the damages happen to push them.
+# One take left running inside the edit, one talking shot far longer than
+# the others and music under the talk are weighed both ways too: some good
+# edits do each, so how much of it is right comes from their middle, not
+# from which way a damage pushes it.
 FAR = ("rhythm_spread", "opening_hold", "ending_hold", "words_share", "words_shots", "words_per_min",
-       "joins_effect", "joins_flash", "joins_dissolve", "words_top", "words_caps", "music_on")
+       "joins_effect", "joins_flash", "joins_dissolve", "words_top", "words_caps", "music_on",
+       "longest_hold", "talk_longest", "music_under_talk")
 FAR_SAYS = {"rhythm_spread": "shot lengths more even or more uneven than the good edits'",
             "opening_hold": "an opening held shorter or longer than the good edits'",
             "ending_hold": "an ending held shorter or longer than the good edits'",
@@ -118,7 +132,10 @@ FAR_SAYS = {"rhythm_spread": "shot lengths more even or more uneven than the goo
             "joins_dissolve": "fewer or more dissolves than in the good edits",
             "words_top": "words at the top more or less often than in the good edits",
             "words_caps": "more or fewer capitals than in the good edits",
-            "music_on": "music under less or more of it than in the good edits"}
+            "music_on": "music under less or more of it than in the good edits",
+            "longest_hold": "the longest shot inside standing out less or more than in the good edits",
+            "talk_longest": "the longest talk standing out less or more than in the good edits",
+            "music_under_talk": "less or more talk over music than in the good edits"}
 
 # A join the reference reader (style.transitions) can't tell from a cut is
 # read as one on every edit, so a board's swipe and a reel's swipe -- which
@@ -196,6 +213,8 @@ FEATURES = [
      "the first shot is held", "the first shot is cut quickly"),
     ("ending_hold", "x", "how long the last shot is held, against the typical shot",
      "the last shot is held", "the last shot is cut short"),
+    ("longest_hold", "x", "how much longer the longest shot inside the edit runs than its other long shots",
+     "one shot inside runs far longer than the rest", "no shot inside stands out for its length"),
     ("lengths_on_grid", "share", "share of shot lengths in whole beats, as a metronome cuts",
      "shot lengths are whole beats, like a metronome", "shot lengths follow the action, not a grid"),
     ("joins_effect", "share", "share of joins that are an effect, not a straight cut",
@@ -230,14 +249,26 @@ FEATURES = [
      "talking shots run longer than the rest", "talking shots are cut as short as the rest"),
     ("talk_stretch", "share", "the longest talk with no cutaway, as a share of the video",
      "one stretch of talk runs long with no cutaway", "talk is broken up by cutaways"),
+    ("talk_longest", "x", "how much longer the longest talking shot runs than the other talking shots' middle "
+     "(the last shot is the ending's)",
+     "one talking shot runs far longer than the others", "the talking shots run about alike"),
+    ("flow_seen", "num", "how much what's in the picture changes from one shot to the next, "
+     "against chance (1: as if in any order)",
+     "the picture jumps between subjects from shot to shot", "shots of the same things sit together"),
     ("laugh_held", "x", "how long laughing shots are held, against the typical shot",
      "laughs are held", "laughs are cut short"),
     ("music_on", "share", "share of the time with music under it",
      "music runs under it", "little or no music"),
+    ("music_under_talk", "share", "how much of the time a voice is heard over music "
+     "(the share with a voice, times the share with music)",
+     "music runs under the talk", "little talk with music under it"),
     ("cuts_on_beat", "share", "share of cuts on the music's beat",
      "the cuts land on the beat", "the cuts follow the action, not the beat"),
     ("repeats", "share", "share of shots that are a shot shown earlier",
      "a shot is shown twice", "no shot is shown twice"),
+    ("continuity", "num", "how much each shot follows on from the one before -- what it shows, how it looks, "
+     "how it moves -- against two of its shots taken at random (0: as if in any order)",
+     "each shot follows on from the one before", "shots jump between unrelated things"),
     ("payoff_held", "x", "how much longer payoffs are held than the set-up and steps into them",
      "payoffs are held longer than the steps into them", "payoffs are cut as short as the steps"),
     ("hook_first", "yes", "opens on a hook",
@@ -596,6 +627,131 @@ def _longest_run(d: np.ndarray, on: np.ndarray) -> float:
     return best
 
 
+def _labels_alternation(shots: list[dict]) -> float:
+    """How unlike neighbouring shots' labels are (1 - shared / all of the
+    two) against any two shots' (1: as if in any order; low: the edit stays
+    with a thing before moving on). NaN with fewer than three neighbours read."""
+    sets = [set(s["labels"]) if isinstance(s.get("labels"), list) and s["labels"] else None for s in shots]
+    idx = [k for k, x in enumerate(sets) if x]
+    if len(idx) < 2:
+        return NAN
+    vocab = {lb: i for i, lb in enumerate(sorted(set().union(*(sets[k] for k in idx))))}
+    B = np.zeros((len(idx), len(vocab)))
+    for r, k in enumerate(idx):
+        B[r, [vocab[lb] for lb in sets[k]]] = 1.0
+    inter = B @ B.T
+    size = B.sum(1)
+    apart = 1 - inter / (size[:, None] + size[None, :] - inter)
+    pos = {k: r for r, k in enumerate(idx)}
+    near = [apart[pos[k], pos[k + 1]] for k in idx if k + 1 in pos]
+    anyp = apart[np.triu_indices(len(idx), 1)].mean()
+    if len(near) < 3 or anyp < 1e-9:
+        return NAN
+    return float(np.mean(near) / anyp)
+
+
+def _own(desc: dict) -> np.ndarray:
+    """The shots whose stills are their own (OWN_FRAME_S): a shot too
+    short to have one carries its neighbour's labels and look, and would
+    make the shots beside it look alike."""
+    d = _lengths(desc)
+    return np.ones(len(d), bool) if desc.get("source") == "board" else d >= OWN_FRAME_S
+
+
+def _flow(desc: dict) -> float:
+    """How unlike neighbouring shots' labels are, against any two shots."""
+    if "labels" not in set(desc.get("have") or []):
+        return NAN
+    return _labels_alternation([s if ok else {} for s, ok in zip(desc["shots"], _own(desc))])
+
+
+def _rank01(vals) -> np.ndarray:
+    """Each reading's rank among the ones taken, 0 the lowest and 1 the
+    highest, ties sharing their middle rank; NaN where none was taken. A
+    reel's motion and a board's come on different scales; their order
+    inside one edit is what both can say."""
+    v = np.asarray(vals, dtype=float)
+    out = np.full(len(v), NAN)
+    ok = np.isfinite(v)
+    if ok.sum() < 2:
+        return out
+    x = v[ok]
+    r = np.empty(len(x))
+    r[np.argsort(x, kind="stable")] = np.arange(len(x), dtype=float)
+    for u in np.unique(x):
+        m = x == u
+        r[m] = r[m].mean()
+    out[ok] = r / (len(x) - 1)
+    return out
+
+
+def _against_any(pairs: np.ndarray) -> np.ndarray | None:
+    """A reading of every pair of shots, in its spread over all of them: 0
+    is two shots of this edit taken at random. None when it can't be read."""
+    off = ~np.eye(len(pairs), dtype=bool) & np.isfinite(pairs)
+    if off.sum() < 3:
+        return None
+    v = pairs[off]
+    sd = float(v.std())
+    return (pairs - float(v.mean())) / sd if sd > 1e-9 else None
+
+
+def continuity(desc: dict) -> float:
+    """How much each shot follows on from the one before, from what each
+    shot holds: an editor stays with a place or a thing before moving on,
+    keeps the look and the energy together, and cuts on action -- the
+    movement leaving one shot carried into the next. Each is weighed
+    against two shots of the same edit taken at random, so a video filmed
+    all in one room doesn't read as more continuous than a trip, and the
+    same shots in a random order read 0 on average. Only each shot's own
+    readings: never the joins' kinds, which don't move with the shots.
+    NaN with fewer than four shots or nothing to read."""
+    shots = desc.get("shots") or []
+    n = len(shots)
+    if n < 4:
+        return NAN
+    have = set(desc.get("have") or [])
+    own = _own(desc)
+    pairs = []
+    if "labels" in have:
+        # what it shows: the labels two shots share, those the whole video
+        # carries ("people", "indoor") counting least
+        rows = [sorted(set(s["labels"])) if ok and isinstance(s.get("labels"), list) and s["labels"] else None
+                for s, ok in zip(shots, own)]
+        vocab = {x: i for i, x in enumerate(sorted({x for r in rows if r for x in r}))}
+        if vocab:
+            X = np.zeros((n, len(vocab)))
+            for i, r in enumerate(rows):
+                for x in r or ():
+                    X[i, vocab[x]] = 1.0
+            read = np.array([r is not None for r in rows])
+            W = X * np.log((read.sum() + 1.0) / (X.sum(0) + 0.5))
+            W /= np.maximum(np.linalg.norm(W, axis=1), 1e-12)[:, None]
+            shared = W @ W.T
+            shared[~read, :] = NAN
+            shared[:, ~read] = NAN
+            pairs.append(shared)
+        # how it looks (Apple's aesthetics score of the same still)
+        look = np.array([_v(s.get("aesthetic")) if ok else NAN for s, ok in zip(shots, own)])
+        pairs.append(-np.abs(look[:, None] - look[None, :]))
+    if "motion" in have:
+        # the movement out of one shot against the movement into the next
+        edge = _rank01([_v(s.get("motion_out")) for s in shots] + [_v(s.get("motion_in")) for s in shots])
+        pairs.append(-np.abs(edge[:n, None] - edge[None, n:]))
+        # and how busy each shot is
+        busy = _rank01([_v(s.get("motion")) for s in shots])
+        pairs.append(-np.abs(busy[:, None] - busy[None, :]))
+    weighed = [z for z in map(_against_any, pairs) if z is not None]
+    if not weighed:
+        return NAN
+    st = np.stack(weighed)
+    cnt = np.isfinite(st).sum(0)
+    alike = np.where(cnt > 0, np.nansum(st, 0) / np.maximum(cnt, 1), NAN)
+    nxt = alike[np.arange(n - 1), np.arange(1, n)]
+    nxt = nxt[np.isfinite(nxt)]
+    return float(nxt.mean()) if len(nxt) >= 3 else NAN
+
+
 def features_of(desc: dict, grammars: dict | None = None) -> dict[str, float]:
     """Every base feature of an edit (NAMES), NaN where the description has
     no reading for it: a reading that wasn't taken is no evidence either way.
@@ -626,6 +782,15 @@ def features_of(desc: dict, grammars: dict | None = None) -> dict[str, float]:
         out["opening_hold"] = float(np.log(rel[0]))
         if not cutoff:          # where measuring stopped isn't how the creator ended
             out["ending_hold"] = float(np.log(rel[-1]))
+    if n >= MIN_INNER:
+        # One take left running in the middle -- a chat that held, a view the
+        # editor couldn't leave -- against the edit's ordinary long shots,
+        # not its typical one, so an edit of quick steps and held beats
+        # isn't read as dragging. The first and last are the opening's and
+        # ending's own.
+        inner = d[1:-1]
+        k = int(np.argmax(inner))
+        out["longest_hold"] = float(np.log(inner[k] / np.quantile(np.delete(inner, k), INNER_Q)))
     mus = desc.get("music") or {}
     bpm = _v(mus.get("bpm"))
     unit = 30.0 / bpm if bpm > 0 else NO_BEAT_GRID      # a half-beat, as remix.quantise cuts filler
@@ -680,6 +845,25 @@ def features_of(desc: dict, grammars: dict | None = None) -> dict[str, float]:
         if talk.any() and (~talk).any():
             out["talk_vs_other"] = float(ld[talk].mean() - ld[~talk].mean())
         out["talk_stretch"] = _longest_run(d, talk) / total
+        # Talk is cut to its sentences: one talking shot that runs far past
+        # the others is a take nobody broke up with what was being talked
+        # about. Against the other talking shots, so a vlog that talks in
+        # long takes throughout reads as itself. The last shot is left to
+        # the ending: held there, it is landing the video (ending_hold reads
+        # that), and on a long vlog it is where measuring stopped.
+        said = d[:-1][talk[:-1]]
+        if len(said) >= 2:
+            k = int(np.argmax(said))
+            out["talk_longest"] = float(np.log(said[k] / np.median(np.delete(said, k))))
+    # What's in the shots runs in stretches: an editor stays with a scene's
+    # things before moving on, so neighbouring shots share more than any two
+    # do. A careless drag on the timeline breaks a stretch, and the shots
+    # beside it stop matching. Read against the edit's own chance, so a
+    # video filmed in one room isn't read as flowing for having nothing to
+    # change. (Only the stills: sound and faces are read a second at a
+    # time, which blurs a short shot into its neighbours, and a swap would
+    # be read by what it blurred.)
+    out["flow_seen"] = _flow(desc)
     if "sound" in have:
         laugh = np.array([_v(s.get("laugh")) for s in shots]) >= LAUGH_ON
         if laugh.any():
@@ -688,6 +872,12 @@ def features_of(desc: dict, grammars: dict | None = None) -> dict[str, float]:
     # sound
     out["music_on"] = _v(mus.get("on"))
     out["cuts_on_beat"] = _v(mus.get("beat"))
+    # Music under a vlog that talks fights the voice; under a montage it is
+    # the voice. How much music is right depends on how much is said, so
+    # the two are read together as well as apart.
+    if "sound" in have and math.isfinite(out["music_on"]):
+        voice = np.array([_v(s.get("voice")) for s in shots])
+        out["music_under_talk"] = float(out["music_on"] * d[voice >= VOICE_ON].sum() / total)
 
     # the same shot twice (a board's repeat carries its catalogue labels and
     # aesthetics exactly; the two touching halves of a split don't count)
@@ -695,6 +885,9 @@ def features_of(desc: dict, grammars: dict | None = None) -> dict[str, float]:
              if s.get("labels") and _num(s.get("aesthetic")) else None for s in shots]
     if any(keyed):
         out["repeats"] = sum(1 for k, x in enumerate(keyed) if x is not None and x in set(keyed[:max(0, k - 1)])) / n
+
+    # how each shot follows on from the one before
+    out["continuity"] = continuity(desc)
 
     # story: jobs and parts
     # Jobs the role model guessed (a board) aren't the AI editor's: the

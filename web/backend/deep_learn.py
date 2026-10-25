@@ -171,7 +171,7 @@ class FullBlueprint:
     style_one_liner: str  # "Fast-paced vlog with warm tones, heavy motion blur, beat-locked cuts"
     key_techniques: list[str]  # ["Cut on motion", "Zoom transitions", "Glitch effects", ...]
     difficulty_level: str  # "beginner" | "intermediate" | "advanced" | "expert"
-    # last: a field with a default can't come before ones without
+    # last: a field with a default can't come before ones without (the app wouldn't start)
     emotional_blueprint: emotional_analysis.EmotionalBlueprint | None = None
 
 

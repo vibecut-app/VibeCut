@@ -1,0 +1,517 @@
+{
+ "v": 1,
+ "id": "L057",
+ "source": "reference",
+ "group": "long",
+ "vertical": false,
+ "duration": 300.0,
+ "cutoff": true,
+ "have": [
+  "motion",
+  "faces",
+  "sound",
+  "words",
+  "labels",
+  "roles",
+  "music"
+ ],
+ "shots": [
+  {
+   "t": 0.0,
+   "d": 2.369,
+   "motion": 2.05,
+   "motion_in": 1.466,
+   "motion_out": 1.476,
+   "face": 1.0,
+   "facing": 0.078,
+   "people": 1,
+   "voice": 0.744,
+   "music": 0.313,
+   "laugh": 0.069,
+   "labels": [
+    "people",
+    "adult",
+    "eyeglasses"
+   ],
+   "aesthetic": 0.509,
+   "same": false,
+   "speed": 1.0,
+   "role": "hook",
+   "chapter": null
+  },
+  {
+   "t": 2.369,
+   "d": 27.761,
+   "motion": 1.622,
+   "motion_in": 0.976,
+   "motion_out": 1.384,
+   "face": 1.0,
+   "facing": 0.209,
+   "people": 1,
+   "voice": 0.664,
+   "music": 0.284,
+   "laugh": 0.032,
+   "labels": [
+    "people",
+    "adult",
+    "eyeglasses"
+   ],
+   "aesthetic": 0.436,
+   "same": true,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 0
+  },
+  {
+   "t": 30.13,
+   "d": 25.025,
+   "motion": 1.68,
+   "motion_in": 1.354,
+   "motion_out": 2.132,
+   "face": 1.0,
+   "facing": 0.14,
+   "people": 1,
+   "voice": 0.616,
+   "music": 0.258,
+   "laugh": 0.018,
+   "labels": [
+    "people",
+    "adult",
+    "eyeglasses"
+   ],
+   "aesthetic": 0.508,
+   "same": true,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 0
+  },
+  {
+   "t": 55.155,
+   "d": 73.073,
+   "motion": 2.057,
+   "motion_in": 1.084,
+   "motion_out": 2.786,
+   "face": 1.0,
+   "facing": 0.185,
+   "people": 1,
+   "voice": 0.684,
+   "music": 0.273,
+   "laugh": 0.046,
+   "labels": [
+    "people",
+    "adult",
+    "eyeglasses"
+   ],
+   "aesthetic": 0.49,
+   "same": true,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 0
+  },
+  {
+   "t": 128.228,
+   "d": 10.01,
+   "motion": 2.303,
+   "motion_in": 3.361,
+   "motion_out": 2.018,
+   "face": 1.0,
+   "facing": 0.1,
+   "people": 1,
+   "voice": 0.867,
+   "music": 0.282,
+   "laugh": 0.048,
+   "labels": [
+    "people",
+    "adult",
+    "eyeglasses"
+   ],
+   "aesthetic": 0.466,
+   "same": false,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 0
+  },
+  {
+   "t": 138.238,
+   "d": 35.269,
+   "motion": 1.91,
+   "motion_in": 2.204,
+   "motion_out": 1.78,
+   "face": 1.0,
+   "facing": 0.156,
+   "people": 1,
+   "voice": 0.607,
+   "music": 0.284,
+   "laugh": 0.024,
+   "labels": [
+    "people",
+    "adult",
+    "eyeglasses"
+   ],
+   "aesthetic": 0.543,
+   "same": true,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 0
+  },
+  {
+   "t": 173.507,
+   "d": 36.002,
+   "motion": 1.748,
+   "motion_in": 1.357,
+   "motion_out": 4.97,
+   "face": 1.0,
+   "facing": 0.097,
+   "people": 1,
+   "voice": 0.678,
+   "music": 0.296,
+   "laugh": 0.029,
+   "labels": [
+    "adult",
+    "people",
+    "clothing"
+   ],
+   "aesthetic": 0.558,
+   "same": true,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 0
+  },
+  {
+   "t": 209.509,
+   "d": 46.48,
+   "motion": 1.685,
+   "motion_in": 3.09,
+   "motion_out": 4.832,
+   "face": 1.0,
+   "facing": 0.312,
+   "people": 1,
+   "voice": 0.662,
+   "music": 0.28,
+   "laugh": 0.023,
+   "labels": [
+    "people",
+    "adult",
+    "eyeglasses"
+   ],
+   "aesthetic": 0.562,
+   "same": false,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 0
+  },
+  {
+   "t": 255.989,
+   "d": 44.011,
+   "motion": 1.987,
+   "motion_in": 6.901,
+   "motion_out": 1.514,
+   "face": 1.0,
+   "facing": 0.182,
+   "people": 1,
+   "voice": 0.648,
+   "music": 0.265,
+   "laugh": 0.026,
+   "labels": [
+    "people",
+    "adult",
+    "eyeglasses"
+   ],
+   "aesthetic": 0.566,
+   "same": false,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 0
+  }
+ ],
+ "joins": [
+  {
+   "t": 2.369,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 30.13,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 55.155,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 128.228,
+   "kind": "dissolve",
+   "dur": 0.292
+  },
+  {
+   "t": 138.238,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 173.507,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 209.509,
+   "kind": "dissolve",
+   "dur": 0.542
+  },
+  {
+   "t": 255.989,
+   "kind": "dissolve",
+   "dur": 0.459
+  }
+ ],
+ "open": false,
+ "close": false,
+ "words": [
+  {
+   "t": 0.0,
+   "d": 0.5,
+   "band": "bottom",
+   "size": 0.037,
+   "upper": 0.0,
+   "n": 1,
+   "kind": null
+  },
+  {
+   "t": 2.5,
+   "d": 0.5,
+   "band": "bottom",
+   "size": 0.037,
+   "upper": 0.0,
+   "n": 1,
+   "kind": null
+  },
+  {
+   "t": 5.5,
+   "d": 0.5,
+   "band": "bottom",
+   "size": 0.085,
+   "upper": 0.0,
+   "n": 1,
+   "kind": null
+  },
+  {
+   "t": 10.0,
+   "d": 1.5,
+   "band": "bottom",
+   "size": 0.066,
+   "upper": 0.0,
+   "n": 1,
+   "kind": null
+  },
+  {
+   "t": 12.5,
+   "d": 0.5,
+   "band": "bottom",
+   "size": 0.044,
+   "upper": 0.0,
+   "n": 1,
+   "kind": null
+  },
+  {
+   "t": 16.0,
+   "d": 0.5,
+   "band": "bottom",
+   "size": 0.052,
+   "upper": 0.0,
+   "n": 1,
+   "kind": null
+  },
+  {
+   "t": 17.5,
+   "d": 3.5,
+   "band": "bottom",
+   "size": 0.05,
+   "upper": 0.0,
+   "n": 1,
+   "kind": null
+  },
+  {
+   "t": 27.0,
+   "d": 0.5,
+   "band": "bottom",
+   "size": 0.089,
+   "upper": 0.0,
+   "n": 1,
+   "kind": null
+  },
+  {
+   "t": 143.0,
+   "d": 0.5,
+   "band": "bottom",
+   "size": 0.048,
+   "upper": 0.0,
+   "n": 1,
+   "kind": null
+  },
+  {
+   "t": 157.0,
+   "d": 0.5,
+   "band": "bottom",
+   "size": 0.074,
+   "upper": 0.0,
+   "n": 1,
+   "kind": null
+  },
+  {
+   "t": 159.0,
+   "d": 0.5,
+   "band": "bottom",
+   "size": 0.052,
+   "upper": 0.0,
+   "n": 1,
+   "kind": null
+  },
+  {
+   "t": 165.0,
+   "d": 0.5,
+   "band": "bottom",
+   "size": 0.059,
+   "upper": 0.0,
+   "n": 1,
+   "kind": null
+  },
+  {
+   "t": 196.0,
+   "d": 0.5,
+   "band": "bottom",
+   "size": 0.033,
+   "upper": 0.0,
+   "n": 1,
+   "kind": null
+  },
+  {
+   "t": 203.0,
+   "d": 1.5,
+   "band": "bottom",
+   "size": 0.076,
+   "upper": 0.0,
+   "n": 1,
+   "kind": null
+  },
+  {
+   "t": 219.0,
+   "d": 0.5,
+   "band": "bottom",
+   "size": 0.037,
+   "upper": 0.0,
+   "n": 1,
+   "kind": null
+  },
+  {
+   "t": 226.0,
+   "d": 0.5,
+   "band": "bottom",
+   "size": 0.03,
+   "upper": 0.0,
+   "n": 1,
+   "kind": null
+  },
+  {
+   "t": 243.0,
+   "d": 0.5,
+   "band": "bottom",
+   "size": 0.041,
+   "upper": 0.0,
+   "n": 1,
+   "kind": null
+  },
+  {
+   "t": 272.5,
+   "d": 0.5,
+   "band": "bottom",
+   "size": 0.037,
+   "upper": 0.0,
+   "n": 1,
+   "kind": null
+  },
+  {
+   "t": 276.5,
+   "d": 0.5,
+   "band": "bottom",
+   "size": 0.041,
+   "upper": 0.0,
+   "n": 1,
+   "kind": null
+  },
+  {
+   "t": 278.0,
+   "d": 0.5,
+   "band": "bottom",
+   "size": 0.044,
+   "upper": 0.0,
+   "n": 1,
+   "kind": null
+  },
+  {
+   "t": 296.0,
+   "d": 0.5,
+   "band": "bottom",
+   "size": 0.056,
+   "upper": 0.0,
+   "n": 1,
+   "kind": null
+  }
+ ],
+ "music": {
+  "bpm": null,
+  "on": 0.013,
+  "beat": null
+ },
+ "lufs": -13.1,
+ "editor": {
+  "premise": "A conversational drive, with the spoken thread carrying the viewer rather than changing locations or activity.",
+  "hook": {
+   "shots": [
+    1
+   ],
+   "kind": "talk"
+  },
+  "chapters": [
+   {
+    "name": "Driving conversation",
+    "first": 2,
+    "last": 9,
+    "purpose": "Sustain the spoken thread while trimming gaps in the drive."
+   }
+  ],
+  "captions": {
+   "role": "subtitle",
+   "note": "Sparse bottom-positioned words appear intermittently alongside speech; their exact relationship to the dialogue cannot be confirmed from these stills."
+  },
+  "music": [],
+  "ending": "cutoff",
+  "techniques": [
+   {
+    "name": "jump_cuts",
+    "shots": [
+     2,
+     3,
+     4,
+     6,
+     7
+    ]
+   },
+   {
+    "name": "ambient_soundtrack",
+    "shots": [
+     2,
+     4,
+     8,
+     9
+    ]
+   }
+  ],
+  "notes": "Keep speech as the spine. After the brief opening, hold long stretches rather than adding coverage. Jump cuts remove gaps; occasional dissolves soften skips. The driving image supports conversation, not a separate travel montage.",
+  "roles_given": 9,
+  "model": "gpt-6.1-sol",
+  "cost": 0.0123,
+  "at": "2026-10-23"
+ }
+}

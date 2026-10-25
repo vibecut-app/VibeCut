@@ -11,7 +11,7 @@
  * 6. Apply to video
  */
 
-import { useState, useRef, useEffect } from 'react'
+import { useState } from 'react'
 import { cx } from '../ui'
 
 export interface Recipe {
@@ -147,7 +147,7 @@ function RecipeCard({ recipe, onAdjust, adjustments }: RecipeCardProps) {
             <div className="mt-1.5 flex flex-wrap gap-1.5">
               {Object.entries(recipe.effects.effects)
                 .filter(([, count]) => count > 0)
-                .map(([name, count]) => (
+                .map(([name]) => (
                   <span
                     key={name}
                     className="inline-block rounded-full bg-[#fff3c4] px-2.5 py-1 text-xs font-bold text-[#1d1a17]"
@@ -251,7 +251,6 @@ function RecipeCard({ recipe, onAdjust, adjustments }: RecipeCardProps) {
   ]
 
   const [activeCard, setActiveCard] = useState(0)
-  const track = useRef<HTMLDivElement>(null)
 
   const card = cards[activeCard]
 

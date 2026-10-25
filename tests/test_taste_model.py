@@ -363,6 +363,99 @@ def discrimination_tests() -> None:
         _set(parts, k, chapter=k // 3)
     moves("chapters_per_min", plain(), parts, by=2 / (9 / 60))
 
+    # thirteen even shots, or one inside held three times as long; a held
+    # opening is the opening's, not a take left running
+    moves("longest_hold", plain([1.0] * 13), plain([1.0] * 6 + [3.0] + [1.0] * 6), by=math.log(3))
+    check("longest_hold: a held first shot isn't read as one inside",
+          f(plain([3.0] + [1.0] * 12))["longest_hold"] == 0.0)
+    # in a short edit too: the held shot is read against the others, not itself
+    moves("longest_hold", plain([1.0] * 8), plain([1.0] * 3 + [3.0] + [1.0] * 4), by=math.log(3))
+    # three talking shots alike, or one of them held 2.5x
+    talk_held = plain([1.0, 1.0, 2.5, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
+    for k in (2, 4, 6):
+        _set(talk_held, k, face=0.9, facing=1.0, voice=0.8, people=1)
+    moves("talk_longest", apart, talk_held, by=math.log(2.5))
+    # two talking shots: the held one against the other, not their middle
+    two_talk = json.loads(json.dumps(talk_held))
+    _set(two_talk, 6, face=0.0, facing=None, voice=0.1, people=0)
+    check("talk_longest: with two talking shots, the held one reads against the other",
+          abs(f(two_talk)["talk_longest"] - math.log(2.5)) < 1e-9, f"{f(two_talk)['talk_longest']:.3f}")
+    end_talk = plain([1.0] * 8 + [2.5])
+    for k in (2, 4, 8):
+        _set(end_talk, k, face=0.9, facing=1.0, voice=0.8, people=1)
+    check("talk_longest: a talking last shot held is the ending's, not a long take",
+          f(end_talk)["talk_longest"] == 0.0, f"{f(end_talk)['talk_longest']:.3f}")
+    # five beach shots and four street shots, as two scenes or alternating:
+    # neighbours differ at one join of eight or all eight, against 20 of 36 pairs
+    scenes, mixed = plain(), plain()
+    for k in range(9):
+        _set(scenes, k, labels=["beach", "sand", "sea"] if k < 5 else ["street", "car", "shop"])
+        _set(mixed, k, labels=["beach", "sand", "sea"] if k % 2 == 0 else ["street", "car", "shop"])
+    moves("flow_seen", scenes, mixed, by=(1 - 1 / 8) * 36 / 20)
+    # the talk (three of nine seconds) with no music under it, or all of it
+    moves("music_under_talk", plain(music={"bpm": None, "on": 0.0, "beat": None}) | {"shots": apart["shots"]},
+          plain(music={"bpm": None, "on": 1.0, "beat": None}) | {"shots": apart["shots"]}, by=1 / 3)
+    blind = f(plain(have=["motion"]) | {"shots": apart["shots"]})
+    check("the shot-by-shot readings are no evidence where they weren't taken",
+          all(math.isnan(blind[k]) for k in ("talk_longest", "flow_seen", "music_under_talk")))
+    # a shot too short to have a frame of its own (two frames a second)
+    # carries its neighbour's readings: its labels don't make the shots
+    # beside it look alike or unalike
+    short_a, short_b = json.loads(json.dumps(scenes)), json.loads(json.dumps(scenes))
+    for x in (short_a, short_b):
+        x["shots"][2]["d"] = 0.3
+    _set(short_b, 2, labels=["street", "car", "shop"])
+    check("flow_seen: the labels of a shot too short for a frame of its own aren't read",
+          f(short_a)["flow_seen"] == f(short_b)["flow_seen"]
+          and f(scenes)["flow_seen"] != f(_set(json.loads(json.dumps(scenes)), 2, labels=["street", "car", "shop"]))
+          ["flow_seen"])
+    # a board's readings are each shot's own however short: a frame more or
+    # less on one shot (Make's cuts sit near the half-second) changes nothing
+    board_a, board_b = (json.loads(json.dumps(x)) | {"source": "board"} for x in (short_a, short_b))
+    nudged = json.loads(json.dumps(board_a))
+    nudged["shots"][2]["d"] = 0.5 + 1 / 30
+    check("flow_seen and continuity: on a board, a shot's labels count however short it is",
+          f(board_a)["flow_seen"] != f(board_b)["flow_seen"]
+          and all(f(board_a)[k] == f(nudged)[k] for k in ("flow_seen", "continuity")))
+    # the same nine shots of three places, each place kept together or the
+    # edit hopping between them: what they show, how they look, how they move
+    places = (("beach", "sand", "ocean", 0.6, 1.0), ("kitchen", "plate", "food", 0.1, 5.0),
+              ("street", "car", "building", -0.2, 10.0))
+
+    def visit(order) -> dict:
+        out = plain()
+        for k, p in enumerate(order):
+            a, b, c, look, mo = places[p]
+            _set(out, k, labels=[a, b, c], aesthetic=look, motion=mo + 0.1 * k, motion_in=mo, motion_out=mo)
+        return out
+
+    hopping, kept = visit([0, 1, 2, 0, 1, 2, 0, 1, 2]), visit([0, 0, 0, 1, 1, 1, 2, 2, 2])
+    moves("continuity", hopping, kept)
+    check("...above two shots taken at random when kept together, below when hopping",
+          f(kept)["continuity"] > 0 > f(hopping)["continuity"],
+          f"{f(kept)['continuity']:+.2f} / {f(hopping)['continuity']:+.2f}")
+    # cut on action: the same eight shots alike in all but how they move in
+    # and out, in the order where each one's movement out meets the next
+    # one's movement in, or reversed so that it never does
+    chain = plain([1.0] * 8)
+    for k in range(8):
+        _set(chain, k, labels=["room", "table", "cup"], aesthetic=0.3, motion=2.0,
+             motion_in=float(2 ** k), motion_out=float(2 ** (k + 1)))
+    rev = json.loads(json.dumps(chain))
+    for sh, src in zip(rev["shots"], reversed(chain["shots"])):
+        sh.update({k: src[k] for k in ("motion_in", "motion_out")})
+    moves("continuity", rev, chain)
+    check("continuity reads no join: a jump cut or a dissolve between the same shots changes nothing",
+          f(chain)["continuity"] == f(dict(chain, joins=[dict(j, kind="dissolve", dur=0.8) for j in chain["joins"]]))
+          ["continuity"])
+    tiny, other = visit([0, 0, 0, 1, 1, 1, 2, 2, 2]), visit([0, 0, 0, 1, 1, 1, 2, 2, 2])
+    for x in (tiny, other):
+        x["shots"][4]["d"] = 0.3
+    _set(other, 4, labels=["beach", "sand", "ocean"], aesthetic=0.6)
+    check("...nor the labels and look of a shot too short to have a still of its own",
+          f(tiny)["continuity"] == f(other)["continuity"] and f(kept)["continuity"] != f(
+              _set(json.loads(json.dumps(kept)), 4, labels=["beach", "sand", "ocean"], aesthetic=0.6))["continuity"])
+
     # the grammar, learnt on three creators and read on a fourth: a real edit's
     # order reads likelier than the same shots shuffled, its run of tokens
     # likelier than with flashes on the joins, its story beats likelier than

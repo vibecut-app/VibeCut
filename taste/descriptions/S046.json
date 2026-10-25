@@ -1,0 +1,249 @@
+{
+ "v": 1,
+ "id": "S046",
+ "source": "reference",
+ "group": "short",
+ "vertical": true,
+ "duration": 58.021,
+ "cutoff": false,
+ "have": [
+  "motion",
+  "faces",
+  "sound",
+  "words",
+  "labels",
+  "roles",
+  "music"
+ ],
+ "shots": [
+  {
+   "t": 0.0,
+   "d": 11.458,
+   "motion": 8.204,
+   "motion_in": 2.059,
+   "motion_out": null,
+   "face": 0.218,
+   "facing": 0.5,
+   "people": 1,
+   "voice": 0.834,
+   "music": 0.205,
+   "laugh": 0.052,
+   "labels": [
+    "structure",
+    "wood_processed",
+    "furniture"
+   ],
+   "aesthetic": -0.425,
+   "same": false,
+   "speed": 1.0,
+   "role": "hook",
+   "chapter": null
+  },
+  {
+   "t": 11.458,
+   "d": 1.709,
+   "motion": 12.807,
+   "motion_in": null,
+   "motion_out": 23.011,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.025,
+   "music": 0.378,
+   "laugh": 0.024,
+   "labels": [],
+   "aesthetic": -0.566,
+   "same": false,
+   "speed": 1.0,
+   "role": "transit",
+   "chapter": 0
+  },
+  {
+   "t": 13.167,
+   "d": 3.375,
+   "motion": 6.374,
+   "motion_in": 4.033,
+   "motion_out": 7.662,
+   "face": 0.444,
+   "facing": 0.25,
+   "people": 1,
+   "voice": 0.528,
+   "music": 0.36,
+   "laugh": 0.024,
+   "labels": [
+    "people",
+    "adult",
+    "clothing"
+   ],
+   "aesthetic": 0.174,
+   "same": false,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 0
+  },
+  {
+   "t": 16.542,
+   "d": 15.333,
+   "motion": 6.089,
+   "motion_in": null,
+   "motion_out": 11.826,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.483,
+   "music": 0.176,
+   "laugh": 0.031,
+   "labels": [
+    "outdoor",
+    "land",
+    "grass"
+   ],
+   "aesthetic": -0.412,
+   "same": false,
+   "speed": 1.0,
+   "role": "setup",
+   "chapter": 0
+  },
+  {
+   "t": 31.875,
+   "d": 26.146,
+   "motion": 3.228,
+   "motion_in": null,
+   "motion_out": 0.53,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.61,
+   "music": 0.175,
+   "laugh": 0.042,
+   "labels": [
+    "outdoor",
+    "land",
+    "grass"
+   ],
+   "aesthetic": 0.263,
+   "same": false,
+   "speed": 1.0,
+   "role": "payoff",
+   "chapter": 0
+  }
+ ],
+ "joins": [
+  {
+   "t": 11.458,
+   "kind": "dissolve",
+   "dur": 0.964
+  },
+  {
+   "t": 13.167,
+   "kind": "dissolve",
+   "dur": 0.443
+  },
+  {
+   "t": 16.542,
+   "kind": "dissolve",
+   "dur": 0.86
+  },
+  {
+   "t": 31.875,
+   "kind": "dissolve",
+   "dur": 0.885
+  }
+ ],
+ "open": false,
+ "close": false,
+ "words": [
+  {
+   "t": 0.0,
+   "d": 58.0,
+   "band": "top",
+   "size": 0.07,
+   "upper": 0.2,
+   "n": 5,
+   "kind": null
+  },
+  {
+   "t": 14.5,
+   "d": 0.5,
+   "band": "middle",
+   "size": 0.044,
+   "upper": 1.0,
+   "n": 1,
+   "kind": null
+  },
+  {
+   "t": 33.5,
+   "d": 0.5,
+   "band": "middle",
+   "size": 0.041,
+   "upper": 1.0,
+   "n": 2,
+   "kind": null
+  }
+ ],
+ "music": {
+  "bpm": null,
+  "on": 0.017,
+  "beat": null
+ },
+ "lufs": -21.5,
+ "editor": {
+  "premise": "A compact mobile-home tour expands from the interior to the surrounding campsite, ending with a sustained exterior reveal.",
+  "hook": {
+   "shots": [
+    1
+   ],
+   "kind": "scene"
+  },
+  "chapters": [
+   {
+    "name": "Outside the home",
+    "first": 2,
+    "last": 5,
+    "purpose": "Expand the setting, then reveal the complete vehicle and living space."
+   }
+  ],
+  "captions": {
+   "role": "title",
+   "note": "A large yellow heading stays near the top across changing views; brief secondary text appears nearer the middle."
+  },
+  "music": [],
+  "ending": "payoff_hold",
+  "techniques": [
+   {
+    "name": "talk_then_show",
+    "shots": [
+     3,
+     4,
+     5
+    ]
+   },
+   {
+    "name": "held_open",
+    "shots": [
+     1
+    ]
+   },
+   {
+    "name": "transit_shot",
+    "shots": [
+     2
+    ]
+   },
+   {
+    "name": "ambient_soundtrack",
+    "shots": [
+     1,
+     3,
+     4,
+     5
+    ]
+   }
+  ],
+  "notes": "Keep the interior exploration continuous, shorten the doorway transition, then let the exterior views breathe. Dissolves soften the changes. The final shot occupies nearly half the runtime, making the complete vehicle the destination rather than another quick insert.",
+  "roles_given": 5,
+  "model": "gpt-6.1-sol",
+  "cost": 0.0117,
+  "at": "2026-10-23"
+ }
+}
