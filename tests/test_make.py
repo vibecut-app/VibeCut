@@ -187,6 +187,25 @@ def main() -> int:
             s = c.get("/api/session").json()
             check("made again, wide and slower", again["stage"] == "done" and s["timeline"]["frame"] == {"w": 1920, "h": 1080}
                   and s["board"]["option"] == "made", json.dumps(s["timeline"]["frame"]))
+            # a vlog (vlog.py): its sound stays at full with the music settling inside scenes,
+            # the place's sound carries inside a scene, and the cuts may be nudged onto movement as their own turn
+            mus = (backend.SESSION.board or {}).get("music")      # the board's own record of the bed (set_music)
+            check("a vlog keeps its own sound at full under a settled bed", mus and mus.get("original") == 1.0 and mus.get("gain") == make.vlog.MUSIC_GAIN
+                  and all(d[2] in (make.vlog.SETTLE, bed.TALK_DUCK) for d in (mus.get("duck") or [])),   # these scenes are too short for a settle
+                  json.dumps({k: mus and mus.get(k) for k in ("gain", "original", "duck")}))
+            texts = [t["text"] for t in s["turns"] if not t["undone"]]
+            check("the nudge, when it finds movement, is its own undoable turn after Make",
+                  texts[-1] in (backend.MAKE_TEXT, "Smoother cuts") and backend.MAKE_TEXT in texts, str(texts[-3:]))
+            scene = next(bt for bt in s["board"]["beats"] if bt["title"] != "Hook")
+            n_before = len(s["timeline"]["items"])
+            s2 = c.post(f"/api/scenes/{scene['id']}/verdict", json={"word": "cut"}).json()
+            check("one word per scene: 'cut' takes the scene out as one undoable turn, and is remembered",
+                  s2.get("scenes", {}).get(scene["id"]) == "cut" and s2["turns"][-1]["text"].startswith("Cut the ")
+                  and len(s2["timeline"]["items"]) < n_before, json.dumps({"scenes": s2.get("scenes"), "turn": s2["turns"][-1]["text"]}))
+            s3 = c.post(f"/api/turns/{s2['turns'][-1]['id']}/toggle", json={}).json()
+            check("…and undo brings it back", len(s3["timeline"]["items"]) == n_before)
+            bad = c.post(f"/api/scenes/{scene['id']}/verdict", json={"word": "meh"})
+            check("an unknown word is refused", bad.status_code == 400, str(bad.status_code))
             backend._close_project()
     finally:
         bed.candidates = real

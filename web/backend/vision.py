@@ -24,6 +24,11 @@ _binary: Path | None = None
 _failed: str | None = None
 
 CHUNK = 24
+TEXT_CHUNK, TEXT_TIMEOUT_S = 8, 60       # fast OCR: a chunk of frames gets a minute
+# Accurate OCR (--text2) takes several times as long a frame, and the
+# first CJK frame may wait on the OS loading a language: fewer frames a
+# process, more time each. [prior: not yet timed on her Mac]
+TEXT2_CHUNK, TEXT2_TIMEOUT_S = 4, 180
 
 
 def _target() -> Path:
@@ -104,29 +109,48 @@ def faces(paths: list[str]) -> dict[str, list[list[float]]]:
         return {r["path"]: r["faces"] for rs in ex.map(run, chunks) for r in rs}
 
 
-def text(paths: list[str]) -> dict[str, list[dict]]:
+def _lines(out) -> list[dict]:
+    if isinstance(out, bytes):     # what a timed-out run had printed comes back as bytes
+        out = out.decode("utf-8", errors="replace")
+    got = []
+    for line in (out or "").splitlines():
+        try:
+            got.append(json.loads(line))
+        except json.JSONDecodeError:
+            pass
+    return got
+
+
+def text(paths: list[str], accurate: bool = False):
     """Words on screen per image ({path: [{text, box, conf}]}), or {} when
-    Vision isn't available. Only timing and place are used downstream."""
+    Vision isn't available. Only timing and place are used downstream.
+
+    `accurate` (the helper's --text2): Apple's accurate recogniser with
+    language detection, the only level that reads Korean, Japanese and
+    Chinese captions as well as Latin ones. Several times slower, so it
+    runs in smaller chunks with longer to finish, and returns
+    `(found, failed)`: `failed` = the frames nobody read (a chunk that hung
+    or crashed), so a caller marks those words unknown rather than absent.
+    """
     binary = ensure_built()
     if binary is None or not paths:
-        return {}
-    chunks = [paths[i:i + 8] for i in range(0, len(paths), 8)]
+        return ({}, list(paths)) if accurate else {}
+    mode, size, limit = ("--text2", TEXT2_CHUNK, TEXT2_TIMEOUT_S) if accurate else ("--text", TEXT_CHUNK, TEXT_TIMEOUT_S)
+    chunks = [paths[i:i + size] for i in range(0, len(paths), size)]
 
     def run(chunk: list[str]) -> list[dict]:
         try:
-            # a hang in the recogniser must never stall a learn: a chunk gets a minute
-            p = subprocess.run([str(binary), "--text", *chunk], capture_output=True, text=True, timeout=60)
-        except subprocess.TimeoutExpired:
-            return []
-        out = []
-        for line in p.stdout.splitlines():
-            try:
-                out.append(json.loads(line))
-            except json.JSONDecodeError:
-                pass
-        return out
+            # a hang in the recogniser must never stall a learn: a chunk gets a time limit
+            p = subprocess.run([str(binary), mode, *chunk], capture_output=True, text=True, timeout=limit)
+        except subprocess.TimeoutExpired as e:
+            # the helper prints each frame as it finishes, so the ones before the hang still count
+            return _lines(e.stdout)
+        return _lines(p.stdout)
     with ThreadPoolExecutor(max_workers=4) as ex:
-        return {r["path"]: r.get("items", []) for rs in ex.map(run, chunks) for r in rs}
+        found = {r["path"]: r.get("items", []) for rs in ex.map(run, chunks) for r in rs if "path" in r}
+    if not accurate:
+        return found
+    return found, [p for p in paths if p not in found]
 
 
 # A face this much smaller than the largest in frame is someone in the

@@ -1,0 +1,1290 @@
+{
+ "v": 1,
+ "id": "S016",
+ "source": "reference",
+ "group": "short",
+ "vertical": true,
+ "duration": 87.118,
+ "cutoff": false,
+ "have": [
+  "motion",
+  "faces",
+  "sound",
+  "words",
+  "labels",
+  "roles",
+  "music"
+ ],
+ "shots": [
+  {
+   "t": 0.0,
+   "d": 14.967,
+   "motion": 1.288,
+   "motion_in": 1.144,
+   "motion_out": 0.293,
+   "face": 1.0,
+   "facing": 0.9,
+   "people": 1,
+   "voice": 0.904,
+   "music": 0.198,
+   "laugh": 0.144,
+   "labels": [
+    "people",
+    "adult",
+    "structure"
+   ],
+   "aesthetic": 0.368,
+   "same": false,
+   "speed": 1.0,
+   "role": "hook",
+   "chapter": null
+  },
+  {
+   "t": 14.967,
+   "d": 3.416,
+   "motion": 4.696,
+   "motion_in": 3.494,
+   "motion_out": 5.576,
+   "face": 0.888,
+   "facing": 0.176,
+   "people": 1,
+   "voice": 0.853,
+   "music": 0.297,
+   "laugh": 0.077,
+   "labels": [
+    "people",
+    "adult",
+    "optical_equipment"
+   ],
+   "aesthetic": 0.364,
+   "same": false,
+   "speed": 1.0,
+   "role": "transit",
+   "chapter": 0
+  },
+  {
+   "t": 18.383,
+   "d": 1.884,
+   "motion": 3.996,
+   "motion_in": 5.812,
+   "motion_out": 2.18,
+   "face": 0.071,
+   "facing": 0.0,
+   "people": 1,
+   "voice": 0.269,
+   "music": 0.471,
+   "laugh": 0.016,
+   "labels": [
+    "structure",
+    "wood_processed",
+    "conveyance"
+   ],
+   "aesthetic": -0.178,
+   "same": false,
+   "speed": 1.0,
+   "role": "setup",
+   "chapter": 0
+  },
+  {
+   "t": 20.267,
+   "d": 8.2,
+   "motion": 2.815,
+   "motion_in": 0.979,
+   "motion_out": 0.371,
+   "face": 0.256,
+   "facing": 0.469,
+   "people": 1,
+   "voice": 0.873,
+   "music": 0.325,
+   "laugh": 0.066,
+   "labels": [
+    "structure",
+    "wood_processed",
+    "cord"
+   ],
+   "aesthetic": 0.355,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 0
+  },
+  {
+   "t": 28.467,
+   "d": 2.416,
+   "motion": 1.121,
+   "motion_in": 1.36,
+   "motion_out": 1.317,
+   "face": 0.89,
+   "facing": 0.207,
+   "people": 1,
+   "voice": 0.722,
+   "music": 0.244,
+   "laugh": 0.063,
+   "labels": [
+    "people",
+    "adult",
+    "structure"
+   ],
+   "aesthetic": 0.427,
+   "same": false,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 0
+  },
+  {
+   "t": 30.883,
+   "d": 1.017,
+   "motion": 0.797,
+   "motion_in": 0.817,
+   "motion_out": 0.773,
+   "face": 0.115,
+   "facing": 0.0,
+   "people": 1,
+   "voice": 0.206,
+   "music": 0.254,
+   "laugh": 0.214,
+   "labels": [
+    "material",
+    "textile",
+    "clothing"
+   ],
+   "aesthetic": 0.392,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 31.9,
+   "d": 1.233,
+   "motion": 1.298,
+   "motion_in": 1.401,
+   "motion_out": 1.181,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.041,
+   "music": 0.37,
+   "laugh": 0.03,
+   "labels": [
+    "material",
+    "textile",
+    "tool"
+   ],
+   "aesthetic": 0.515,
+   "same": true,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 33.133,
+   "d": 1.05,
+   "motion": 0.6,
+   "motion_in": 0.649,
+   "motion_out": 0.567,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.042,
+   "music": 0.533,
+   "laugh": 0.047,
+   "labels": [
+    "material",
+    "textile",
+    "clothing"
+   ],
+   "aesthetic": 0.491,
+   "same": true,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 34.183,
+   "d": 1.083,
+   "motion": 0.806,
+   "motion_in": 0.876,
+   "motion_out": 0.763,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.124,
+   "music": 0.526,
+   "laugh": 0.043,
+   "labels": [
+    "material",
+    "textile",
+    "clothing"
+   ],
+   "aesthetic": 0.457,
+   "same": true,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 35.267,
+   "d": 1.133,
+   "motion": 0.782,
+   "motion_in": 0.787,
+   "motion_out": 0.769,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.268,
+   "music": 0.323,
+   "laugh": 0.034,
+   "labels": [
+    "clothing",
+    "glove",
+    "glove_other"
+   ],
+   "aesthetic": 0.448,
+   "same": true,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 36.4,
+   "d": 1.05,
+   "motion": 4.204,
+   "motion_in": 4.214,
+   "motion_out": 4.155,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.075,
+   "music": 0.471,
+   "laugh": 0.021,
+   "labels": [
+    "clothing",
+    "glove",
+    "glove_other"
+   ],
+   "aesthetic": 0.519,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 37.45,
+   "d": 1.217,
+   "motion": 4.347,
+   "motion_in": 3.951,
+   "motion_out": 4.786,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.157,
+   "music": 0.549,
+   "laugh": 0.034,
+   "labels": [
+    "clothing",
+    "glove",
+    "glove_other"
+   ],
+   "aesthetic": 0.361,
+   "same": true,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 38.667,
+   "d": 1.083,
+   "motion": 3.69,
+   "motion_in": 3.794,
+   "motion_out": 3.579,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.137,
+   "music": 0.393,
+   "laugh": 0.039,
+   "labels": [
+    "clothing",
+    "glove",
+    "glove_other"
+   ],
+   "aesthetic": 0.479,
+   "same": true,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 39.75,
+   "d": 1.15,
+   "motion": 2.697,
+   "motion_in": 2.794,
+   "motion_out": 2.722,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.22,
+   "music": 0.468,
+   "laugh": 0.031,
+   "labels": [
+    "clothing",
+    "glove",
+    "glove_other"
+   ],
+   "aesthetic": 0.405,
+   "same": true,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 40.9,
+   "d": 1.067,
+   "motion": 0.593,
+   "motion_in": 0.508,
+   "motion_out": 0.64,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.114,
+   "music": 0.499,
+   "laugh": 0.025,
+   "labels": [
+    "clothing",
+    "glove",
+    "glove_other"
+   ],
+   "aesthetic": 0.414,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 41.967,
+   "d": 1.2,
+   "motion": 0.756,
+   "motion_in": 0.755,
+   "motion_out": 0.764,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.1,
+   "music": 0.51,
+   "laugh": 0.017,
+   "labels": [
+    "clothing",
+    "glove",
+    "glove_other"
+   ],
+   "aesthetic": 0.411,
+   "same": true,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 43.167,
+   "d": 1.1,
+   "motion": 0.657,
+   "motion_in": 0.622,
+   "motion_out": 0.681,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.134,
+   "music": 0.526,
+   "laugh": 0.037,
+   "labels": [
+    "clothing",
+    "glove",
+    "glove_other"
+   ],
+   "aesthetic": 0.436,
+   "same": true,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 44.267,
+   "d": 3.266,
+   "motion": 0.366,
+   "motion_in": 0.199,
+   "motion_out": 0.443,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.037,
+   "music": 0.474,
+   "laugh": 0.03,
+   "labels": [
+    "tool",
+    "syringe",
+    "clothing"
+   ],
+   "aesthetic": 0.55,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 47.533,
+   "d": 2.033,
+   "motion": 0.438,
+   "motion_in": 0.51,
+   "motion_out": 0.422,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.097,
+   "music": 0.441,
+   "laugh": 0.039,
+   "labels": [
+    "clothing",
+    "glove",
+    "glove_other"
+   ],
+   "aesthetic": 0.512,
+   "same": true,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 49.567,
+   "d": 1.7,
+   "motion": 0.624,
+   "motion_in": 0.593,
+   "motion_out": 0.623,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.117,
+   "music": 0.461,
+   "laugh": 0.038,
+   "labels": [
+    "clothing",
+    "glove",
+    "glove_other"
+   ],
+   "aesthetic": 0.603,
+   "same": true,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 51.267,
+   "d": 1.8,
+   "motion": 0.525,
+   "motion_in": 0.487,
+   "motion_out": 0.596,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.089,
+   "music": 0.534,
+   "laugh": 0.031,
+   "labels": [
+    "clothing",
+    "glove",
+    "glove_other"
+   ],
+   "aesthetic": 0.559,
+   "same": true,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 53.067,
+   "d": 1.866,
+   "motion": 0.433,
+   "motion_in": 0.284,
+   "motion_out": 0.821,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.08,
+   "music": 0.659,
+   "laugh": 0.055,
+   "labels": [
+    "clothing",
+    "glove",
+    "glove_other"
+   ],
+   "aesthetic": 0.394,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 54.933,
+   "d": 1.967,
+   "motion": 0.27,
+   "motion_in": 0.207,
+   "motion_out": 0.382,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.175,
+   "music": 0.628,
+   "laugh": 0.025,
+   "labels": [
+    "clothing",
+    "glove",
+    "glove_other"
+   ],
+   "aesthetic": 0.472,
+   "same": true,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 56.9,
+   "d": 0.933,
+   "motion": 1.096,
+   "motion_in": 1.148,
+   "motion_out": 0.941,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.262,
+   "music": 0.507,
+   "laugh": 0.024,
+   "labels": [
+    "clothing",
+    "glove",
+    "glove_other"
+   ],
+   "aesthetic": 0.361,
+   "same": true,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 57.833,
+   "d": 0.833,
+   "motion": 1.524,
+   "motion_in": 1.811,
+   "motion_out": 1.072,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.265,
+   "music": 0.589,
+   "laugh": 0.027,
+   "labels": [
+    "clothing",
+    "glove",
+    "glove_other"
+   ],
+   "aesthetic": 0.304,
+   "same": true,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 58.667,
+   "d": 0.6,
+   "motion": 0.217,
+   "motion_in": 0.128,
+   "motion_out": 0.234,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.272,
+   "music": 0.585,
+   "laugh": 0.035,
+   "labels": [
+    "clothing",
+    "glove",
+    "glove_other"
+   ],
+   "aesthetic": 0.332,
+   "same": true,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 59.267,
+   "d": 3.233,
+   "motion": 0.667,
+   "motion_in": 0.666,
+   "motion_out": 0.637,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.302,
+   "music": 0.553,
+   "laugh": 0.035,
+   "labels": [
+    "clothing",
+    "glove",
+    "glove_other"
+   ],
+   "aesthetic": 0.448,
+   "same": true,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 62.5,
+   "d": 2.333,
+   "motion": 0.549,
+   "motion_in": 1.563,
+   "motion_out": 0.381,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.246,
+   "music": 0.716,
+   "laugh": 0.024,
+   "labels": [
+    "clothing",
+    "glove",
+    "glove_other"
+   ],
+   "aesthetic": 0.406,
+   "same": true,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 64.833,
+   "d": 1.8,
+   "motion": 0.448,
+   "motion_in": 0.35,
+   "motion_out": 0.601,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.428,
+   "music": 0.595,
+   "laugh": 0.03,
+   "labels": [
+    "clothing",
+    "glove",
+    "glove_other"
+   ],
+   "aesthetic": 0.442,
+   "same": true,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 66.633,
+   "d": 1.667,
+   "motion": 0.725,
+   "motion_in": 0.775,
+   "motion_out": 0.661,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.359,
+   "music": 0.662,
+   "laugh": 0.032,
+   "labels": [
+    "clothing",
+    "glove",
+    "glove_other"
+   ],
+   "aesthetic": 0.473,
+   "same": true,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 68.3,
+   "d": 1.167,
+   "motion": 0.885,
+   "motion_in": 1.623,
+   "motion_out": 0.338,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.448,
+   "music": 0.593,
+   "laugh": 0.032,
+   "labels": [
+    "clothing",
+    "glove",
+    "glove_other"
+   ],
+   "aesthetic": 0.482,
+   "same": true,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 69.467,
+   "d": 0.666,
+   "motion": 1.039,
+   "motion_in": 1.088,
+   "motion_out": 1.149,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.275,
+   "music": 0.596,
+   "laugh": 0.049,
+   "labels": [
+    "clothing",
+    "glove",
+    "glove_other"
+   ],
+   "aesthetic": 0.45,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 70.133,
+   "d": 0.567,
+   "motion": 0.946,
+   "motion_in": 1.02,
+   "motion_out": 0.87,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.25,
+   "music": 0.556,
+   "laugh": 0.023,
+   "labels": [
+    "clothing",
+    "glove",
+    "glove_other"
+   ],
+   "aesthetic": 0.466,
+   "same": true,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 70.7,
+   "d": 2.0,
+   "motion": 0.57,
+   "motion_in": 1.109,
+   "motion_out": 0.524,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.134,
+   "music": 0.52,
+   "laugh": 0.039,
+   "labels": [
+    "clothing",
+    "glove",
+    "glove_other"
+   ],
+   "aesthetic": 0.492,
+   "same": true,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 72.7,
+   "d": 1.4,
+   "motion": 0.382,
+   "motion_in": 0.223,
+   "motion_out": 0.446,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.069,
+   "music": 0.572,
+   "laugh": 0.028,
+   "labels": [
+    "clothing",
+    "glove",
+    "glove_other"
+   ],
+   "aesthetic": 0.468,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 74.1,
+   "d": 2.133,
+   "motion": 1.05,
+   "motion_in": 0.783,
+   "motion_out": 0.881,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.052,
+   "music": 0.392,
+   "laugh": 0.013,
+   "labels": [
+    "clothing",
+    "glove",
+    "glove_other"
+   ],
+   "aesthetic": 0.447,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 76.233,
+   "d": 2.867,
+   "motion": 0.99,
+   "motion_in": 0.328,
+   "motion_out": 1.084,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.105,
+   "music": 0.433,
+   "laugh": 0.02,
+   "labels": [
+    "clothing",
+    "glove",
+    "glove_other"
+   ],
+   "aesthetic": 0.443,
+   "same": true,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 79.1,
+   "d": 2.533,
+   "motion": 1.029,
+   "motion_in": 0.348,
+   "motion_out": 0.767,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.91,
+   "music": 0.228,
+   "laugh": 0.059,
+   "labels": [],
+   "aesthetic": 0.451,
+   "same": false,
+   "speed": 1.0,
+   "role": "payoff",
+   "chapter": 2
+  },
+  {
+   "t": 81.633,
+   "d": 1.234,
+   "motion": 1.683,
+   "motion_in": 3.449,
+   "motion_out": 0.425,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.91,
+   "music": 0.324,
+   "laugh": 0.065,
+   "labels": [],
+   "aesthetic": 0.521,
+   "same": true,
+   "speed": 1.0,
+   "role": "payoff",
+   "chapter": 2
+  },
+  {
+   "t": 82.867,
+   "d": 4.254,
+   "motion": 2.497,
+   "motion_in": 3.837,
+   "motion_out": 3.089,
+   "face": 0.969,
+   "facing": 0.0,
+   "people": 1,
+   "voice": 0.906,
+   "music": 0.321,
+   "laugh": 0.096,
+   "labels": [
+    "people",
+    "adult",
+    "optical_equipment"
+   ],
+   "aesthetic": 0.33,
+   "same": false,
+   "speed": 1.0,
+   "role": "outro",
+   "chapter": 2
+  }
+ ],
+ "joins": [
+  {
+   "t": 14.967,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 18.383,
+   "kind": "dissolve",
+   "dur": 0.292
+  },
+  {
+   "t": 20.267,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 28.467,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 30.883,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 31.9,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 33.133,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 34.183,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 35.267,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 36.4,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 37.45,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 38.667,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 39.75,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 40.9,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 41.967,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 43.167,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 44.267,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 47.533,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 49.567,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 51.267,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 53.067,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 54.933,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 56.9,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 57.833,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 58.667,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 59.267,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 62.5,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 64.833,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 66.633,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 68.3,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 69.467,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 70.133,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 70.7,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 72.7,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 74.1,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 76.233,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 79.1,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 81.633,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 82.867,
+   "kind": "cut",
+   "dur": 0.0
+  }
+ ],
+ "open": false,
+ "close": false,
+ "words": [
+  {
+   "t": 0.0,
+   "d": 15.0,
+   "band": "bottom",
+   "size": 0.026,
+   "upper": 0.0,
+   "n": 5,
+   "kind": null
+  },
+  {
+   "t": 0.0,
+   "d": 15.0,
+   "band": "middle",
+   "size": 0.026,
+   "upper": 0.0,
+   "n": 5,
+   "kind": null
+  },
+  {
+   "t": 30.5,
+   "d": 0.5,
+   "band": "middle",
+   "size": 0.022,
+   "upper": 0.75,
+   "n": 1,
+   "kind": null
+  },
+  {
+   "t": 86.5,
+   "d": 0.5,
+   "band": "top",
+   "size": 0.097,
+   "upper": 0.0,
+   "n": 2,
+   "kind": null
+  }
+ ],
+ "music": {
+  "bpm": null,
+  "on": 0.352,
+  "beat": null
+ },
+ "lufs": -16.0,
+ "editor": {
+  "premise": "A nail appointment condensed from choosing a new look through detailed treatment to an outdoor reveal.",
+  "hook": {
+   "shots": [
+    1
+   ],
+   "kind": "talk"
+  },
+  "chapters": [
+   {
+    "name": "Appointment setup",
+    "first": 2,
+    "last": 5,
+    "purpose": "Move into the salon and establish the choice before treatment."
+   },
+   {
+    "name": "Manicure process",
+    "first": 6,
+    "last": 37,
+    "purpose": "Compress preparation, painting, and finishing while keeping the process readable."
+   },
+   {
+    "name": "Result and wrap",
+    "first": 38,
+    "last": 40,
+    "purpose": "Reveal the finished nails, then return to the creator."
+   }
+  ],
+  "captions": {
+   "role": "mixed",
+   "note": "An opening premise sits low over the picture; brief conversational text follows. Sparse captions leave the detailed treatment footage unobstructed."
+  },
+  "music": [
+   {
+    "shot": 8,
+    "event": "start"
+   },
+   {
+    "shot": 36,
+    "event": "drop_out"
+   }
+  ],
+  "ending": "sign_off",
+  "techniques": [
+   {
+    "name": "straight_cuts",
+    "shots": [
+     2,
+     3,
+     4,
+     38,
+     40
+    ]
+   },
+   {
+    "name": "talk_then_show",
+    "shots": [
+     1,
+     2,
+     3,
+     5,
+     6
+    ]
+   },
+   {
+    "name": "jump_cuts",
+    "shots": [
+     7,
+     12,
+     19,
+     24,
+     25,
+     26,
+     33
+    ]
+   },
+   {
+    "name": "wide_then_close",
+    "shots": [
+     3,
+     4,
+     6
+    ]
+   },
+   {
+    "name": "hands_and_details",
+    "shots": [
+     4,
+     11,
+     18,
+     27,
+     36
+    ]
+   },
+   {
+    "name": "transit_shot",
+    "shots": [
+     2
+    ]
+   },
+   {
+    "name": "music_drop_out",
+    "shots": [
+     35,
+     36,
+     38
+    ]
+   }
+  ],
+  "notes": "Let the spoken introduction breathe, then compress repeated handwork with same-angle jumps. Hold precise painting longer than routine preparation. Save the unobstructed finished-hand views for outside, separating the result from the workbench.",
+  "roles_given": 40,
+  "model": "gpt-6.1-sol",
+  "cost": 0.0281,
+  "at": "2026-10-21"
+ }
+}

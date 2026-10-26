@@ -1,0 +1,623 @@
+{
+ "v": 1,
+ "id": "S010",
+ "source": "reference",
+ "group": "short",
+ "vertical": true,
+ "duration": 21.1,
+ "cutoff": false,
+ "have": [
+  "motion",
+  "faces",
+  "sound",
+  "words",
+  "labels",
+  "roles",
+  "music"
+ ],
+ "shots": [
+  {
+   "t": 0.0,
+   "d": 1.9,
+   "motion": 8.339,
+   "motion_in": 6.63,
+   "motion_out": 18.012,
+   "face": 0.763,
+   "facing": 0.263,
+   "people": 1,
+   "voice": 0.017,
+   "music": 0.867,
+   "laugh": 0.025,
+   "labels": [
+    "adult",
+    "people",
+    "structure"
+   ],
+   "aesthetic": 0.35,
+   "same": false,
+   "speed": 1.0,
+   "role": "hook",
+   "chapter": null
+  },
+  {
+   "t": 1.9,
+   "d": 0.933,
+   "motion": 15.405,
+   "motion_in": 22.258,
+   "motion_out": 8.4,
+   "face": 0.054,
+   "facing": 0.0,
+   "people": 1,
+   "voice": 0.012,
+   "music": 0.891,
+   "laugh": 0.016,
+   "labels": [],
+   "aesthetic": -0.141,
+   "same": false,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 0
+  },
+  {
+   "t": 2.833,
+   "d": 1.4,
+   "motion": 1.791,
+   "motion_in": 1.478,
+   "motion_out": 1.704,
+   "face": 0.714,
+   "facing": 0.0,
+   "people": 1,
+   "voice": 0.032,
+   "music": 0.864,
+   "laugh": 0.017,
+   "labels": [
+    "outdoor",
+    "sky",
+    "blue_sky"
+   ],
+   "aesthetic": 0.284,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 0
+  },
+  {
+   "t": 4.233,
+   "d": 0.567,
+   "motion": 9.634,
+   "motion_in": 9.871,
+   "motion_out": 9.634,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.019,
+   "music": 0.793,
+   "laugh": 0.011,
+   "labels": [
+    "outdoor",
+    "land",
+    "grass"
+   ],
+   "aesthetic": 0.194,
+   "same": false,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 0
+  },
+  {
+   "t": 4.8,
+   "d": 1.6,
+   "motion": 9.646,
+   "motion_in": 10.586,
+   "motion_out": 3.609,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.024,
+   "music": 0.877,
+   "laugh": 0.007,
+   "labels": [
+    "outdoor",
+    "land",
+    "grass"
+   ],
+   "aesthetic": 0.467,
+   "same": false,
+   "speed": 1.0,
+   "role": "transit",
+   "chapter": 0
+  },
+  {
+   "t": 6.4,
+   "d": 1.933,
+   "motion": 1.534,
+   "motion_in": 2.145,
+   "motion_out": 0.958,
+   "face": 0.086,
+   "facing": 0.0,
+   "people": 1,
+   "voice": 0.162,
+   "music": 0.889,
+   "laugh": 0.034,
+   "labels": [
+    "people",
+    "adult",
+    "outdoor"
+   ],
+   "aesthetic": 0.357,
+   "same": false,
+   "speed": 1.0,
+   "role": "setup",
+   "chapter": 0
+  },
+  {
+   "t": 8.333,
+   "d": 0.5,
+   "motion": 4.288,
+   "motion_in": 4.288,
+   "motion_out": 4.288,
+   "face": 0.5,
+   "facing": 0.0,
+   "people": 1,
+   "voice": 0.504,
+   "music": 0.879,
+   "laugh": 0.037,
+   "labels": [
+    "adult",
+    "people",
+    "clothing"
+   ],
+   "aesthetic": 0.377,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 8.833,
+   "d": 0.667,
+   "motion": 3.795,
+   "motion_in": 4.005,
+   "motion_out": 3.201,
+   "face": 0.5,
+   "facing": 0.0,
+   "people": 1,
+   "voice": 0.163,
+   "music": 0.913,
+   "laugh": 0.022,
+   "labels": [
+    "people",
+    "adult",
+    "headphones"
+   ],
+   "aesthetic": 0.289,
+   "same": true,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 9.5,
+   "d": 1.1,
+   "motion": 2.766,
+   "motion_in": 1.149,
+   "motion_out": 4.526,
+   "face": 0.227,
+   "facing": 0.0,
+   "people": 1,
+   "voice": 0.028,
+   "music": 0.914,
+   "laugh": 0.017,
+   "labels": [
+    "outdoor",
+    "sky",
+    "blue_sky"
+   ],
+   "aesthetic": 0.531,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 10.6,
+   "d": 1.8,
+   "motion": 0.278,
+   "motion_in": 0.313,
+   "motion_out": 0.21,
+   "face": 0.029,
+   "facing": 0.0,
+   "people": 1,
+   "voice": 0.009,
+   "music": 0.896,
+   "laugh": 0.007,
+   "labels": [
+    "outdoor",
+    "sky",
+    "blue_sky"
+   ],
+   "aesthetic": 0.468,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 12.4,
+   "d": 0.767,
+   "motion": 1.427,
+   "motion_in": 1.704,
+   "motion_out": 1.438,
+   "face": 0.101,
+   "facing": 0.0,
+   "people": 1,
+   "voice": 0.015,
+   "music": 0.889,
+   "laugh": 0.012,
+   "labels": [
+    "outdoor",
+    "blue_sky",
+    "sky"
+   ],
+   "aesthetic": 0.54,
+   "same": false,
+   "speed": 1.0,
+   "role": "setup",
+   "chapter": 1
+  },
+  {
+   "t": 13.167,
+   "d": 2.033,
+   "motion": 0.645,
+   "motion_in": 1.788,
+   "motion_out": 0.25,
+   "face": 0.098,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.095,
+   "music": 0.826,
+   "laugh": 0.041,
+   "labels": [
+    "outdoor",
+    "sky",
+    "blue_sky"
+   ],
+   "aesthetic": 0.479,
+   "same": false,
+   "speed": 1.0,
+   "role": "payoff",
+   "chapter": 1
+  },
+  {
+   "t": 15.2,
+   "d": 1.233,
+   "motion": 2.652,
+   "motion_in": 2.767,
+   "motion_out": 2.501,
+   "face": 1.0,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.123,
+   "music": 0.831,
+   "laugh": 0.037,
+   "labels": [
+    "outdoor",
+    "adult",
+    "people"
+   ],
+   "aesthetic": 0.356,
+   "same": false,
+   "speed": 1.0,
+   "role": "reaction",
+   "chapter": 1
+  },
+  {
+   "t": 16.433,
+   "d": 1.2,
+   "motion": 0.856,
+   "motion_in": 0.945,
+   "motion_out": 0.787,
+   "face": 1.0,
+   "facing": 0.736,
+   "people": 1,
+   "voice": 0.444,
+   "music": 0.758,
+   "laugh": 0.051,
+   "labels": [
+    "outdoor",
+    "people",
+    "adult"
+   ],
+   "aesthetic": 0.362,
+   "same": false,
+   "speed": 1.0,
+   "role": "reaction",
+   "chapter": 1
+  },
+  {
+   "t": 17.633,
+   "d": 0.9,
+   "motion": 2.985,
+   "motion_in": 3.016,
+   "motion_out": 2.958,
+   "face": 0.704,
+   "facing": 0.204,
+   "people": 1,
+   "voice": 0.319,
+   "music": 0.773,
+   "laugh": 0.033,
+   "labels": [
+    "people",
+    "adult",
+    "outdoor"
+   ],
+   "aesthetic": 0.335,
+   "same": false,
+   "speed": 1.0,
+   "role": "reaction",
+   "chapter": 1
+  },
+  {
+   "t": 18.533,
+   "d": 0.834,
+   "motion": 0.466,
+   "motion_in": 0.42,
+   "motion_out": 0.569,
+   "face": 0.28,
+   "facing": 0.0,
+   "people": 1,
+   "voice": 0.101,
+   "music": 0.844,
+   "laugh": 0.029,
+   "labels": [
+    "outdoor",
+    "golf",
+    "recreation"
+   ],
+   "aesthetic": 0.411,
+   "same": false,
+   "speed": 1.0,
+   "role": "setup",
+   "chapter": 1
+  },
+  {
+   "t": 19.367,
+   "d": 1.733,
+   "motion": 4.547,
+   "motion_in": 4.836,
+   "motion_out": 3.574,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.035,
+   "music": 0.875,
+   "laugh": 0.017,
+   "labels": [
+    "land",
+    "outdoor",
+    "grass"
+   ],
+   "aesthetic": 0.163,
+   "same": false,
+   "speed": 1.0,
+   "role": "payoff",
+   "chapter": 1
+  }
+ ],
+ "joins": [
+  {
+   "t": 1.9,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 2.833,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 4.233,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 4.8,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 6.4,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 8.333,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 8.833,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 9.5,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 10.6,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 12.4,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 13.167,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 15.2,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 16.433,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 17.633,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 18.533,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 19.367,
+   "kind": "cut",
+   "dur": 0.0
+  }
+ ],
+ "open": false,
+ "close": false,
+ "words": [
+  {
+   "t": 0.0,
+   "d": 5.0,
+   "band": "top",
+   "size": 0.03,
+   "upper": 0.19,
+   "n": 8,
+   "kind": null
+  },
+  {
+   "t": 5.5,
+   "d": 4.5,
+   "band": "middle",
+   "size": 0.03,
+   "upper": 0.03,
+   "n": 8,
+   "kind": null
+  },
+  {
+   "t": 6.5,
+   "d": 2.0,
+   "band": "bottom",
+   "size": 0.022,
+   "upper": 0.61,
+   "n": 2,
+   "kind": null
+  },
+  {
+   "t": 15.5,
+   "d": 5.5,
+   "band": "top",
+   "size": 0.03,
+   "upper": 0.02,
+   "n": 13,
+   "kind": null
+  }
+ ],
+ "music": {
+  "bpm": null,
+  "on": 1.0,
+  "beat": null
+ },
+ "lufs": -27.8,
+ "editor": {
+  "premise": "A weekday golf outing turns preparation, play, and shared downtime into a picture of control over one's schedule.",
+  "hook": {
+   "shots": [
+    1
+   ],
+   "kind": "title"
+  },
+  "chapters": [
+   {
+    "name": "Course arrival",
+    "first": 2,
+    "last": 6,
+    "purpose": "Compress preparation and arrival before the round begins."
+   },
+   {
+    "name": "Golf round",
+    "first": 7,
+    "last": 17,
+    "purpose": "Make the opening promise tangible through play and shared downtime."
+   }
+  ],
+  "captions": {
+   "role": "thought",
+   "note": "Small white text sits high or centrally, sustained across several cuts. Opening context becomes personal reflection; an uncaptioned playing passage separates the final thought."
+  },
+  "music": [
+   {
+    "shot": 1,
+    "event": "start"
+   },
+   {
+    "shot": 17,
+    "event": "end"
+   }
+  ],
+  "ending": "cut",
+  "techniques": [
+   {
+    "name": "straight_cuts",
+    "shots": [
+     3,
+     4,
+     5,
+     6,
+     10,
+     16,
+     17
+    ]
+   },
+   {
+    "name": "jump_cuts",
+    "shots": [
+     7,
+     8
+    ]
+   },
+   {
+    "name": "hands_and_details",
+    "shots": [
+     2,
+     3,
+     4
+    ]
+   },
+   {
+    "name": "transit_shot",
+    "shots": [
+     5
+    ]
+   },
+   {
+    "name": "written_narration",
+    "shots": [
+     1,
+     5,
+     6,
+     13,
+     17
+    ]
+   }
+  ],
+  "notes": "Keep preparation brief, then give the playing actions longer beats. Alternate low action angles with cart reactions. Carry each thought across several cuts so reading stays steady while the pictures move.",
+  "roles_given": 17,
+  "model": "gpt-6.1-sol",
+  "cost": 0.0192,
+  "at": "2026-10-21"
+ }
+}

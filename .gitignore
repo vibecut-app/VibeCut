@@ -25,3 +25,9 @@ design/mockups/assets/
 
 # calibration records are the numbers behind the thresholds
 !design/research/calibration/*.json
+
+# the taste set is numbers and labels only (taste/README.md)
+!taste/measurements/*.json
+!taste/fingerprints/*.json
+!taste/descriptions/*.json
+!taste/model/*.json

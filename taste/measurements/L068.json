@@ -1,0 +1,257 @@
+{
+ "id": "L068",
+ "source_name": "v.webm",
+ "group": "long",
+ "version": 2,
+ "duration": 300.0,
+ "fps": 25.015,
+ "width": 854,
+ "height": 480,
+ "have": [
+  "audio",
+  "meta",
+  "motion",
+  "still"
+ ],
+ "pace": {
+  "shots": 18,
+  "per_min": 3.6,
+  "median_s": 8.895,
+  "p10_s": 3.824,
+  "p90_s": 43.989,
+  "cv": 0.981,
+  "first_s": 4.417,
+  "curve": [
+   0.625,
+   1.959,
+   0.643,
+   3.917,
+   5.818
+  ],
+  "trend": 1.326,
+  "words": [
+   "about 8.9 s a shot",
+   "slow, lingering",
+   "slows down towards the end"
+  ],
+  "evidence": [
+   "still"
+  ]
+ },
+ "transitions": {
+  "counts": {
+   "cut": 3,
+   "dissolve": 11,
+   "dip_black": 3,
+   "flash": 0
+  },
+  "share": {
+   "cut": 0.176,
+   "dissolve": 0.647,
+   "dip_black": 0.176,
+   "flash": 0.0
+  },
+  "dur": {
+   "dissolve": 0.949,
+   "dip_black": 1.559
+  },
+  "open": true,
+  "close": false,
+  "words": [
+   "mostly dissolves",
+   "opens from black"
+  ],
+  "evidence": [
+   "motion"
+  ]
+ },
+ "beat": {
+  "bpm": null,
+  "on_grid": null,
+  "chance": null,
+  "lift": null,
+  "beats_per_shot": null,
+  "onset_hit": 0.294,
+  "cuts_on_beat": false,
+  "words": [
+   "no steady beat to cut to"
+  ],
+  "evidence": [
+   "motion",
+   "audio"
+  ]
+ },
+ "music": {
+  "bpm": null,
+  "energy": [
+   0.0,
+   0.445,
+   0.302,
+   0.821,
+   0.87,
+   0.84,
+   0.997,
+   0.511,
+   0.6,
+   0.431,
+   0.504,
+   0.431,
+   0.484,
+   0.462,
+   0.338,
+   0.468,
+   0.492,
+   0.576,
+   0.411,
+   0.46,
+   0.236,
+   0.036,
+   0.365,
+   0.514,
+   0.35,
+   0.579,
+   0.456,
+   0.101,
+   0.473,
+   0.484,
+   0.312,
+   0.241
+  ],
+  "arc": "steady",
+  "bright": 1015.3,
+  "words": [
+   "steady energy",
+   "no steady beat",
+   "a warm, low sound"
+  ],
+  "evidence": [
+   "audio"
+  ]
+ },
+ "look": {
+  "tone": [
+   0.0,
+   0.0,
+   7.2,
+   15.51,
+   23.09,
+   30.59,
+   38.53,
+   56.65,
+   77.48,
+   96.47,
+   111.58,
+   127.45,
+   152.11,
+   167.9,
+   195.69,
+   239.05,
+   252.86,
+   254.14,
+   255.0
+  ],
+  "shadow": [
+   9.75,
+   -1.99,
+   -9.04
+  ],
+  "mid": [
+   8.43,
+   -1.07,
+   -14.2
+  ],
+  "high": [
+   0.76,
+   0.37,
+   -5.9
+  ],
+  "cast": [
+   7.96,
+   -1.26,
+   -10.98
+  ],
+  "sat": 0.1073,
+  "warmth": 18.94,
+  "tint": 0.25,
+  "black": 0.0,
+  "white": 254.14,
+  "median": 96.47,
+  "contrast": 223.54,
+  "words": [
+   "warm",
+   "muted colour",
+   "deep blacks",
+   "punchy contrast"
+  ],
+  "evidence": [
+   "still"
+  ]
+ },
+ "frame": {
+  "vertical": false,
+  "aspect": 1.779,
+  "bars": [
+   0,
+   0
+  ],
+  "letterbox": null,
+  "words": [
+   "horizontal"
+  ],
+  "evidence": [
+   "meta",
+   "still"
+  ]
+ },
+ "opening": {
+  "first_cut_s": 4.42,
+  "motion_ratio": 0.04,
+  "words": [
+   "first cut at 4.4 s",
+   "opens still"
+  ],
+  "evidence": [
+   "motion"
+  ]
+ },
+ "ending": {
+  "last_s": 51.75,
+  "fade_out": false,
+  "motion_ratio": 0.56,
+  "words": [
+   "last shot held 51.7 s",
+   "ends on a cut",
+   "ends still"
+  ],
+  "evidence": [
+   "motion"
+  ]
+ },
+ "words": {
+  "share": 0.133,
+  "first_s": 0.0,
+  "band": "middle",
+  "hold_s": 0.5,
+  "cards": 35,
+  "upper": 0.2,
+  "size": 0.174,
+  "words_per_card": 1.0,
+  "bands": {
+   "bottom": 0.17,
+   "middle": 0.67,
+   "top": 0.16
+  },
+  "words": [
+   "words on screen 13% of the time",
+   "usually at the middle",
+   "each held about 0.5 s",
+   "first words at the start"
+  ],
+  "evidence": [
+   "still"
+  ]
+ },
+ "lufs": -19.0,
+ "measured_s": 300.0,
+ "ending_is_cutoff": true
+}

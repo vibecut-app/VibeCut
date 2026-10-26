@@ -1,0 +1,62 @@
+{
+ "v": 1,
+ "id": "S045",
+ "source": "reference",
+ "group": "short",
+ "vertical": true,
+ "duration": 53.741,
+ "cutoff": false,
+ "have": [
+  "motion",
+  "faces",
+  "sound",
+  "words",
+  "labels",
+  "music"
+ ],
+ "shots": [
+  {
+   "t": 0.0,
+   "d": 53.741,
+   "motion": 1.356,
+   "motion_in": 21.879,
+   "motion_out": 0.652,
+   "face": 1.0,
+   "facing": 0.739,
+   "people": 1,
+   "voice": 0.84,
+   "music": 0.233,
+   "laugh": 0.041,
+   "labels": [
+    "adult",
+    "people",
+    "baseball_hat"
+   ],
+   "aesthetic": 0.216,
+   "same": false,
+   "speed": 1.0,
+   "role": null,
+   "chapter": null
+  }
+ ],
+ "joins": [],
+ "open": false,
+ "close": false,
+ "words": [
+  {
+   "t": 0.0,
+   "d": 53.5,
+   "band": "top",
+   "size": 0.059,
+   "upper": 0.22,
+   "n": 7,
+   "kind": null
+  }
+ ],
+ "music": {
+  "bpm": null,
+  "on": 0.0,
+  "beat": null
+ },
+ "lufs": -18.3
+}

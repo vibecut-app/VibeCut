@@ -1,5 +1,6 @@
 import type { SetupData } from './components/Setup'
-import type { Habit, Capabilities, CutData, ExportJob, Job, LengthSlider, LookFit, PrefClass, Project, ProjectMeta, RefCard, RefJob, RefSummary, Session, StyleAnswers, StyleQuestion, TalkState } from './types'
+import type { FaceArea } from './overlayDraw'
+import type { Habit, Capabilities, CutData, CutReport, ExportJob, Job, LengthSlider, LookFit, PrefClass, Project, ProjectMeta, RefCard, RefJob, RefSummary, Session, StyleAnswers, StyleQuestion, TalkState } from './types'
 
 export type MomentInfo = { header: string; key: string; llm: boolean; provider: ChatProvider
   estimate: { tokens_in: number; usd: [number, number] } }
@@ -7,6 +8,22 @@ export type MomentAnswer = { reply: string; choices: string[]; ops: Record<strin
   preview: { lines: string[]; skipped: string[] } | null; header: string; cost: number | null; spent: number }
 // Who answers the chat: OpenAI on the course key (AI switch on), Claude (its own key), or nobody.
 export type ChatProvider = 'openai' | 'claude' | null
+export type SharePlatform = { id: 'tiktok' | 'youtube' | 'instagram'; name: string; url: string; where: string; ok: boolean; why: string | null; note: string | null }
+export type ShareCover = { t: number; file: string; url: string }
+export type PostWords = { line: string; hashtags: string[]; caption: string; chapters: { t: number; name: string }[]; youtube: { title: string; description: string } }
+export type OtherVersion = { frame: 'tall' | 'wide'; label: string; for: string }
+export type ShareTargets = { shape: 'tall' | 'wide' | 'square' | 'unknown'; seconds: number; platforms: SharePlatform[]; mac: boolean
+  other: OtherVersion | null
+  post: PostWords; credit: string | null; covers: { t: number; url: string }[]; cover: ShareCover | null }
+export type ShareHow = 'download' | 'sheet' | 'caption' | SharePlatform['id']
+// posting to the creator's own YouTube channel (backend youtube.py)
+export type YouTubeChannel = { id: string; title: string; thumb: string | null }
+export type YouTubeState = { configured: boolean; connected: boolean; channel: YouTubeChannel | null; signing_in: boolean; error: string | null; keychain: boolean }
+export type YouTubePrep = { confirm: string; channel: YouTubeChannel; title: string; description: string; fit: SharePlatform; seconds: number; file: string
+  cover: (ShareCover & { sent: boolean }) | null }
+export type YouTubePost = { id: string; stage: 'uploading' | 'done' | 'error' | 'stopped'; sent: number; total: number; progress: number
+  title: string; asked: string; privacy: string | null; video: string | null; url: string | null; studio: string | null; error: string | null
+  cover: string | null; elapsed: number }
 // What one chat message would cost before it's sent, and what AI has cost on this video.
 // per_char: what each typed character adds (the estimate already counts base_chars of them).
 export type ChatEstimate = { on: boolean; provider: ChatProvider; model: string | null; tokens_in: number
@@ -134,6 +151,7 @@ export const api = {
   length: () => j<LengthSlider & { current: number }>(fetch('/api/length')),
   setLength: (seconds: number) => j<Session & { length_note: string }>(post('/api/length', { seconds })),
   smooth: (order: boolean, nudge: boolean) => j<Session>(post('/api/smooth', { order, nudge })),
+  cutNotes: () => j<CutReport>(post('/api/cutnotes', {})),
   // chat on pause: what the paused moment is (free), then one message about it (calls the model)
   moment: (t: number) => j<MomentInfo>(post('/api/moment', { t })),
   momentChat: (t: number, message: string, history: { who: 'you' | 'ai'; text: string }[], ai_ok?: number | null) =>
@@ -146,11 +164,13 @@ export const api = {
   rule: (id: string, action: 'forget' | 'narrow') => j<Session>(post(`/api/preferences/${id}/${action}`, {})),
   suggestOverlays: (req: { profile: Record<string, unknown>; title?: string; kinds?: string[] }) =>
     j<Session>(post('/api/overlays/suggest', req)),
-  exportCreate: (music: boolean) => j<ExportJob>(post('/api/export', { music })),
+  // frame: the same edit in the other frame ('tall' / 'wide'), cropped to fill it
+  exportCreate: (music: boolean, frame?: 'tall' | 'wide') => j<ExportJob>(post('/api/export', { music, frame: frame ?? null })),
   exportFrame: (id: string, n: number, png: Blob) =>
     j<{ ok: boolean }>(fetch(`/api/export/${id}/frames/${n}`, { method: 'POST', body: png })),
-  exportStart: (id: string, schedule: { frame: number | null; start: number; end: number }[]) =>
-    j<ExportJob>(post(`/api/export/${id}/start`, { schedule })),
+  exportStart: (id: string, schedule: { frame: number | null; start: number; end: number }[], moved = 0) =>
+    j<ExportJob>(post(`/api/export/${id}/start`, { schedule, moved })),
+  exportFaces: (id: string) => j<{ faces: FaceArea[] }>(fetch(`/api/export/${id}/faces`)),
   exportStatus: (id: string) => j<ExportJob>(fetch(`/api/export/${id}`)),
   exportCancel: (id: string) => j<ExportJob>(post(`/api/export/${id}/cancel`, {})),
   talkStart: (req: { locale: string; script: string }) => j<TalkState>(post('/api/talk', req)),
@@ -159,8 +179,24 @@ export const api = {
   talkApply: (captions: boolean, profile: Record<string, unknown>) => j<Session>(post('/api/talk/apply', { captions, profile })),
   exportReveal: (id: string) => fetch(`/api/export/${id}/reveal`, { method: 'POST' }),
   exportPhotos: (id: string) => j<{ ok: boolean }>(post(`/api/export/${id}/photos`, {})),
+  // where a finished file can go next, each platform checked against it (backend share.py)
+  exportShare: (id: string) => j<ShareTargets>(fetch(`/api/export/${id}/share`)),
+  exportCover: (id: string, t: number) => j<ShareCover>(post(`/api/export/${id}/cover`, { t })),
+  exportShared: (id: string, how: ShareHow) => j<{ ok: boolean }>(post(`/api/export/${id}/shared`, { how })),
+  youtube: () => j<YouTubeState>(fetch('/api/youtube')),
+  youtubeConnect: () => j<{ url: string }>(post('/api/youtube/connect', {})),
+  youtubeDisconnect: () => j<YouTubeState>(post('/api/youtube/disconnect', {})),
+  youtubePrepare: (id: string) => j<YouTubePrep>(post(`/api/export/${id}/youtube/prepare`, {})),
+  youtubePost: (id: string, req: { confirm: string; title: string; description: string; privacy: string; made_for_kids: boolean | null; cover_t: number | null }) =>
+    j<YouTubePost>(post(`/api/export/${id}/youtube`, req)),
+  youtubePostStatus: (pid: string) => j<YouTubePost>(fetch(`/api/youtube/posts/${pid}`)),
+  youtubePostStop: (pid: string) => j<YouTubePost>(post(`/api/youtube/posts/${pid}/stop`, {})),
   habits: () => j<{ habits: Habit[]; phrases: string[]; last: { id: string; text: string }[] }>(fetch('/api/habits')),
   habitSwitch: (id: string, off: boolean, remake = false) => j<MakeJob & { habit?: Habit }>(post(`/api/habits/${encodeURIComponent(id)}`, { off, remake })),
+  // "Which do you like better?" after Make (backend prefer.py)
+  prefer: () => j<{ card: import('./types').PreferCard | null; frame: { w: number; h: number } | null }>(fetch('/api/prefer')),
+  preferPick: (card: number, pick: number | null) =>
+    j<Session & { prefer_said: string; prefer_landed: boolean }>(post(`/api/prefer/${card}`, { pick })),
   exportVerdict: (n: number, wouldPost: boolean, note: string) => j<Session>(post(`/api/exports/${n}/verdict`, { post: wouldPost, note })),
   // Remix: reference reels + the shelf -> one finished short, then the board
   remixStart: (req: { refs: string[]; title?: string; sub?: string; length?: number }) =>

@@ -1,0 +1,1830 @@
+{
+ "v": 1,
+ "id": "L005",
+ "source": "reference",
+ "group": "long",
+ "vertical": false,
+ "duration": 300.002,
+ "cutoff": true,
+ "have": [
+  "motion",
+  "faces",
+  "sound",
+  "words",
+  "labels",
+  "roles",
+  "music"
+ ],
+ "shots": [
+  {
+   "t": 0.0,
+   "d": 2.302,
+   "motion": 0.618,
+   "motion_in": 0.887,
+   "motion_out": 0.94,
+   "face": 0.934,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.915,
+   "music": 0.237,
+   "laugh": 0.028,
+   "labels": [
+    "people",
+    "adult",
+    "art"
+   ],
+   "aesthetic": 0.51,
+   "same": false,
+   "speed": 1.0,
+   "role": "hook",
+   "chapter": null
+  },
+  {
+   "t": 2.302,
+   "d": 2.169,
+   "motion": 0.0,
+   "motion_in": 0.0,
+   "motion_out": 0.0,
+   "face": 0.161,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.239,
+   "music": 0.776,
+   "laugh": 0.016,
+   "labels": [
+    "document",
+    "handwriting"
+   ],
+   "aesthetic": 0.367,
+   "same": false,
+   "speed": 1.0,
+   "role": "hook",
+   "chapter": null
+  },
+  {
+   "t": 4.471,
+   "d": 2.503,
+   "motion": 0.001,
+   "motion_in": 0.001,
+   "motion_out": 0.0,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.245,
+   "music": 0.831,
+   "laugh": 0.035,
+   "labels": [],
+   "aesthetic": 0.606,
+   "same": false,
+   "speed": 1.0,
+   "role": "hook",
+   "chapter": null
+  },
+  {
+   "t": 6.974,
+   "d": 2.502,
+   "motion": 0.536,
+   "motion_in": 0.297,
+   "motion_out": 0.912,
+   "face": 0.99,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.926,
+   "music": 0.365,
+   "laugh": 0.09,
+   "labels": [
+    "people",
+    "adult",
+    "microphone"
+   ],
+   "aesthetic": 0.379,
+   "same": false,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 0
+  },
+  {
+   "t": 9.476,
+   "d": 1.802,
+   "motion": 0.579,
+   "motion_in": 0.74,
+   "motion_out": 0.289,
+   "face": 1.0,
+   "facing": 0.291,
+   "people": 1,
+   "voice": 0.909,
+   "music": 0.518,
+   "laugh": 0.055,
+   "labels": [
+    "people",
+    "adult",
+    "art"
+   ],
+   "aesthetic": 0.505,
+   "same": true,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 0
+  },
+  {
+   "t": 11.278,
+   "d": 0.868,
+   "motion": 0.296,
+   "motion_in": 0.318,
+   "motion_out": 0.282,
+   "face": 1.0,
+   "facing": 0.0,
+   "people": 1,
+   "voice": 0.879,
+   "music": 0.576,
+   "laugh": 0.011,
+   "labels": [
+    "people",
+    "adult",
+    "art"
+   ],
+   "aesthetic": 0.508,
+   "same": true,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 0
+  },
+  {
+   "t": 12.145,
+   "d": 5.606,
+   "motion": 0.496,
+   "motion_in": 0.346,
+   "motion_out": 0.317,
+   "face": 1.0,
+   "facing": 0.758,
+   "people": 1,
+   "voice": 0.883,
+   "music": 0.398,
+   "laugh": 0.033,
+   "labels": [
+    "people",
+    "adult",
+    "art"
+   ],
+   "aesthetic": 0.375,
+   "same": true,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 0
+  },
+  {
+   "t": 17.751,
+   "d": 1.502,
+   "motion": 0.345,
+   "motion_in": 0.492,
+   "motion_out": 0.329,
+   "face": 1.0,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.885,
+   "music": 0.251,
+   "laugh": 0.05,
+   "labels": [
+    "people",
+    "adult",
+    "art"
+   ],
+   "aesthetic": 0.497,
+   "same": true,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 0
+  },
+  {
+   "t": 19.253,
+   "d": 2.87,
+   "motion": 0.411,
+   "motion_in": 0.408,
+   "motion_out": 0.368,
+   "face": 1.0,
+   "facing": 0.826,
+   "people": 1,
+   "voice": 0.951,
+   "music": 0.206,
+   "laugh": 0.046,
+   "labels": [
+    "people",
+    "adult",
+    "art"
+   ],
+   "aesthetic": 0.507,
+   "same": true,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 0
+  },
+  {
+   "t": 22.122,
+   "d": 1.802,
+   "motion": 0.441,
+   "motion_in": 0.828,
+   "motion_out": 0.13,
+   "face": 1.0,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.919,
+   "music": 0.335,
+   "laugh": 0.024,
+   "labels": [
+    "people",
+    "adult",
+    "art"
+   ],
+   "aesthetic": 0.429,
+   "same": true,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 0
+  },
+  {
+   "t": 23.924,
+   "d": 1.368,
+   "motion": 0.409,
+   "motion_in": 0.559,
+   "motion_out": 0.293,
+   "face": 1.0,
+   "facing": 0.528,
+   "people": 1,
+   "voice": 0.94,
+   "music": 0.236,
+   "laugh": 0.018,
+   "labels": [
+    "people",
+    "adult",
+    "art"
+   ],
+   "aesthetic": 0.452,
+   "same": true,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 0
+  },
+  {
+   "t": 25.292,
+   "d": 3.403,
+   "motion": 0.465,
+   "motion_in": 0.496,
+   "motion_out": 0.605,
+   "face": 1.0,
+   "facing": 0.5,
+   "people": 1,
+   "voice": 0.871,
+   "music": 0.56,
+   "laugh": 0.018,
+   "labels": [
+    "people",
+    "adult",
+    "microphone"
+   ],
+   "aesthetic": 0.485,
+   "same": true,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 0
+  },
+  {
+   "t": 28.695,
+   "d": 2.436,
+   "motion": 0.387,
+   "motion_in": 0.744,
+   "motion_out": 0.296,
+   "face": 1.0,
+   "facing": 0.322,
+   "people": 1,
+   "voice": 0.897,
+   "music": 0.501,
+   "laugh": 0.034,
+   "labels": [
+    "people",
+    "adult",
+    "art"
+   ],
+   "aesthetic": 0.484,
+   "same": true,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 0
+  },
+  {
+   "t": 31.131,
+   "d": 6.807,
+   "motion": 0.694,
+   "motion_in": 1.398,
+   "motion_out": 0.299,
+   "face": 1.0,
+   "facing": 0.927,
+   "people": 1,
+   "voice": 0.91,
+   "music": 0.494,
+   "laugh": 0.027,
+   "labels": [
+    "people",
+    "adult",
+    "art"
+   ],
+   "aesthetic": 0.194,
+   "same": true,
+   "speed": 1.0,
+   "role": "setup",
+   "chapter": 0
+  },
+  {
+   "t": 37.938,
+   "d": 4.805,
+   "motion": 0.027,
+   "motion_in": 0.047,
+   "motion_out": 0.0,
+   "face": 0.09,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.919,
+   "music": 0.43,
+   "laugh": 0.018,
+   "labels": [],
+   "aesthetic": 0.3,
+   "same": false,
+   "speed": 1.0,
+   "role": "title",
+   "chapter": 1
+  },
+  {
+   "t": 42.743,
+   "d": 7.007,
+   "motion": 0.823,
+   "motion_in": 0.513,
+   "motion_out": 0.423,
+   "face": 0.982,
+   "facing": 0.929,
+   "people": 1,
+   "voice": 0.921,
+   "music": 0.502,
+   "laugh": 0.031,
+   "labels": [
+    "people",
+    "adult",
+    "art"
+   ],
+   "aesthetic": 0.389,
+   "same": false,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 1
+  },
+  {
+   "t": 49.75,
+   "d": 3.637,
+   "motion": 0.474,
+   "motion_in": 0.677,
+   "motion_out": 0.283,
+   "face": 1.0,
+   "facing": 0.863,
+   "people": 1,
+   "voice": 0.9,
+   "music": 0.379,
+   "laugh": 0.039,
+   "labels": [
+    "people",
+    "adult",
+    "art"
+   ],
+   "aesthetic": 0.355,
+   "same": true,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 1
+  },
+  {
+   "t": 53.387,
+   "d": 3.237,
+   "motion": 0.982,
+   "motion_in": 0.443,
+   "motion_out": 0.289,
+   "face": 1.0,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.913,
+   "music": 0.455,
+   "laugh": 0.04,
+   "labels": [
+    "people",
+    "adult",
+    "art"
+   ],
+   "aesthetic": 0.364,
+   "same": true,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 1
+  },
+  {
+   "t": 56.623,
+   "d": 4.571,
+   "motion": 0.749,
+   "motion_in": 1.215,
+   "motion_out": 0.333,
+   "face": 1.0,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.903,
+   "music": 0.519,
+   "laugh": 0.032,
+   "labels": [
+    "people",
+    "adult",
+    "art"
+   ],
+   "aesthetic": 0.358,
+   "same": true,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 1
+  },
+  {
+   "t": 61.194,
+   "d": 4.004,
+   "motion": 0.821,
+   "motion_in": 0.284,
+   "motion_out": 0.94,
+   "face": 1.0,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.861,
+   "music": 0.514,
+   "laugh": 0.023,
+   "labels": [
+    "people",
+    "adult",
+    "art"
+   ],
+   "aesthetic": 0.436,
+   "same": true,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 1
+  },
+  {
+   "t": 65.198,
+   "d": 1.001,
+   "motion": 0.54,
+   "motion_in": 0.85,
+   "motion_out": 0.229,
+   "face": 0.801,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.873,
+   "music": 0.538,
+   "laugh": 0.032,
+   "labels": [
+    "people",
+    "adult",
+    "microphone"
+   ],
+   "aesthetic": 0.341,
+   "same": true,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 1
+  },
+  {
+   "t": 66.199,
+   "d": 5.072,
+   "motion": 0.03,
+   "motion_in": 0.041,
+   "motion_out": 0.0,
+   "face": 0.027,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.879,
+   "music": 0.457,
+   "laugh": 0.013,
+   "labels": [
+    "document",
+    "screenshot"
+   ],
+   "aesthetic": 0.227,
+   "same": false,
+   "speed": 1.0,
+   "role": "title",
+   "chapter": 2
+  },
+  {
+   "t": 71.271,
+   "d": 2.67,
+   "motion": 0.381,
+   "motion_in": 0.619,
+   "motion_out": 0.295,
+   "face": 0.863,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.883,
+   "music": 0.645,
+   "laugh": 0.029,
+   "labels": [
+    "people",
+    "adult",
+    "microphone"
+   ],
+   "aesthetic": 0.432,
+   "same": false,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 2
+  },
+  {
+   "t": 73.941,
+   "d": 15.649,
+   "motion": 0.246,
+   "motion_in": 0.293,
+   "motion_out": 0.175,
+   "face": 1.0,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.861,
+   "music": 0.599,
+   "laugh": 0.02,
+   "labels": [
+    "people",
+    "adult",
+    "art"
+   ],
+   "aesthetic": 0.445,
+   "same": true,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 2
+  },
+  {
+   "t": 89.59,
+   "d": 8.375,
+   "motion": 0.32,
+   "motion_in": 0.753,
+   "motion_out": 0.172,
+   "face": 1.0,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.86,
+   "music": 0.527,
+   "laugh": 0.033,
+   "labels": [
+    "people",
+    "adult",
+    "art"
+   ],
+   "aesthetic": 0.419,
+   "same": true,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 2
+  },
+  {
+   "t": 97.965,
+   "d": 4.304,
+   "motion": 0.431,
+   "motion_in": 0.49,
+   "motion_out": 0.204,
+   "face": 1.0,
+   "facing": 0.969,
+   "people": 1,
+   "voice": 0.807,
+   "music": 0.599,
+   "laugh": 0.025,
+   "labels": [
+    "people",
+    "adult",
+    "art"
+   ],
+   "aesthetic": 0.405,
+   "same": true,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 2
+  },
+  {
+   "t": 102.269,
+   "d": 5.005,
+   "motion": 0.415,
+   "motion_in": 0.377,
+   "motion_out": 0.306,
+   "face": 1.0,
+   "facing": 0.827,
+   "people": 1,
+   "voice": 0.821,
+   "music": 0.656,
+   "laugh": 0.029,
+   "labels": [
+    "people",
+    "adult",
+    "microphone"
+   ],
+   "aesthetic": 0.39,
+   "same": true,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 2
+  },
+  {
+   "t": 107.274,
+   "d": 13.08,
+   "motion": 0.308,
+   "motion_in": 0.458,
+   "motion_out": 0.304,
+   "face": 1.0,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.866,
+   "music": 0.663,
+   "laugh": 0.021,
+   "labels": [
+    "people",
+    "adult",
+    "art"
+   ],
+   "aesthetic": 0.391,
+   "same": true,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 2
+  },
+  {
+   "t": 120.354,
+   "d": 5.805,
+   "motion": 0.278,
+   "motion_in": 0.144,
+   "motion_out": 0.241,
+   "face": 0.973,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.846,
+   "music": 0.609,
+   "laugh": 0.023,
+   "labels": [
+    "people",
+    "adult",
+    "art"
+   ],
+   "aesthetic": 0.351,
+   "same": true,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 2
+  },
+  {
+   "t": 126.159,
+   "d": 5.573,
+   "motion": 0.032,
+   "motion_in": 0.044,
+   "motion_out": 0.0,
+   "face": 0.066,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.815,
+   "music": 0.53,
+   "laugh": 0.014,
+   "labels": [],
+   "aesthetic": 0.281,
+   "same": false,
+   "speed": 1.0,
+   "role": "title",
+   "chapter": 3
+  },
+  {
+   "t": 131.732,
+   "d": 3.937,
+   "motion": 0.313,
+   "motion_in": 0.342,
+   "motion_out": 0.164,
+   "face": 0.966,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.841,
+   "music": 0.551,
+   "laugh": 0.024,
+   "labels": [
+    "people",
+    "adult",
+    "art"
+   ],
+   "aesthetic": 0.458,
+   "same": false,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 3
+  },
+  {
+   "t": 135.669,
+   "d": 5.072,
+   "motion": 0.247,
+   "motion_in": 0.328,
+   "motion_out": 0.195,
+   "face": 1.0,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.858,
+   "music": 0.645,
+   "laugh": 0.022,
+   "labels": [
+    "people",
+    "adult",
+    "microphone"
+   ],
+   "aesthetic": 0.472,
+   "same": true,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 3
+  },
+  {
+   "t": 140.741,
+   "d": 32.165,
+   "motion": 0.279,
+   "motion_in": 0.282,
+   "motion_out": 0.167,
+   "face": 1.0,
+   "facing": 0.907,
+   "people": 1,
+   "voice": 0.853,
+   "music": 0.563,
+   "laugh": 0.023,
+   "labels": [
+    "people",
+    "adult",
+    "microphone"
+   ],
+   "aesthetic": 0.453,
+   "same": true,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 3
+  },
+  {
+   "t": 172.906,
+   "d": 7.441,
+   "motion": 0.022,
+   "motion_in": 0.017,
+   "motion_out": 0.003,
+   "face": 0.036,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.881,
+   "music": 0.439,
+   "laugh": 0.015,
+   "labels": [],
+   "aesthetic": -0.087,
+   "same": false,
+   "speed": 1.0,
+   "role": "title",
+   "chapter": 4
+  },
+  {
+   "t": 180.347,
+   "d": 1.001,
+   "motion": 0.306,
+   "motion_in": 0.246,
+   "motion_out": 0.357,
+   "face": 0.674,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.898,
+   "music": 0.407,
+   "laugh": 0.021,
+   "labels": [
+    "people",
+    "adult",
+    "microphone"
+   ],
+   "aesthetic": 0.309,
+   "same": false,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 4
+  },
+  {
+   "t": 181.348,
+   "d": 5.672,
+   "motion": 0.586,
+   "motion_in": 1.587,
+   "motion_out": 0.193,
+   "face": 1.0,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.884,
+   "music": 0.604,
+   "laugh": 0.035,
+   "labels": [
+    "people",
+    "adult",
+    "art"
+   ],
+   "aesthetic": 0.405,
+   "same": true,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 4
+  },
+  {
+   "t": 187.02,
+   "d": 4.171,
+   "motion": 0.707,
+   "motion_in": 0.389,
+   "motion_out": 0.153,
+   "face": 1.0,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.81,
+   "music": 0.636,
+   "laugh": 0.021,
+   "labels": [
+    "people",
+    "adult",
+    "art"
+   ],
+   "aesthetic": 0.378,
+   "same": true,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 4
+  },
+  {
+   "t": 191.191,
+   "d": 5.572,
+   "motion": 0.293,
+   "motion_in": 0.19,
+   "motion_out": 0.265,
+   "face": 1.0,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.884,
+   "music": 0.537,
+   "laugh": 0.025,
+   "labels": [
+    "people",
+    "adult",
+    "microphone"
+   ],
+   "aesthetic": 0.392,
+   "same": true,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 4
+  },
+  {
+   "t": 196.763,
+   "d": 4.404,
+   "motion": 0.215,
+   "motion_in": 0.114,
+   "motion_out": 0.164,
+   "face": 1.0,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.785,
+   "music": 0.57,
+   "laugh": 0.022,
+   "labels": [
+    "people",
+    "adult",
+    "art"
+   ],
+   "aesthetic": 0.408,
+   "same": true,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 4
+  },
+  {
+   "t": 201.168,
+   "d": 12.412,
+   "motion": 0.271,
+   "motion_in": 0.268,
+   "motion_out": 0.243,
+   "face": 1.0,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.868,
+   "music": 0.558,
+   "laugh": 0.022,
+   "labels": [
+    "people",
+    "adult",
+    "art"
+   ],
+   "aesthetic": 0.429,
+   "same": true,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 4
+  },
+  {
+   "t": 213.58,
+   "d": 11.845,
+   "motion": 0.355,
+   "motion_in": 0.534,
+   "motion_out": 0.207,
+   "face": 1.0,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.895,
+   "music": 0.542,
+   "laugh": 0.026,
+   "labels": [
+    "people",
+    "adult",
+    "art"
+   ],
+   "aesthetic": 0.431,
+   "same": true,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 4
+  },
+  {
+   "t": 225.425,
+   "d": 15.916,
+   "motion": 0.365,
+   "motion_in": 0.414,
+   "motion_out": 0.419,
+   "face": 1.0,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.87,
+   "music": 0.517,
+   "laugh": 0.024,
+   "labels": [
+    "people",
+    "adult",
+    "art"
+   ],
+   "aesthetic": 0.461,
+   "same": true,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 4
+  },
+  {
+   "t": 241.341,
+   "d": 2.002,
+   "motion": 0.547,
+   "motion_in": 0.783,
+   "motion_out": 0.306,
+   "face": 0.914,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.902,
+   "music": 0.552,
+   "laugh": 0.021,
+   "labels": [
+    "people",
+    "adult",
+    "art"
+   ],
+   "aesthetic": 0.397,
+   "same": true,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 4
+  },
+  {
+   "t": 243.343,
+   "d": 3.27,
+   "motion": 0.027,
+   "motion_in": 0.05,
+   "motion_out": 0.001,
+   "face": 0.194,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.853,
+   "music": 0.393,
+   "laugh": 0.019,
+   "labels": [],
+   "aesthetic": 0.353,
+   "same": false,
+   "speed": 1.0,
+   "role": "title",
+   "chapter": 5
+  },
+  {
+   "t": 246.613,
+   "d": 6.173,
+   "motion": 0.534,
+   "motion_in": 0.285,
+   "motion_out": 0.246,
+   "face": 0.969,
+   "facing": 0.919,
+   "people": 1,
+   "voice": 0.885,
+   "music": 0.537,
+   "laugh": 0.017,
+   "labels": [
+    "people",
+    "adult",
+    "art"
+   ],
+   "aesthetic": 0.431,
+   "same": false,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 5
+  },
+  {
+   "t": 252.786,
+   "d": 6.873,
+   "motion": 0.265,
+   "motion_in": 0.581,
+   "motion_out": 0.16,
+   "face": 0.952,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.901,
+   "music": 0.462,
+   "laugh": 0.031,
+   "labels": [
+    "people",
+    "adult",
+    "art"
+   ],
+   "aesthetic": 0.442,
+   "same": true,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 5
+  },
+  {
+   "t": 259.659,
+   "d": 2.736,
+   "motion": 0.026,
+   "motion_in": 0.046,
+   "motion_out": 0.0,
+   "face": 0.135,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.766,
+   "music": 0.487,
+   "laugh": 0.017,
+   "labels": [
+    "document",
+    "screenshot"
+   ],
+   "aesthetic": 0.454,
+   "same": false,
+   "speed": 1.0,
+   "role": "title",
+   "chapter": 5
+  },
+  {
+   "t": 262.395,
+   "d": 3.971,
+   "motion": 0.246,
+   "motion_in": 0.169,
+   "motion_out": 0.578,
+   "face": 0.924,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.877,
+   "music": 0.682,
+   "laugh": 0.024,
+   "labels": [
+    "people",
+    "adult",
+    "art"
+   ],
+   "aesthetic": 0.441,
+   "same": false,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 5
+  },
+  {
+   "t": 266.366,
+   "d": 8.475,
+   "motion": 0.338,
+   "motion_in": 0.162,
+   "motion_out": 0.292,
+   "face": 1.0,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.885,
+   "music": 0.629,
+   "laugh": 0.02,
+   "labels": [
+    "people",
+    "adult",
+    "art"
+   ],
+   "aesthetic": 0.439,
+   "same": true,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 5
+  },
+  {
+   "t": 274.841,
+   "d": 9.443,
+   "motion": 0.247,
+   "motion_in": 0.373,
+   "motion_out": 0.149,
+   "face": 1.0,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.883,
+   "music": 0.561,
+   "laugh": 0.034,
+   "labels": [
+    "people",
+    "adult",
+    "art"
+   ],
+   "aesthetic": 0.436,
+   "same": true,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 5
+  },
+  {
+   "t": 284.284,
+   "d": 4.438,
+   "motion": 0.178,
+   "motion_in": 0.169,
+   "motion_out": 0.251,
+   "face": 1.0,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.767,
+   "music": 0.653,
+   "laugh": 0.017,
+   "labels": [
+    "people",
+    "adult",
+    "art"
+   ],
+   "aesthetic": 0.385,
+   "same": true,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 5
+  },
+  {
+   "t": 288.722,
+   "d": 9.042,
+   "motion": 0.295,
+   "motion_in": 0.172,
+   "motion_out": 0.458,
+   "face": 1.0,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.849,
+   "music": 0.548,
+   "laugh": 0.028,
+   "labels": [
+    "people",
+    "adult",
+    "art"
+   ],
+   "aesthetic": 0.392,
+   "same": true,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 5
+  },
+  {
+   "t": 297.764,
+   "d": 2.236,
+   "motion": 0.031,
+   "motion_in": 0.029,
+   "motion_out": 0.031,
+   "face": 0.106,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.858,
+   "music": 0.45,
+   "laugh": 0.021,
+   "labels": [
+    "document",
+    "screenshot"
+   ],
+   "aesthetic": -0.329,
+   "same": false,
+   "speed": 1.0,
+   "role": "title",
+   "chapter": 5
+  }
+ ],
+ "joins": [
+  {
+   "t": 2.302,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 4.471,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 6.974,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 9.476,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 11.278,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 12.145,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 17.751,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 19.253,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 22.122,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 23.924,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 25.292,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 28.695,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 31.131,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 37.938,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 42.743,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 49.75,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 53.387,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 56.623,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 61.194,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 65.198,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 66.199,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 71.271,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 73.941,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 89.59,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 97.965,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 102.269,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 107.274,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 120.354,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 126.159,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 131.732,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 135.669,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 140.741,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 172.906,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 180.347,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 181.348,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 187.02,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 191.191,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 196.763,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 201.168,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 213.58,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 225.425,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 241.341,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 243.343,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 246.613,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 252.786,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 259.659,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 262.395,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 266.366,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 274.841,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 284.284,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 288.722,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 297.764,
+   "kind": "cut",
+   "dur": 0.0
+  }
+ ],
+ "open": false,
+ "close": false,
+ "words": [
+  {
+   "t": 2.5,
+   "d": 4.5,
+   "band": "middle",
+   "size": 0.284,
+   "upper": 0.18,
+   "n": 2,
+   "kind": null
+  },
+  {
+   "t": 33.5,
+   "d": 3.0,
+   "band": "bottom",
+   "size": 0.03,
+   "upper": 0.03,
+   "n": 8,
+   "kind": null
+  },
+  {
+   "t": 33.5,
+   "d": 3.0,
+   "band": "middle",
+   "size": 0.026,
+   "upper": 0.0,
+   "n": 15,
+   "kind": null
+  },
+  {
+   "t": 38.0,
+   "d": 4.5,
+   "band": "middle",
+   "size": 0.067,
+   "upper": 0.0,
+   "n": 8,
+   "kind": null
+  },
+  {
+   "t": 45.0,
+   "d": 0.5,
+   "band": "top",
+   "size": 0.026,
+   "upper": 0.0,
+   "n": 1,
+   "kind": null
+  },
+  {
+   "t": 57.5,
+   "d": 0.5,
+   "band": "top",
+   "size": 0.03,
+   "upper": 0.0,
+   "n": 1,
+   "kind": null
+  },
+  {
+   "t": 66.5,
+   "d": 5.0,
+   "band": "middle",
+   "size": 0.063,
+   "upper": 0.0,
+   "n": 10,
+   "kind": null
+  },
+  {
+   "t": 95.5,
+   "d": 0.5,
+   "band": "top",
+   "size": 0.045,
+   "upper": 0.2,
+   "n": 1,
+   "kind": null
+  },
+  {
+   "t": 102.5,
+   "d": 1.0,
+   "band": "top",
+   "size": 0.039,
+   "upper": 0.0,
+   "n": 1,
+   "kind": null
+  },
+  {
+   "t": 126.0,
+   "d": 5.5,
+   "band": "middle",
+   "size": 0.07,
+   "upper": 0.0,
+   "n": 13,
+   "kind": null
+  },
+  {
+   "t": 173.0,
+   "d": 7.5,
+   "band": "middle",
+   "size": 0.066,
+   "upper": 0.0,
+   "n": 13,
+   "kind": null
+  },
+  {
+   "t": 178.0,
+   "d": 2.5,
+   "band": "bottom",
+   "size": 0.067,
+   "upper": 0.0,
+   "n": 4,
+   "kind": null
+  },
+  {
+   "t": 214.5,
+   "d": 0.5,
+   "band": "top",
+   "size": 0.03,
+   "upper": 0.0,
+   "n": 1,
+   "kind": null
+  },
+  {
+   "t": 243.5,
+   "d": 3.0,
+   "band": "middle",
+   "size": 0.067,
+   "upper": 0.0,
+   "n": 9,
+   "kind": null
+  },
+  {
+   "t": 247.0,
+   "d": 0.5,
+   "band": "top",
+   "size": 0.033,
+   "upper": 0.0,
+   "n": 1,
+   "kind": null
+  },
+  {
+   "t": 259.5,
+   "d": 3.0,
+   "band": "middle",
+   "size": 0.07,
+   "upper": 0.17,
+   "n": 4,
+   "kind": null
+  },
+  {
+   "t": 298.0,
+   "d": 2.0,
+   "band": "middle",
+   "size": 0.059,
+   "upper": 0.0,
+   "n": 5,
+   "kind": null
+  }
+ ],
+ "music": {
+  "bpm": null,
+  "on": 0.64,
+  "beat": null
+ },
+ "lufs": -25.7,
+ "editor": {
+  "premise": "A seated advice conversation turns audience questions about motivation, comparison, friendships, and relationships into a sequence of personal responses.",
+  "hook": {
+   "shots": [
+    1,
+    2,
+    3
+   ],
+   "kind": "talk"
+  },
+  "chapters": [
+   {
+    "name": "Introducing the conversation",
+    "first": 4,
+    "last": 14,
+    "purpose": "Establish the conversational format and introduce the audience submissions."
+   },
+   {
+    "name": "Overcoming avoidance",
+    "first": 15,
+    "last": 21,
+    "purpose": "Introduce the first problem and deliver a compact response."
+   },
+   {
+    "name": "Handling comparison",
+    "first": 22,
+    "last": 29,
+    "purpose": "Reset attention with a question, then allow a fuller answer."
+   },
+   {
+    "name": "Romantic timing",
+    "first": 30,
+    "last": 33,
+    "purpose": "Shift topics and preserve a longer, uninterrupted explanation."
+   },
+   {
+    "name": "Friendship decisions",
+    "first": 34,
+    "last": 43,
+    "purpose": "Frame a social dilemma and develop the response through jump cuts."
+   },
+   {
+    "name": "Relationship wellbeing",
+    "first": 44,
+    "last": 53,
+    "purpose": "Move through related concerns, ending as another question begins."
+   }
+  ],
+  "captions": {
+   "role": "signpost",
+   "note": "Small centered question text on contrasting cards resets each topic; opening script titles establish the format. Cards last several seconds, giving reading space."
+  },
+  "music": [
+   {
+    "shot": 2,
+    "event": "start"
+   },
+   {
+    "shot": 4,
+    "event": "drop_out"
+   },
+   {
+    "shot": 5,
+    "event": "return"
+   },
+   {
+    "shot": 7,
+    "event": "drop_out"
+   },
+   {
+    "shot": 12,
+    "event": "return"
+   },
+   {
+    "shot": 14,
+    "event": "drop_out"
+   },
+   {
+    "shot": 16,
+    "event": "return"
+   },
+   {
+    "shot": 17,
+    "event": "drop_out"
+   },
+   {
+    "shot": 19,
+    "event": "return"
+   },
+   {
+    "shot": 22,
+    "event": "drop_out"
+   },
+   {
+    "shot": 23,
+    "event": "return"
+   },
+   {
+    "shot": 34,
+    "event": "drop_out"
+   },
+   {
+    "shot": 36,
+    "event": "return"
+   },
+   {
+    "shot": 44,
+    "event": "drop_out"
+   },
+   {
+    "shot": 45,
+    "event": "return"
+   },
+   {
+    "shot": 46,
+    "event": "drop_out"
+   },
+   {
+    "shot": 48,
+    "event": "return"
+   },
+   {
+    "shot": 53,
+    "event": "drop_out"
+   }
+  ],
+  "ending": "cutoff",
+  "techniques": [
+   {
+    "name": "straight_cuts",
+    "shots": [
+     1,
+     2,
+     3,
+     14,
+     15,
+     16
+    ]
+   },
+   {
+    "name": "jump_cuts",
+    "shots": [
+     5,
+     6,
+     7,
+     25,
+     26,
+     27,
+     36,
+     37
+    ]
+   },
+   {
+    "name": "sound_across_cut",
+    "shots": [
+     22,
+     23,
+     30,
+     31,
+     34,
+     35
+    ]
+   },
+   {
+    "name": "music_drop_out",
+    "shots": [
+     22,
+     34,
+     44,
+     47
+    ]
+   },
+   {
+    "name": "signpost_cards",
+    "shots": [
+     15,
+     22,
+     30,
+     34,
+     44,
+     47
+    ]
+   }
+  ],
+  "notes": "Cut introductory chatter tightly, then let developed answers breathe. Keep one stable framing rather than inventing coverage. Use question cards as visual resets, carrying speech across them so the conversation continues while viewers read.",
+  "roles_given": 53,
+  "model": "gpt-6.1-sol",
+  "cost": 0.0364,
+  "at": "2026-10-21"
+ }
+}

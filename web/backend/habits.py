@@ -43,7 +43,7 @@ TOP_LABELS = 3            # labels per shot that count as "what it was"
 MAX_PHRASES = 20
 SUGGEST_AFTER = 3         # uses without an undo before a habit is offered as a rule
 MACHINE_TEXTS = ("Made your video", "Music and the beat", "Captions, as you asked", "Took out shots that repeat another",
-                 "Smoother cuts", "Remix")      # "No music" is the creator's own switch, so it counts
+                 "Smoother cuts", "Remix", "You picked a version")   # "No music" is the creator's own switch, so it counts
 _lock = threading.Lock()
 
 
@@ -127,6 +127,11 @@ def derive(projects: list) -> list[dict]:
         name = getattr(p, "name", None) or (p.get("name") if isinstance(p, dict) else "") or "?"
         events = getattr(p, "events", None) or (p.get("events") if isinstance(p, dict) else []) or []
         for e in events:
+            if e.get("kind") == "scene_verdict" and e.get("word") in ("cut", "longer"):
+                # one word per scene after watching (vlog.py step 8): cut = removed, longer = held
+                for l in e.get("labels", [])[:TOP_LABELS]:
+                    (seen_removed if e["word"] == "cut" else seen_kept).setdefault(l, set()).add(name)
+                continue
             if e.get("kind") != "signals":
                 continue
             for s in e.get("items", []):

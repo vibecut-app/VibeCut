@@ -1,0 +1,71 @@
+{
+ "v": 1,
+ "id": "S013",
+ "source": "reference",
+ "group": "short",
+ "vertical": true,
+ "duration": 10.611,
+ "cutoff": false,
+ "have": [
+  "motion",
+  "faces",
+  "sound",
+  "words",
+  "labels",
+  "music"
+ ],
+ "shots": [
+  {
+   "t": 0.0,
+   "d": 10.611,
+   "motion": 7.225,
+   "motion_in": 7.173,
+   "motion_out": 12.488,
+   "face": 0.953,
+   "facing": 0.906,
+   "people": 1,
+   "voice": 0.028,
+   "music": 0.901,
+   "laugh": 0.02,
+   "labels": [
+    "people",
+    "adult",
+    "child"
+   ],
+   "aesthetic": 0.37,
+   "same": false,
+   "speed": 1.0,
+   "role": null,
+   "chapter": null
+  }
+ ],
+ "joins": [],
+ "open": false,
+ "close": false,
+ "words": [
+  {
+   "t": 0.0,
+   "d": 10.5,
+   "band": "bottom",
+   "size": 0.026,
+   "upper": 0.02,
+   "n": 11,
+   "kind": null
+  },
+  {
+   "t": 0.0,
+   "d": 10.5,
+   "band": "middle",
+   "size": 0.022,
+   "upper": 0.0,
+   "n": 5,
+   "kind": null
+  }
+ ],
+ "music": {
+  "bpm": null,
+  "on": 1.0,
+  "beat": null
+ },
+ "lufs": -22.5
+}

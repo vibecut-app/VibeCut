@@ -1,0 +1,256 @@
+{
+ "v": 1,
+ "id": "S047",
+ "source": "reference",
+ "group": "short",
+ "vertical": true,
+ "duration": 59.821,
+ "cutoff": false,
+ "have": [
+  "motion",
+  "faces",
+  "sound",
+  "words",
+  "labels",
+  "roles",
+  "music"
+ ],
+ "shots": [
+  {
+   "t": 0.0,
+   "d": 5.083,
+   "motion": 3.72,
+   "motion_in": 3.099,
+   "motion_out": 12.061,
+   "face": 1.0,
+   "facing": 0.885,
+   "people": 1,
+   "voice": 0.849,
+   "music": 0.19,
+   "laugh": 0.018,
+   "labels": [
+    "outdoor",
+    "sky",
+    "cloudy"
+   ],
+   "aesthetic": 0.392,
+   "same": false,
+   "speed": 1.0,
+   "role": "hook",
+   "chapter": null
+  },
+  {
+   "t": 5.083,
+   "d": 14.375,
+   "motion": 3.119,
+   "motion_in": 5.135,
+   "motion_out": 4.625,
+   "face": 0.377,
+   "facing": 0.169,
+   "people": 1,
+   "voice": 0.624,
+   "music": 0.247,
+   "laugh": 0.019,
+   "labels": [
+    "outdoor",
+    "sky",
+    "cloudy"
+   ],
+   "aesthetic": 0.284,
+   "same": false,
+   "speed": 1.0,
+   "role": "setup",
+   "chapter": 0
+  },
+  {
+   "t": 19.458,
+   "d": 27.375,
+   "motion": 4.088,
+   "motion_in": 1.06,
+   "motion_out": 4.351,
+   "face": 0.688,
+   "facing": 0.065,
+   "people": 1,
+   "voice": 0.794,
+   "music": 0.208,
+   "laugh": 0.043,
+   "labels": [
+    "people",
+    "adult",
+    "outdoor"
+   ],
+   "aesthetic": 0.207,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 0
+  },
+  {
+   "t": 46.833,
+   "d": 12.988,
+   "motion": 3.411,
+   "motion_in": 8.106,
+   "motion_out": 2.747,
+   "face": 0.962,
+   "facing": 0.122,
+   "people": 2,
+   "voice": 0.536,
+   "music": 0.233,
+   "laugh": 0.027,
+   "labels": [
+    "machine",
+    "wheel",
+    "people"
+   ],
+   "aesthetic": 0.234,
+   "same": false,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 0
+  }
+ ],
+ "joins": [
+  {
+   "t": 5.083,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 19.458,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 46.833,
+   "kind": "cut",
+   "dur": 0.0
+  }
+ ],
+ "open": false,
+ "close": false,
+ "words": [
+  {
+   "t": 0.0,
+   "d": 2.5,
+   "band": "middle",
+   "size": 0.026,
+   "upper": 0.89,
+   "n": 4,
+   "kind": null
+  },
+  {
+   "t": 0.0,
+   "d": 60.0,
+   "band": "top",
+   "size": 0.07,
+   "upper": 0.18,
+   "n": 8,
+   "kind": null
+  },
+  {
+   "t": 4.0,
+   "d": 0.5,
+   "band": "middle",
+   "size": 0.019,
+   "upper": 1.0,
+   "n": 2,
+   "kind": null
+  },
+  {
+   "t": 17.0,
+   "d": 0.5,
+   "band": "middle",
+   "size": 0.042,
+   "upper": 0.25,
+   "n": 2,
+   "kind": null
+  },
+  {
+   "t": 37.0,
+   "d": 1.0,
+   "band": "middle",
+   "size": 0.034,
+   "upper": 1.0,
+   "n": 4,
+   "kind": null
+  },
+  {
+   "t": 41.5,
+   "d": 1.0,
+   "band": "middle",
+   "size": 0.052,
+   "upper": 0.0,
+   "n": 1,
+   "kind": null
+  },
+  {
+   "t": 46.5,
+   "d": 0.5,
+   "band": "middle",
+   "size": 0.031,
+   "upper": 1.0,
+   "n": 3,
+   "kind": null
+  }
+ ],
+ "music": {
+  "bpm": null,
+  "on": 0.05,
+  "beat": null
+ },
+ "lufs": -17.9,
+ "editor": {
+  "premise": "Practical advice about mobile living, delivered beside a vehicle-based home and illustrated through a continuous outdoor walkthrough.",
+  "hook": {
+   "shots": [
+    1
+   ],
+   "kind": "talk"
+  },
+  "chapters": [
+   {
+    "name": "Vehicle walkthrough",
+    "first": 2,
+    "last": 4,
+    "purpose": "Ground the opening advice in the physical setup being discussed."
+   }
+  ],
+  "captions": {
+   "role": "title",
+   "note": "Bold yellow text high in frame repeats the advice premise across the walkthrough, leaving the speaker and vehicle visible below."
+  },
+  "music": [],
+  "ending": "cut",
+  "techniques": [
+   {
+    "name": "straight_cuts",
+    "shots": [
+     2,
+     3,
+     4
+    ]
+   },
+   {
+    "name": "talk_then_show",
+    "shots": [
+     1,
+     2,
+     3
+    ]
+   },
+   {
+    "name": "wide_then_close",
+    "shots": [
+     2,
+     3,
+     4
+    ]
+   }
+  ],
+  "notes": "Open with the speaker, then show the setup before returning closer. Let explanation determine shot length: the moving walkthrough gets the longest hold. Avoid inserting decorative coverage that interrupts the practical thread.",
+  "roles_given": 4,
+  "model": "gpt-6.1-sol",
+  "cost": 0.0103,
+  "at": "2026-10-23"
+ }
+}

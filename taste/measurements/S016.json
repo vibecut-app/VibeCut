@@ -1,0 +1,253 @@
+{
+ "id": "S016",
+ "source_name": "v.mp4",
+ "group": "short",
+ "version": 2,
+ "duration": 87.121,
+ "fps": 60.0,
+ "width": 1080,
+ "height": 1920,
+ "have": [
+  "audio",
+  "meta",
+  "motion",
+  "still"
+ ],
+ "pace": {
+  "shots": 15,
+  "per_min": 10.33,
+  "median_s": 4.254,
+  "p10_s": 2.097,
+  "p90_s": 12.5,
+  "cv": 0.75,
+  "first_s": 14.967,
+  "curve": [
+   2.161,
+   0.932,
+   1.058,
+   3.855,
+   0.886
+  ],
+  "trend": 0.427,
+  "words": [
+   "about 4.3 s a shot",
+   "steady pace",
+   "slows down towards the end"
+  ],
+  "evidence": [
+   "still"
+  ]
+ },
+ "transitions": {
+  "counts": {
+   "cut": 13,
+   "dissolve": 1,
+   "dip_black": 0,
+   "flash": 0
+  },
+  "share": {
+   "cut": 0.929,
+   "dissolve": 0.071,
+   "dip_black": 0.0,
+   "flash": 0.0
+  },
+  "dur": {
+   "dissolve": 0.292
+  },
+  "open": false,
+  "close": false,
+  "words": [
+   "hard cuts only"
+  ],
+  "evidence": [
+   "motion"
+  ]
+ },
+ "beat": {
+  "bpm": null,
+  "on_grid": null,
+  "chance": null,
+  "lift": null,
+  "beats_per_shot": null,
+  "onset_hit": 0.143,
+  "cuts_on_beat": false,
+  "words": [
+   "no steady beat to cut to"
+  ],
+  "evidence": [
+   "motion",
+   "audio"
+  ]
+ },
+ "music": {
+  "bpm": null,
+  "energy": [
+   1.0,
+   0.949,
+   0.962,
+   0.987,
+   0.923,
+   0.849,
+   0.453,
+   0.005,
+   0.587,
+   0.832,
+   0.675,
+   0.483,
+   0.542,
+   0.486,
+   0.481,
+   0.47,
+   0.405,
+   0.359,
+   0.371,
+   0.278,
+   0.185,
+   0.327,
+   0.281,
+   0.207,
+   0.258,
+   0.3,
+   0.36,
+   0.405,
+   0.463,
+   0.731,
+   0.824,
+   0.667
+  ],
+  "arc": "winds down",
+  "bright": 1405.3,
+  "words": [
+   "winds down energy",
+   "no steady beat",
+   "a full, even sound"
+  ],
+  "evidence": [
+   "audio"
+  ]
+ },
+ "look": {
+  "tone": [
+   0.0,
+   15.23,
+   22.87,
+   46.69,
+   72.57,
+   81.64,
+   87.96,
+   99.92,
+   112.35,
+   126.69,
+   145.35,
+   164.9,
+   178.53,
+   185.05,
+   194.2,
+   209.58,
+   221.72,
+   226.36,
+   255.0
+  ],
+  "shadow": [
+   13.83,
+   -2.81,
+   -12.9
+  ],
+  "mid": [
+   23.36,
+   -4.52,
+   -24.05
+  ],
+  "high": [
+   14.63,
+   -2.69,
+   -16.44
+  ],
+  "cast": [
+   20.05,
+   -3.86,
+   -20.78
+  ],
+  "sat": 0.1715,
+  "warmth": 40.83,
+  "tint": -3.5,
+  "black": 15.23,
+  "white": 226.36,
+  "median": 126.69,
+  "contrast": 162.89,
+  "words": [
+   "warm",
+   "natural saturation"
+  ],
+  "evidence": [
+   "still"
+  ]
+ },
+ "frame": {
+  "vertical": true,
+  "aspect": 0.562,
+  "bars": [
+   0,
+   0
+  ],
+  "letterbox": null,
+  "words": [
+   "vertical (9:16)"
+  ],
+  "evidence": [
+   "meta",
+   "still"
+  ]
+ },
+ "opening": {
+  "first_cut_s": 14.97,
+  "motion_ratio": 0.61,
+  "words": [
+   "first cut at 15.0 s",
+   "opens still"
+  ],
+  "evidence": [
+   "motion"
+  ]
+ },
+ "ending": {
+  "last_s": 4.25,
+  "fade_out": false,
+  "motion_ratio": 1.29,
+  "words": [
+   "last shot held 4.3 s",
+   "ends on a cut",
+   "ends on action"
+  ],
+  "evidence": [
+   "motion"
+  ]
+ },
+ "words": {
+  "share": 0.006,
+  "first_s": 72.5,
+  "band": "bottom",
+  "hold_s": 0.5,
+  "cards": 1,
+  "upper": 0.5,
+  "size": 0.035,
+  "words_per_card": 1.0,
+  "bands": {
+   "bottom": 1.0,
+   "middle": 0.0,
+   "top": 0.0
+  },
+  "words": [
+   "words on screen 1% of the time",
+   "usually at the bottom",
+   "each held about 0.5 s",
+   "first words at 72 s"
+  ],
+  "evidence": [
+   "still"
+  ]
+ },
+ "lufs": -16.0,
+ "measured_s": 87.12,
+ "ending_is_cutoff": false
+}

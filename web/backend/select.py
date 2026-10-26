@@ -260,10 +260,12 @@ def _novel(s: sb.Shot, taken: list[sb.Shot]) -> float:
 
 
 def choose(shots: list[sb.Shot], clips: dict[str, dict], n: int, hook_n: int = 1,
-           bias: dict[str, float] | None = None) -> Plan:
+           bias: dict[str, float] | None = None, min_s: float = MIN_SHOT_S) -> Plan:
     """n moments from the shoot, plus hook_n that open it. `bias`: the
-    creator's label habits (habits.py), a nudge on top of craft."""
-    shots, dropped = dedupe([s for s in shots if not s.utility and s.duration >= MIN_SHOT_S])
+    creator's label habits (habits.py), a nudge on top of craft. `min_s`:
+    shots filmed shorter than this can't hold the pace asked for (a vlog
+    wants room to rest in; a reel doesn't)."""
+    shots, dropped = dedupe([s for s in shots if not s.utility and s.duration >= max(min_s, MIN_SHOT_S)])
     weights = idf(shots)
     scored = {s.id: hero_score(s, clips, weights, bias) for s in shots}
     groups = sessions_of(shots)

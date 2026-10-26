@@ -1,0 +1,838 @@
+{
+ "v": 1,
+ "id": "S011",
+ "source": "reference",
+ "group": "short",
+ "vertical": true,
+ "duration": 60.7,
+ "cutoff": false,
+ "have": [
+  "motion",
+  "faces",
+  "sound",
+  "words",
+  "labels",
+  "roles",
+  "music"
+ ],
+ "shots": [
+  {
+   "t": 0.0,
+   "d": 1.1,
+   "motion": 1.007,
+   "motion_in": 0.681,
+   "motion_out": 1.285,
+   "face": 0.369,
+   "facing": 0.909,
+   "people": 1,
+   "voice": 0.044,
+   "music": 0.338,
+   "laugh": 0.005,
+   "labels": [
+    "outdoor",
+    "sky",
+    "cloudy"
+   ],
+   "aesthetic": 0.406,
+   "same": false,
+   "speed": 1.0,
+   "role": "hook",
+   "chapter": null
+  },
+  {
+   "t": 1.1,
+   "d": 0.433,
+   "motion": 1.018,
+   "motion_in": 1.018,
+   "motion_out": 1.018,
+   "face": 0.49,
+   "facing": 0.0,
+   "people": 1,
+   "voice": 0.019,
+   "music": 0.267,
+   "laugh": 0.009,
+   "labels": [
+    "outdoor",
+    "sky",
+    "cloudy"
+   ],
+   "aesthetic": 0.464,
+   "same": true,
+   "speed": 1.0,
+   "role": "hook",
+   "chapter": null
+  },
+  {
+   "t": 1.533,
+   "d": 0.7,
+   "motion": 1.193,
+   "motion_in": 1.173,
+   "motion_out": 1.309,
+   "face": 0.392,
+   "facing": 0.333,
+   "people": 1,
+   "voice": 0.04,
+   "music": 0.252,
+   "laugh": 0.012,
+   "labels": [
+    "outdoor",
+    "sky",
+    "cloudy"
+   ],
+   "aesthetic": 0.438,
+   "same": true,
+   "speed": 1.0,
+   "role": "hook",
+   "chapter": null
+  },
+  {
+   "t": 2.233,
+   "d": 1.533,
+   "motion": 0.162,
+   "motion_in": 0.117,
+   "motion_out": 0.152,
+   "face": 0.172,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.068,
+   "music": 0.407,
+   "laugh": 0.022,
+   "labels": [
+    "outdoor",
+    "sky",
+    "cloudy"
+   ],
+   "aesthetic": 0.492,
+   "same": true,
+   "speed": 1.0,
+   "role": "hook",
+   "chapter": null
+  },
+  {
+   "t": 3.767,
+   "d": 6.467,
+   "motion": 0.513,
+   "motion_in": 0.869,
+   "motion_out": 0.591,
+   "face": 0.095,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.048,
+   "music": 0.479,
+   "laugh": 0.033,
+   "labels": [
+    "outdoor",
+    "sky",
+    "cloudy"
+   ],
+   "aesthetic": 0.45,
+   "same": true,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 0
+  },
+  {
+   "t": 10.233,
+   "d": 2.034,
+   "motion": 0.298,
+   "motion_in": 0.301,
+   "motion_out": 0.445,
+   "face": 0.122,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.096,
+   "music": 0.645,
+   "laugh": 0.022,
+   "labels": [
+    "outdoor",
+    "sky",
+    "cloudy"
+   ],
+   "aesthetic": 0.528,
+   "same": true,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 0
+  },
+  {
+   "t": 12.267,
+   "d": 6.433,
+   "motion": 1.042,
+   "motion_in": 0.874,
+   "motion_out": 1.612,
+   "face": 0.305,
+   "facing": 0.689,
+   "people": 1,
+   "voice": 0.016,
+   "music": 0.566,
+   "laugh": 0.009,
+   "labels": [
+    "outdoor",
+    "sky",
+    "blue_sky"
+   ],
+   "aesthetic": 0.482,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 0
+  },
+  {
+   "t": 18.7,
+   "d": 0.8,
+   "motion": 1.078,
+   "motion_in": 1.212,
+   "motion_out": 1.003,
+   "face": 0.229,
+   "facing": 0.375,
+   "people": 1,
+   "voice": 0.014,
+   "music": 0.362,
+   "laugh": 0.005,
+   "labels": [
+    "outdoor",
+    "sky",
+    "cloudy"
+   ],
+   "aesthetic": 0.362,
+   "same": false,
+   "speed": 1.0,
+   "role": "setup",
+   "chapter": 1
+  },
+  {
+   "t": 19.5,
+   "d": 3.0,
+   "motion": 0.726,
+   "motion_in": 0.339,
+   "motion_out": 0.919,
+   "face": 0.216,
+   "facing": 0.0,
+   "people": 1,
+   "voice": 0.046,
+   "music": 0.603,
+   "laugh": 0.012,
+   "labels": [
+    "outdoor",
+    "sky",
+    "cloudy"
+   ],
+   "aesthetic": 0.417,
+   "same": true,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 22.5,
+   "d": 3.667,
+   "motion": 0.532,
+   "motion_in": 0.544,
+   "motion_out": 0.16,
+   "face": 0.18,
+   "facing": 0.0,
+   "people": 1,
+   "voice": 0.055,
+   "music": 0.495,
+   "laugh": 0.018,
+   "labels": [
+    "outdoor",
+    "sky",
+    "cloudy"
+   ],
+   "aesthetic": 0.365,
+   "same": true,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 26.167,
+   "d": 1.5,
+   "motion": 0.881,
+   "motion_in": 0.493,
+   "motion_out": 1.243,
+   "face": 0.363,
+   "facing": 0.0,
+   "people": 1,
+   "voice": 0.018,
+   "music": 0.566,
+   "laugh": 0.011,
+   "labels": [
+    "outdoor",
+    "sky",
+    "cloudy"
+   ],
+   "aesthetic": 0.359,
+   "same": true,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 27.667,
+   "d": 2.833,
+   "motion": 1.205,
+   "motion_in": 0.757,
+   "motion_out": 1.291,
+   "face": 0.276,
+   "facing": 0.0,
+   "people": 1,
+   "voice": 0.029,
+   "music": 0.539,
+   "laugh": 0.013,
+   "labels": [
+    "outdoor",
+    "sky",
+    "cloudy"
+   ],
+   "aesthetic": 0.383,
+   "same": true,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 30.5,
+   "d": 2.6,
+   "motion": 1.623,
+   "motion_in": 2.375,
+   "motion_out": 0.746,
+   "face": 0.022,
+   "facing": 0.0,
+   "people": 1,
+   "voice": 0.049,
+   "music": 0.591,
+   "laugh": 0.015,
+   "labels": [
+    "outdoor",
+    "sky",
+    "cloudy"
+   ],
+   "aesthetic": 0.385,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 33.1,
+   "d": 2.733,
+   "motion": 1.548,
+   "motion_in": 0.504,
+   "motion_out": 1.879,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.02,
+   "music": 0.601,
+   "laugh": 0.026,
+   "labels": [
+    "outdoor",
+    "sky",
+    "cloudy"
+   ],
+   "aesthetic": 0.402,
+   "same": true,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 35.833,
+   "d": 2.0,
+   "motion": 0.635,
+   "motion_in": 0.795,
+   "motion_out": 0.278,
+   "face": 0.09,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.02,
+   "music": 0.523,
+   "laugh": 0.008,
+   "labels": [
+    "outdoor",
+    "sky",
+    "cloudy"
+   ],
+   "aesthetic": 0.419,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 37.833,
+   "d": 1.067,
+   "motion": 0.664,
+   "motion_in": 0.698,
+   "motion_out": 0.513,
+   "face": 0.076,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.044,
+   "music": 0.368,
+   "laugh": 0.003,
+   "labels": [
+    "outdoor",
+    "sky",
+    "cloudy"
+   ],
+   "aesthetic": 0.387,
+   "same": true,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 38.9,
+   "d": 1.0,
+   "motion": 0.777,
+   "motion_in": 0.854,
+   "motion_out": 0.705,
+   "face": 0.103,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.014,
+   "music": 0.67,
+   "laugh": 0.004,
+   "labels": [
+    "outdoor",
+    "sky",
+    "cloudy"
+   ],
+   "aesthetic": 0.389,
+   "same": true,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 39.9,
+   "d": 0.867,
+   "motion": 0.806,
+   "motion_in": 0.97,
+   "motion_out": 0.852,
+   "face": 0.1,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.042,
+   "music": 0.39,
+   "laugh": 0.043,
+   "labels": [
+    "outdoor",
+    "sky",
+    "cloudy"
+   ],
+   "aesthetic": 0.418,
+   "same": true,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 40.767,
+   "d": 0.933,
+   "motion": 0.798,
+   "motion_in": 1.018,
+   "motion_out": 0.732,
+   "face": 0.08,
+   "facing": 0.25,
+   "people": 1,
+   "voice": 0.06,
+   "music": 0.525,
+   "laugh": 0.042,
+   "labels": [
+    "outdoor",
+    "sky",
+    "cloudy"
+   ],
+   "aesthetic": 0.43,
+   "same": true,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 41.7,
+   "d": 1.0,
+   "motion": 0.377,
+   "motion_in": 0.455,
+   "motion_out": 0.304,
+   "face": 0.141,
+   "facing": 0.35,
+   "people": 1,
+   "voice": 0.039,
+   "music": 0.555,
+   "laugh": 0.029,
+   "labels": [
+    "outdoor",
+    "sky",
+    "cloudy"
+   ],
+   "aesthetic": 0.391,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 42.7,
+   "d": 6.833,
+   "motion": 0.51,
+   "motion_in": 0.189,
+   "motion_out": 0.097,
+   "face": 0.037,
+   "facing": 0.885,
+   "people": 1,
+   "voice": 0.013,
+   "music": 0.641,
+   "laugh": 0.008,
+   "labels": [
+    "outdoor",
+    "sky",
+    "blue_sky"
+   ],
+   "aesthetic": 0.496,
+   "same": false,
+   "speed": 1.0,
+   "role": "setup",
+   "chapter": 2
+  },
+  {
+   "t": 49.533,
+   "d": 5.7,
+   "motion": 0.63,
+   "motion_in": 0.681,
+   "motion_out": 1.225,
+   "face": 0.078,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.011,
+   "music": 0.57,
+   "laugh": 0.006,
+   "labels": [
+    "outdoor",
+    "sky",
+    "blue_sky"
+   ],
+   "aesthetic": 0.41,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 2
+  },
+  {
+   "t": 55.233,
+   "d": 4.534,
+   "motion": 0.338,
+   "motion_in": 0.386,
+   "motion_out": 0.357,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.015,
+   "music": 0.616,
+   "laugh": 0.006,
+   "labels": [
+    "outdoor",
+    "sky",
+    "blue_sky"
+   ],
+   "aesthetic": 0.497,
+   "same": true,
+   "speed": 1.0,
+   "role": "payoff",
+   "chapter": 2
+  },
+  {
+   "t": 59.767,
+   "d": 0.933,
+   "motion": null,
+   "motion_in": null,
+   "motion_out": null,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.005,
+   "music": 0.41,
+   "laugh": 0.005,
+   "labels": [
+    "outdoor",
+    "night_sky",
+    "sky"
+   ],
+   "aesthetic": -0.934,
+   "same": false,
+   "speed": 1.0,
+   "role": "outro",
+   "chapter": 2
+  }
+ ],
+ "joins": [
+  {
+   "t": 1.1,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 1.533,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 2.233,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 3.767,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 10.233,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 12.267,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 18.7,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 19.5,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 22.5,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 26.167,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 27.667,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 30.5,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 33.1,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 35.833,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 37.833,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 38.9,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 39.9,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 40.767,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 41.7,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 42.7,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 49.533,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 55.233,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 59.767,
+   "kind": "cut",
+   "dur": 0.0
+  }
+ ],
+ "open": false,
+ "close": true,
+ "words": [
+  {
+   "t": 0.0,
+   "d": 3.0,
+   "band": "middle",
+   "size": 0.037,
+   "upper": 0.06,
+   "n": 4,
+   "kind": null
+  },
+  {
+   "t": 4.0,
+   "d": 3.0,
+   "band": "middle",
+   "size": 0.037,
+   "upper": 0.0,
+   "n": 6,
+   "kind": null
+  },
+  {
+   "t": 12.5,
+   "d": 6.5,
+   "band": "middle",
+   "size": 0.026,
+   "upper": 0.02,
+   "n": 8,
+   "kind": null
+  },
+  {
+   "t": 43.5,
+   "d": 3.0,
+   "band": "middle",
+   "size": 0.035,
+   "upper": 0.06,
+   "n": 6,
+   "kind": null
+  },
+  {
+   "t": 50.5,
+   "d": 4.5,
+   "band": "middle",
+   "size": 0.029,
+   "upper": 0.03,
+   "n": 6,
+   "kind": null
+  }
+ ],
+ "music": {
+  "bpm": null,
+  "on": 0.656,
+  "beat": null
+ },
+ "lufs": -23.2,
+ "editor": {
+  "premise": "A golf practice session moves from warming up and repeated range swings to a short-course finish.",
+  "hook": {
+   "shots": [
+    1,
+    2,
+    3,
+    4
+   ],
+   "kind": "title"
+  },
+  "chapters": [
+   {
+    "name": "Warm-up",
+    "first": 5,
+    "last": 7,
+    "purpose": "Ease into the session before the repeated hitting begins."
+   },
+   {
+    "name": "Range practice",
+    "first": 8,
+    "last": 20,
+    "purpose": "Compress repeated attempts into an increasingly quick swing montage."
+   },
+   {
+    "name": "Short-course finish",
+    "first": 21,
+    "last": 24,
+    "purpose": "Move practice onto the course, then close on putting."
+   }
+  ],
+  "captions": {
+   "role": "mixed",
+   "note": "Small central text introduces the activity, adds practice commentary, and marks the course transition; cards stay readable across cuts or longer holds."
+  },
+  "music": [
+   {
+    "shot": 6,
+    "event": "start"
+   },
+   {
+    "shot": 24,
+    "event": "end"
+   }
+  ],
+  "ending": "fade",
+  "techniques": [
+   {
+    "name": "straight_cuts",
+    "shots": [
+     7,
+     8,
+     13,
+     15,
+     21,
+     22
+    ]
+   },
+   {
+    "name": "jump_cuts",
+    "shots": [
+     2,
+     3,
+     4,
+     9,
+     10,
+     16,
+     17,
+     18,
+     19,
+     23
+    ]
+   },
+   {
+    "name": "thought_captions",
+    "shots": [
+     5,
+     7,
+     22
+    ]
+   },
+   {
+    "name": "signpost_cards",
+    "shots": [
+     21
+    ]
+   }
+  ],
+  "notes": "Cut away resets between attempts, keeping recognizable swing phases. Change camera position between runs of jump cuts. Accelerate toward one-second shots, then restore longer course shots. The drawn ball path makes a distant result readable.",
+  "roles_given": 24,
+  "model": "gpt-6.1-sol",
+  "cost": 0.0204,
+  "at": "2026-10-21"
+ }
+}

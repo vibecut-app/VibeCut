@@ -149,7 +149,7 @@ def load_shoot(folder: str) -> dict[str, dict]:
 
 def plan_shots(clips: dict[str, dict], fp: dict, length: float | None = None, hook_n: int = 1,
                cut: tuple[set, dict] | None = None, judge=None, taste: str = "",
-               bias: dict[str, float] | None = None) -> sel.Plan:
+               bias: dict[str, float] | None = None, min_s: float = sel.MIN_SHOT_S) -> sel.Plan:
     """Pick the moments and give each its window, before any beat is known.
     `judge`: None = Claude when there is a key (select.judge), False = the
     rules alone, or a stand-in `ask(options, keep)` for tests."""
@@ -159,7 +159,7 @@ def plan_shots(clips: dict[str, dict], fp: dict, length: float | None = None, ho
     total = length or fp["duration"]
     body = max(1.0, total - fp["hook_s"] * hook_n)
     n = max(4, int(round(body / fp["median_s"])))
-    plan = sel.choose(shots, clips, n, hook_n, bias)
+    plan = sel.choose(shots, clips, n, hook_n, bias, min_s)
     if judge is not False and os.environ.get("VIBECUT_REMIX_JUDGE", "1") != "0":
         plan = sel.judge(plan, shots, clips, ask=judge if callable(judge) else None, taste=taste)
     plan.notes = notes + plan.notes
