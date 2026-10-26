@@ -231,7 +231,8 @@ def variants(plan: sel.Plan, fp: dict, fmt: str, look: str | None = None, mx: di
     return out[:MAX_VARIANTS]
 
 
-def _refit(clips: dict[str, dict], plan: sel.Plan, fp: dict, mx: dict | None, end: int | None = None) -> dict | None:
+def _refit(clips: dict[str, dict], plan: sel.Plan, fp: dict, mx: dict | None, end: int | None = None,
+           fmt: str = "short") -> dict | None:
     """make.music without the search: the same track and drop, this plan's
     shots on its beat, the in-point moved so the drop still lands at the end
     of the hook. False when the track no longer covers the edit."""
@@ -239,7 +240,10 @@ def _refit(clips: dict[str, dict], plan: sel.Plan, fp: dict, mx: dict | None, en
         return None
     vmx = dict(mx)
     period = vmx["period"]
-    remix.quantise(plan, clips, period)
+    if fmt == "short" or fp.get("refs_used"):
+        remix.quantise(plan, clips, period)       # a reel: every cut on the grid
+    else:
+        make.vlog.phrase(plan, clips, period)     # a vlog: scene changes on the phrases, as make.music
     make.hold_ending(clips, plan, period, make.end_beats(fp, period))
     if end and plan.sessions and plan.sessions[-1]:
         p = plan.sessions[-1][-1]
@@ -286,7 +290,7 @@ def build(spec: dict | list[dict], raw: sel.Plan, clips: dict[str, dict], fp: di
     for s in sorted(specs, key=lambda s: rank.get(s["name"], len(rank))):
         if not _change(plan, s["name"], clips, fp):
             return None
-    vmx = _refit(clips, plan, fp, mx, next((s["end"] for s in specs if s.get("end")), None))
+    vmx = _refit(clips, plan, fp, mx, next((s["end"] for s in specs if s.get("end")), None), fmt)
     if vmx is False:
         return None
     ops = make.ops(plan, fp, vmx, fmt, look, about, talking, lines=lines)
