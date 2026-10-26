@@ -322,7 +322,7 @@ function CaptionWords({ o, onEdit, onDelete, onWatch, onDone, onPlace }: {
       {o.kind === 'heading' && (
         // a chapter title has its own look; the line under it stays plain
         <Line label="Title look">
-          <Segmented options={HEADING_LOOKS} value={o.look ?? 'bold'}
+          <Segmented options={HEADING_LOOKS} value={o.look ?? 'spaced'}
                      onPick={(v) => v !== o.look && onEdit({ look: v as HeadingLook }, 'You changed the chapter title\'s look')} />
         </Line>
       )}
@@ -344,7 +344,7 @@ function CaptionWords({ o, onEdit, onDelete, onWatch, onDone, onPlace }: {
   )
 }
 
-const HEADING_LOOKS: [string, string][] = [['script', 'Script'], ['spaced', 'Spaced'], ['bold', 'Bold'], ['serif', 'Serif']]
+const HEADING_LOOKS: [string, string][] = [['spaced', 'Spaced'], ['script', 'Script'], ['serif', 'Serif'], ['bold', 'Bold']]
 
 // The captions' colour. Automatic reads the footage behind each caption and
 // picks what stands out; a picked colour is kept, with an edge or glow so it

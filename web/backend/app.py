@@ -33,7 +33,7 @@ from cutgrammar import grade
 
 from . import board as bd
 from . import projects as pj
-from . import audiomix, bed, brief, cloud, cutnotes, defaults, habits, make, vibes, vlog, tempo, ink, moment, cut, export, looks, pitch, seams, selfcheck, smooth, sound, subtitles, places, indexer, llm, locate, musiclib, oai, overlays, reference, remix, share, covers, postcopy, speech, story, storyboard, talk, timeline, vision, voiceover, youtube
+from . import audiomix, bed, brief, cloud, cutnotes, defaults, habits, make, recipes, vibes, vlog, tempo, ink, moment, cut, export, looks, pitch, seams, selfcheck, smooth, sound, subtitles, places, indexer, llm, locate, musiclib, oai, overlays, reference, remix, share, covers, postcopy, speech, story, storyboard, talk, timeline, vision, voiceover, youtube
 from .preferences import PreferenceError, Preferences
 from .workflow import GATE, Workflow, WorkflowError
 from . import graphics, resources, reverse, transitions
@@ -508,9 +508,9 @@ def _capabilities() -> dict:
 # they succeed the project is written to disk. Uploads, the finished-video
 # tool and the reference library stand apart: they are not project state.
 _NO_PROJECT_OK = ("/api/projects", "/api/upload", "/api/locate", "/api/polish", "/api/music/folder",
-                  "/api/references", "/api/profile", "/api/vibes", "/api/youtube")
+                  "/api/references", "/api/profile", "/api/vibes", "/api/recipes", "/api/youtube")
 _NOT_SAVED = ("/api/projects", "/api/upload", "/api/locate", "/api/polish", "/api/music/folder", "/api/profile", "/api/vibes",
-              "/api/youtube")
+              "/api/recipes", "/api/youtube")
 
 
 # My resources stand apart too: the profile page renames and deletes them with no video open.
@@ -1254,10 +1254,16 @@ def api_chat(req: ChatReq) -> dict:
         ops = out.get("ops", [])
         if req.t is not None:
             ops = [o for o in ops if o.get("op") != "choose_option"]   # about a moment of this edit, never a new one
+        ops = llm.expand(ops, SESSION.board, CATALOG["cat"], SESSION.proposals)
         SESSION.add({"kind": "chat", "text": msg, "ops": ops,
                      "reply": out.get("reply", ""), "question": out.get("question"),
                      "choices": out.get("choices", []) if out.get("question") else [],
                      "direction": direction, "cost": cost}, CATALOG["cat"], _make_proposals)
+        landed = (SESSION.board or {}).get("overlay_style") or {}
+        for o in ops:   # a caption look asked for in words follows the creator too, once it is on the edit
+            picks = {f"caption_{k}": o[k] for k in ("template", "enter") if k in o and landed.get(k, "-") == o[k]}
+            if o.get("op") == "overlay_style" and SESSION.board is not None and picks:
+                defaults.note(**picks)
         return _session()
 
 
@@ -1392,7 +1398,8 @@ def api_moment_chat(req: MomentReq) -> dict:
                 _save()     # a failed request isn't saved by the middleware; what it cost must be
             raise HTTPException(502, str(e) + (f" That try cost {_cents(paid)}." if paid else "")) from e
         cost = _chat_spent(out, "moment")
-        ops = [o for o in out.get("ops") or [] if o.get("op") != "choose_option"]
+        ops = llm.expand([o for o in out.get("ops") or [] if o.get("op") != "choose_option"], SESSION.board,
+                         CATALOG["cat"], SESSION.proposals)
         preview = None
         if ops:
             # what Apply would change, computed on a copy -- never reported by the model
@@ -1441,12 +1448,13 @@ def api_brief_setup() -> dict:
         marks = brief.length_marks(_usable_s(), about)
         share = _portrait_share()
         remembered = defaults.get()
+        vs = vibes.choices()          # a remembered pick that's gone (a deleted recipe) isn't shown as picked
         return {"format": remembered.get("format") or brief.suggest_format(share, marks["max"]),
                 "suggested": brief.suggest_format(share, marks["max"]), "remembered": remembered,
                 "music": remembered.get("music", "on") != "off", "portrait_share": round(share, 2),
                 "formats": [{"key": k, "label": v, "seconds": round(brief.length_for(k, marks))} for k, v in brief.FORMATS.items()],
                 "look": (_direction() or {}).get("style", {}).get("look") or remembered.get("look") or "cozy",
-                "vibes": vibes.choices(), "vibe": remembered.get("vibe"),
+                "vibes": vs, "vibe": remembered.get("vibe") if any(v["id"] == remembered.get("vibe") for v in vs) else None,
                 "looks": looks.public(), "about": about}
 
 
@@ -1547,6 +1555,9 @@ def api_make(req: BriefAutoReq | None = None) -> dict:
         defaults.note(format=style.get("format"), look=style.get("look"), music="on" if want_music else "off",
                       vibe=style.get("vibe") or None)
         vibe_fp = vibes.fingerprint_for(style.get("vibe"))
+        # a saved recipe (recipes.py) also brings its dress and the creator's lines
+        recipe = recipes.get(style.get("vibe")) if str(style.get("vibe") or "").startswith(recipes.PREFIX) else None
+        phrasing = list(dict.fromkeys(recipes.phrasing(recipe) + habits.phrases()))
         try:
             prof = (json.loads(defaults.SETTINGS.read_text()).get("profile") or {}).get("value")
         except (OSError, ValueError):
@@ -1567,6 +1578,9 @@ def api_make(req: BriefAutoReq | None = None) -> dict:
             ops_ = list(job.result["ops"])
             if caption_style:
                 ops_.append({"op": "overlay_style", **caption_style, "source": "defaults"})   # as last time
+            if recipe:
+                # its caption style, its transition and its effect, on the board those ops make; same turn, same Undo
+                ops_ += recipes.dress_ops(recipe, bd.applied(SESSION.board, ops_, CATALOG["cat"], SESSION.proposals))
             acted = [h for h in h_used if (h.get("label") and any(h["label"] in (CATALOG["cat"].shots[e["id"]].labels if e["id"] in CATALOG["cat"].shots else {})
                                                                        for bt in job.result["ops"][0]["snapshot"]["beats"] for e in bt["shots"]))
                      or h["id"] == "music_off"]
@@ -1636,7 +1650,7 @@ def api_make(req: BriefAutoReq | None = None) -> dict:
     job = make.start(clips, cut_now, style.get("format", "tall"), style.get("pace", "balanced"),
                      style.get("look"), about, float(style.get("seconds") or 60.0), own, None, None, on_done,
                      want_music=want_music, register=register, vibe=vibe_fp, taste=taste,
-                     bias=h_bias, found=found, phrasing=habits.phrases(),
+                     bias=h_bias, found=found, phrasing=phrasing,
                      use_ai=use_ai, check=check_made if use_ai else None)
     return job.public()
 
@@ -1668,6 +1682,69 @@ def api_habit_switch(hid: str, req: HabitReq) -> dict:
         return api_make(BriefAutoReq(format=style.get("format"), look=style.get("look"),
                                      music=None, vibe=style.get("vibe")))
     return {"habit": h}
+
+
+# --------------------------------------------------------------------------
+# recipes: an edit the creator liked, saved to cut the next one the same way
+# --------------------------------------------------------------------------
+
+class RecipeReq(BaseModel):
+    name: str
+
+
+def _recipe_measured() -> dict:
+    board = SESSION.board
+    m = (board or {}).get("music") or {}
+    try:
+        return recipes.measure(board, musiclib.find(m.get("track")) if m.get("track") else None, _want())
+    except recipes.RecipeError as e:
+        raise HTTPException(409, str(e)) from e
+
+
+@app.get("/api/recipes/draft")
+def api_recipe_draft() -> dict:
+    """What "Save as my recipe" would keep from this edit, before it's kept."""
+    with LOCK:
+        measured = _recipe_measured()
+        pr = PROJECT["p"]
+    return {"name": ((pr.name if pr else "") or "My recipe")[:recipes.NAME_MAX], "words": recipes.words(measured),
+            "names": [r["name"] for r in recipes.list_all()]}
+
+
+@app.get("/api/recipes")
+def api_recipes() -> dict:
+    return {"recipes": [recipes.public(r) for r in recipes.list_all()]}
+
+
+@app.post("/api/recipes")
+def api_recipe_save(req: RecipeReq) -> dict:
+    """Keep this edit as a recipe; the same name again replaces that one."""
+    with LOCK:
+        measured = _recipe_measured()
+        pr = PROJECT["p"]
+        src = {"project": pr.id, "name": pr.name} if pr else {}
+    try:
+        rec, replaced = recipes.save(req.name, measured, src)
+    except recipes.RecipeError as e:
+        raise HTTPException(422, str(e)) from e
+    return {"recipe": recipes.public(rec), "replaced": replaced}
+
+
+@app.patch("/api/recipes/{rid}")
+def api_recipe_rename(rid: str, req: RecipeReq) -> dict:
+    try:
+        return {"recipe": recipes.public(recipes.rename(rid, req.name))}
+    except KeyError as e:
+        raise HTTPException(404, "no such recipe") from e
+    except recipes.RecipeError as e:
+        raise HTTPException(422, str(e)) from e
+
+
+@app.delete("/api/recipes/{rid}")
+def api_recipe_delete(rid: str) -> dict:
+    if not recipes.delete(rid):
+        raise HTTPException(404, "no such recipe")
+    return {"recipes": [recipes.public(r) for r in recipes.list_all()]}
 
 
 @app.get("/api/vibes")
@@ -1954,7 +2031,11 @@ def _check_landed(res: dict, pr, where: str) -> bd.Turn:
             said += f" That try cost {_cents(cost)}."
         return SESSION.add({"kind": "check", "text": CHECK_TEXT, "ops": [], "reply": said, "cost": cost},
                            CATALOG["cat"], _make_proposals)
-    return SESSION.add({"kind": "check", "text": CHECK_TEXT, "ops": res["ops"], "reply": res["reply"],
+    ops = list(res["ops"])
+    if ops:
+        # the fixes move shots under the chapter titles and captions: keep each where it can be read
+        ops += story.fit_captions(bd.applied(SESSION.board, ops, CATALOG["cat"], SESSION.proposals))
+    return SESSION.add({"kind": "check", "text": CHECK_TEXT, "ops": ops, "reply": res["reply"],
                         "cost": cost, "sheets": res.get("sheets") or []}, CATALOG["cat"], _make_proposals)
 
 

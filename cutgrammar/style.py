@@ -422,6 +422,18 @@ def beat_sync(media: Media, bounds: list[float], on: np.ndarray | None = None) -
     return out
 
 
+def arc_of(curve) -> str:
+    """The shape of a 0..1 energy curve, in words the music search knows."""
+    thirds = [float(np.mean(c)) for c in np.array_split(np.asarray(curve, dtype=np.float64), 3)]
+    if thirds[2] - thirds[0] > 0.2:
+        return "builds"
+    if thirds[0] - thirds[2] > 0.2:
+        return "winds down"
+    if thirds[1] - max(thirds[0], thirds[2]) > 0.15:
+        return "peaks in the middle"
+    return "steady"
+
+
 def music_feel(media: Media) -> dict | None:
     """The music's energy arc and tempo -- what to look for in the creator's
     own library, never the track itself."""
@@ -432,15 +444,7 @@ def music_feel(media: Media) -> dict | None:
         return None
     bpm, _ = music.estimate_bpm(media)
     curve = music._resample(e.astype(np.float64), MUSIC_POINTS)
-    thirds = [float(np.mean(c)) for c in np.array_split(curve, 3)]
-    if thirds[2] - thirds[0] > 0.2:
-        arc = "builds"
-    elif thirds[0] - thirds[2] > 0.2:
-        arc = "winds down"
-    elif thirds[1] - max(thirds[0], thirds[2]) > 0.15:
-        arc = "peaks in the middle"
-    else:
-        arc = "steady"
+    arc = arc_of(curve)
     w = [f"{arc} energy"]
     if bpm:
         w.append(f"a steady beat around {bpm:.0f} BPM"

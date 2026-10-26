@@ -475,6 +475,22 @@ The promise to a user is therefore *not* "this will be beautiful." It is
   the one mirrored from the profile page (`/api/profile`). Not tried
   against the live model (no key on this Mac). `tests/test_taste.py`.
   Layer 3 (undo and verdicts as candidate rules) is not built.
+- **Recipes** (`web/backend/recipes.py`, `/api/recipes`, `SaveRecipe.tsx`;
+  idea 4 of the open-tools research, built on barbie's vibes and Watch
+  screen once merged, 2026-10-19). "Save as my recipe" (next to Download on
+  the Watch screen, and in the name menu) measures the finished board, not
+  the clips: pace and arc from `timeline.layout`'s shot ends, words from the
+  resolved overlays (share, band by time held, hold, samples), the music's
+  BPM and energy arc from its in-point, the ending; plus its dress (frame,
+  look, music on/off, the caption `overlay_style`, a transition on every
+  join, an effect on ≥ 75% of shots). Saved under a name (the same name
+  replaces it) in `$VIBECUT_CACHE/recipes/`, mirrored as kind `vibe`, key
+  `recipe:<id>`. Listed first under "Cut it like" (♥, renamed or deleted
+  there; picking one preselects its frame, look and music). A Make with
+  one: `make.fingerprint(vibe=…)` like any vibe, its caption samples ride
+  as phrasing, and `recipes.dress_ops` lands on the same Make turn (one
+  Undo; `board.applied` gives the trial board). A recipe is a vibe: no AI,
+  nothing spent. `tests/test_recipes.py`.
 - **The viral library** (`web/backend/vibes.py`, `/api/vibes`, "Cut it
   like" in `Setup.tsx`; the user's vision, 2026-10-18: learn from viral
   vlogs). A vibe = `remix.fingerprint` over a *set* of reels learnt through
@@ -542,10 +558,36 @@ The promise to a user is therefore *not* "this will be beautiful." It is
   sees up to 60 rough-cut moments (one index frame each, low detail, plus
   time / stop / labels / faces / talking / worth) and returns chapters named
   by what happens, what's kept, its order, each shot's job and length
-  (`ROLE_S` by frame, priors), a hook and a title look per chapter. The
-  rules still cut each window, the beat and the music. Chapter titles are
-  overlay kind `heading` with their own `look` (script / spaced / bold /
-  serif, `overlayDraw.HEADINGS`), independent of the captions' one style.
+  (`ROLE_S` by frame, priors), a hook, a line under each chapter title and
+  a caption on the few moments that want one. The rules still cut each
+  window, the beat and the music. **The words** (sarah, 2026-10-18:
+  "captions usually convey 1. a thought ... 2. what we're doing at a
+  timestamp"; "green spaces, a green drink, and sunny streets" read as AI):
+  every line is the creator typing over their own clip, a first-person
+  thought or what they're doing, 3-5 words, lowercase, ≤ 1 emoji, never a
+  description or list of the picture (`story.VOICE`, also in the chat's
+  overlay rule and `llm.DAY_SYSTEM`); lines they typed before
+  (`habits.phrases`) and their taste ride along. Checked in code
+  (`story.line_of`: a list, a clock left mid-line, > 6 words or > 42
+  characters drops the line, never cut to a fragment; a model's clock only
+  comes off either end; one emoji, flags and CJK counted right);
+  `clock` puts the real filming time in front ("7:40 am · walk to class").
+  Captions (kind `caption`, so the Soft look) hang on their shot once the
+  title has gone (a moment under the title starts its caption just after
+  it), ≤ 2 a chapter, held 1.4-3 s to read, never past the chapter; after
+  the self-check moves shots, `story.fit_captions` rides on the check turn
+  and keeps each title inside its chapter and each caption after it, ≥ 1 s
+  or dropped. Chapter titles are overlay kind `heading` with their own `look`,
+  independent of the captions' one style: every AI title, and any added by
+  hand, is `spaced` = thin white widely spaced capitals (Montserrat Light,
+  bundled) over an italic line in the same family, with its own calm
+  entrance (no card tilt or slam); a title always fits the frame on one
+  line by getting smaller (`fitTitle`, ≥ 40% of its plain size, so one
+  sized up by hand comes back down), in the typing box too (measured on the
+  words being typed); where ink.py asks for a halo it wins over the title's
+  soft shadow.
+  script / bold / serif stay pickable by hand. `tests/test_story.py`,
+  `headingLook.test.ts`.
   Runs only with `OPENAI_API_KEY` in web/.env **and** the AI switch on (the
   "AI" pill in the top bar and in the two-picks popup, `/api/ai`, kept in
   `$VIBECUT_CACHE/ai.json`, off by default; sarah, 2026-10-18), and only for
@@ -580,6 +622,36 @@ The promise to a user is therefore *not* "this will be beautiful." It is
   answer landing on another video changes nothing; a failed one offers Try
   again. The app's own first story (no board, no `ai_ok`) is the free rules'.
   `tests/test_chat_ai.py` (stand-in replies). Not yet run live.
+  **Caption looks by chat** (sarah, 2026-10-20: the chat said it "can't set
+  custom fonts or background-matched contrasting colours"; "Build it"): the
+  chat has the Captions tab's controls as `caption_style {captions}` (word
+  art / soft, font / own, colour / auto, outline, shadow, background, boldness,
+  animation, position) and moves or sizes words with `placement` on
+  edit_overlay / add_overlay (set x, y, scale / usual, size, a chapter
+  title's look); overlay `all_captions` (kind caption) / `all_titles` (kind
+  heading) = one edit (or drop_overlay) each, never their words or timing; part labels, name
+  tags, dates and the opening title go one at a time (they share moments on
+  screen, so one point would stack them). Every field is `keep` unless asked
+  and a number left alone is -1, so the strict schema can't reset the rest;
+  `llm.expand` turns the answer into board ops against the edit as it is,
+  exactly as the tab would: a new word art starts fresh (StyleBars `PLAIN`),
+  a switch turned on starts from what the captions show (`_dress_of` mirrors
+  overlayDraw's `dressOf` / `tinted`, word arts' own edges and boxes in
+  `ART_DRESS`: keep the two in step), numbers clamped to its sliders (12 read
+  as 12%), an unplaced overlay's spot as `CaptionWords` reckons it, enums
+  without case, each op reading the edit as the earlier ops in the same answer
+  left it (`board.applied` on only the ops added since, so a long answer stays
+  quick; an outline or shadow asked before a new word art is read again on it,
+  so the order in the answer doesn't matter); in the chat and on pause. What can't land still reaches the
+  board, so the turn says "Skipped: …" instead of nothing. The state shows
+  CAPTION STYLE (with the word art's own numbers) and each overlay's place
+  (an unplaced one: where it's drawn and where a set starts, x 0.5 as the tab's
+  Place / Size start; resizing in place is `size`).
+  Many changed at once read as one line (`overlays._fold`). A template or
+  entrance asked for in words is remembered like one picked in the tab, once
+  it landed. What it can't do, it says where in the app it's done. The schema
+  is at Claude's limit of 16 nullable fields: `option` / `amount` say
+  "unused" instead. `tests/test_chat_captions.py`. Not yet run live.
 - **The AI checks its own edit** (`web/backend/selfcheck.py`, `/api/check`,
   `/api/check/estimate`, `/api/check/sheet/{name}`; sarah, 2026-10-18: "lets
   do AI checks own edit"). The story editor sees one frame per moment and

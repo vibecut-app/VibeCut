@@ -16,6 +16,7 @@ import { Player } from './components/Player'
 import { PauseChat } from './components/PauseChat'
 import { PaceButton } from './components/PaceButton'
 import { Setup, type SetupData } from './components/Setup'
+import { SaveRecipe } from './components/SaveRecipe'
 import { LengthButton } from './components/LengthButton'
 import { PreferCards } from './components/PreferCards'
 import type { OverlayEdit } from './components/OverlayCanvas'
@@ -431,6 +432,7 @@ export default function App({ id, view }: { id: string; view: 'story' | 'frames'
   // (rail, inspector, timeline) waits behind one Fine-tune link. A made
   // video opens here; a hand-cut one opens in the editor.
   const [watching, setWatching] = useState<boolean | null>(null)
+  const [savingRecipe, setSavingRecipe] = useState(false)    // Save as my recipe (recipes.py)
   useEffect(() => {
     if (watching === null && session?.board) setWatching(session.board.option === 'made' || session.board.option === 'remix')
   }, [session?.board, watching])
@@ -1082,7 +1084,7 @@ export default function App({ id, view }: { id: string; view: 'story' | 'frames'
       date: { text: shortDate(clip?.capture_time) ?? shortDate(new Date().toISOString())! },
       end: { text: 'Thanks for watching', sub: handle },
       chapters: {},
-      heading: { text: it?.beat_title ?? 'Chapter', sub: 'what happens here', look: 'script' },
+      heading: { text: it?.beat_title ?? 'Chapter', sub: 'what happens here', look: 'spaced' },
     }
     return { ...where, ...words[kind] }
   }
@@ -1584,6 +1586,7 @@ export default function App({ id, view }: { id: string; view: 'story' | 'frames'
                 { label: 'Rename this video', onClick: () => setRenaming(true) },
                 { label: 'Look at your footage again', hint: 'Every clip, kept and left out', disabled: !framesView, onClick: () => showStep('footage') },
                 { label: 'Make my video again…', hint: 'The two picks (and AI, if on), then a fresh edit; Undo brings this one back', disabled: !clips.length || !session?.board, onClick: () => { transport.stop(); startQuestions() } },
+                { label: 'Save as my recipe…', hint: 'Cut and dress your next video like this one', disabled: !session?.board, onClick: () => setSavingRecipe(true) },
                 { label: 'Other stories…', hint: 'The same clips told another way', disabled: !session?.proposals || !session?.board || shown !== 'story', onClick: () => { transport.stop(); setOthersOpen(true); setLevel('story') } },
                 { label: 'Feel like a video you love…', hint: 'Its pace, cuts and colour, never its frames', disabled: !clips.length || shown !== 'story', onClick: () => { transport.stop(); setMenu(null); setReferencing(true) } },
                 { label: 'Talking to camera…', hint: caps.speech ? 'Transcribe on this Mac, cut pauses and retakes' : 'Needs macOS 26 with the Xcode command-line tools', disabled: !caps.speech || !clips.length, onClick: openTalk },
@@ -1658,6 +1661,8 @@ export default function App({ id, view }: { id: string; view: 'story' | 'frames'
               </button>
               <span className="mx-1 h-6 w-px bg-line" aria-hidden />
               <Button variant="primary" size="md" onClick={() => { transport.stop(); setExporting(true) }}>Download</Button>
+              <Button variant="secondary" size="md" onClick={() => setSavingRecipe(true)}
+                      title="Cut and dress your next video like this one: it shows up under Cut it like">Save as my recipe</Button>
               <Button variant="ghost" size="md" onClick={() => setWatching(false)} title="The editor: every shot, caption, join and sound">Fine-tune</Button>
             </div>
             {undoable && <p className="mt-2 text-[12px] text-muted">{undoable.text} · <button type="button" className="underline" onClick={() => toggle(undoable.turn)}>Undo</button></p>}
@@ -1796,6 +1801,8 @@ export default function App({ id, view }: { id: string; view: 'story' | 'frames'
                           initialLinks={frontLinks ?? ''} autoStart={!!frontLinks} />}
       {referencing && <BorrowStyle onClose={() => setReferencing(false)} onRemix={openRemix}
                                    onApplied={(s) => { setSession(s); offerUndo(s); setReferencing(false); setPeek(null); setLevel('frames') }} />}
+      {savingRecipe && <SaveRecipe onClose={() => setSavingRecipe(false)}
+                                   onSaved={(r, replaced) => { setSavingRecipe(false); note(`${replaced ? 'Replaced' : 'Saved'} your recipe “${r.name}”. Pick it under Cut it like when you make your next video.`) }} />}
       {restart && <Confirm title="Start this video over?" action="Start over" danger onNo={() => setRestart(false)} onYes={startOver}
                            text="The footage list, the rough trim, the story and its history are cleared. Your clip files and anything you exported are untouched." />}
 

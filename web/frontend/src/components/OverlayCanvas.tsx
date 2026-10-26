@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { drawOverlays, ensureFonts, safe, typeLook, type OverlayBox, type Part, type TypeLine, type TypeLook } from '../overlayDraw'
 import { phStore } from '../transport'
-import { multiline, typable, wordsOf, wordsPatch } from '../captionWords'
+import { asTyped, multiline, typable, wordsOf, wordsPatch } from '../captionWords'
 import type { Overlay, OverlayPlace, OverlayStyle } from '../types'
 import { drawGraphics, ensureGraphicFonts } from '../graphicDraw'
 import type { Graphic } from '../types'
@@ -274,7 +274,7 @@ export function OverlayCanvas({ view, width, height, edit }: { view: OverlayView
           </div>
         )}
         {typing && sel && <TypeBox key={typing.id} typing={typing} lines={multiline(sel)} width={width} height={height}
-                                   look={typeLook(sel, view.style, Math.min(width, height))}
+                                   look={typeLook(asTyped(sel, typing.value), view.style, Math.min(width, height), { W: width, H: height })}
                                    onChange={(value) => setTyping((t) => (t ? { ...t, value } : t))}
                                    onDone={stopTyping} />}
         {selBox && selArt?.place && !drag && (

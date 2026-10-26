@@ -38,6 +38,13 @@ export type AIState = { available: boolean; on: boolean; model: string }
 export type AIEstimate = AIState & { moments: number; dollars: number; plan?: number; check?: number }
 // One look at the whole cut by the AI (selfcheck.py), priced before it's asked.
 export type CheckEstimate = { on: boolean; available: boolean; model: string; shots: number; dollars: number; spent: number }
+// A saved recipe (backend recipes.py): an edit the creator liked, offered under "Cut it like"
+export type Recipe = {
+  id: string; name: string; kind: 'recipe'; line: string; words: string[]
+  dress: { format: string | null; look: string | null; music: boolean }
+  from: string | null; saved_at: number
+}
+export type RecipeDraft = { name: string; words: string[]; names: string[] }
 export type VibeJob = { id: string; stage: 'learning' | 'done' | 'error'; lines: string[]; error: string | null; done: number; total: number; vibe: string | null; elapsed: number }
 
 export type MakeJob = { id: string; stage: string; line: string; done: number; total: number; error: string | null; elapsed: number }
@@ -130,6 +137,11 @@ export const api = {
   setup: () => j<SetupData>(fetch('/api/brief/setup')),
   vibeStart: (req: { niche: string; name?: string; links: string[] }) => j<VibeJob>(post('/api/vibes', req)),
   vibeStatus: (id: string) => j<VibeJob>(fetch(`/api/vibes/jobs/${id}`)),
+  recipeDraft: () => j<RecipeDraft>(fetch('/api/recipes/draft')),
+  saveRecipe: (name: string) => j<{ recipe: Recipe; replaced: boolean }>(post('/api/recipes', { name })),
+  renameRecipe: (id: string, name: string) =>
+    j<{ recipe: Recipe }>(fetch(`/api/recipes/${encodeURIComponent(id)}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name }) })),
+  deleteRecipe: (id: string) => j<{ recipes: Recipe[] }>(fetch(`/api/recipes/${encodeURIComponent(id)}`, { method: 'DELETE' })),
   profileGet: () => j<{ profile: Record<string, unknown> | null; at: number | null; cloud: { on: boolean } }>(fetch('/api/profile')),
   profilePut: (profile: Record<string, unknown>) => j<{ profile: Record<string, unknown>; at: number }>(post('/api/profile', { profile })),
   make: (picks: { format: string; look: string; music?: boolean; vibe?: string | null; ai_ok?: number | null }) => j<MakeJob>(post('/api/make', picks)),

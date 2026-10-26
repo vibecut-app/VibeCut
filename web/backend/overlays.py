@@ -31,6 +31,7 @@ carries the number it is based on and a verdict, like cutgrammar's rules.
 
 from __future__ import annotations
 
+import re
 from datetime import datetime
 
 FRAME = 1 / 30
@@ -397,7 +398,7 @@ def add(b: dict, op: dict, new_id) -> None:
     if kind == "caption":
         o["pos"] = "bottom"     # captions follow the one caption position
     if kind == "heading":
-        o.setdefault("look", "bold")
+        o.setdefault("look", "spaced")    # thin, white, spaced capitals: the day-vlog chapter title
     if kind != "chapters" and not o["text"]:
         raise OverlayError("an overlay needs some text")
     b.setdefault("overlays", []).append(o)
@@ -407,6 +408,11 @@ def _find(b: dict, oid: str | None) -> dict:
     for o in b.get("overlays", []):
         if o["id"] == oid:
             return o
+    if oid in ("all_captions", "all_titles"):   # the chat's every-caption edit
+        kind, what = ("caption", "captions") if oid == "all_captions" else ("heading", "chapter titles")
+        if any(o["kind"] == kind for o in b.get("overlays", [])):
+            raise OverlayError(f"every one of the {what} at once can only be moved, sized or removed")
+        raise OverlayError(f"there are no {what} in this edit")
     raise OverlayError(f"no overlay {oid}")
 
 
@@ -514,8 +520,12 @@ def describe(a: dict | None, b: dict | None) -> list[dict]:
             what.append("timing")
         if old["dur"] != o["dur"]:
             what.append("length")
-        if (old["pos"], old["size"], old.get("place")) != (o["pos"], o["size"], o.get("place")):
+        if old.get("look") != o.get("look"):
+            what.append("style")
+        if (old["pos"], old.get("place")) != (o["pos"], o.get("place")):
             what.append("place")
+        if old["size"] != o["size"]:
+            what.append("size")
         if old["anim"] != o["anim"]:
             what.append("animation")
         if old.get("lines") != o.get("lines"):
@@ -543,7 +553,28 @@ def describe(a: dict | None, b: dict | None) -> list[dict]:
         if changed:
             lines.append({"kind": "retitled", "text": "Text style: " + ", ".join(
                 f"{k} {style_of(b)[k]}" for k in changed)})
-    return lines
+    return _fold(lines)
+
+
+def _fold(lines: list[dict]) -> list[dict]:
+    """The same change to many overlays (every caption moved at once) reads as
+    one line, not one per caption."""
+    groups: dict[str, list[tuple[int, str]]] = {}
+    for i, l in enumerate(lines):
+        m = re.match(r"Changed the (.+) of the (.+?) “", l["text"]) if l["kind"] == "retitled" else None
+        if m:
+            groups.setdefault(m.group(1), []).append((i, m.group(2)))
+    drop, put = set(), {}
+    for what, ix in groups.items():
+        if len(ix) > 3:
+            counts: dict[str, int] = {}
+            for _, label in ix:
+                counts[label] = counts.get(label, 0) + 1
+            many = [f"{n} {label}s" if n > 1 else ("an " if label[0] in "aeiou" else "a ") + label
+                    for label, n in counts.items()]
+            put[ix[0][0]] = {"kind": "retitled", "text": f"Changed the {what} of {what_list(many)}"}
+            drop |= {i for i, _ in ix[1:]}
+    return [put.get(i, l) for i, l in enumerate(lines) if i not in drop]
 
 
 def what_list(xs: list[str]) -> str:

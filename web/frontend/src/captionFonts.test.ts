@@ -96,8 +96,9 @@ test('every font ships with the app and the backend knows it', () => {
   for (const f of CAPTION_FONTS) {
     const faces = [...css.matchAll(/@font-face \{([^}]*)\}/g)].map((m) => m[1]).filter((b) => b.includes(`'VC ${f.name}'`))
     assert.ok(faces.length >= 1, `${f.name}: no @font-face`)
+    // a family may ship other weights too (Montserrat Light letters the chapter titles)
+    assert.ok(faces.some((b) => b.includes(`font-weight: ${f.weight};`)), `${f.name}: weight ${f.weight} not shipped`)
     for (const b of faces) {
-      assert.ok(b.includes(`font-weight: ${f.weight};`), `${f.name}: weight ${f.weight} not shipped`)
       const file = /url\(\/fonts\/([^)]+)\)/.exec(b)![1]
       assert.ok(existsSync(new URL(`../public/fonts/${file}`, import.meta.url)), `${file} missing`)
     }

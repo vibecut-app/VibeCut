@@ -15,6 +15,12 @@ export function wordsOf(o: Words): string {
   return !o.sub ? o.text : above(o) ? `${o.sub}\n${o.text}` : `${o.text}\n${o.sub}`
 }
 
+// The caption as it stands while its words are being typed, so the box can
+// size itself on what's typed rather than what was saved.
+export function asTyped<T extends Words>(o: T, v: string): T {
+  return { ...o, ...(wordsPatch(o, v) ?? {}) }
+}
+
 // What changed, as an edit_overlay patch; null when nothing did or the box
 // was emptied (deleting is its own button, not an empty box).
 export function wordsPatch(o: Words, v: string): { text?: string; sub?: string } | null {

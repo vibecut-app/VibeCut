@@ -130,7 +130,8 @@ def fingerprint(styles: list[dict]) -> dict:
 
 def describe(fp: dict) -> str:
     return (f"{fp['duration']:.0f} s, about {fp['median_s']:.2f} s a shot, first shot held {fp['hook_s']:.1f} s, "
-            f"music {fp['bpm'][0]:.0f}–{fp['bpm'][1]:.0f} BPM that {fp['arc']}; from {fp['refs']} reference(s)")
+            f"music {fp['bpm'][0]:.0f}–{fp['bpm'][1]:.0f} BPM that {fp['arc']}"
+            + ("" if fp.get("like") else f"; from {fp['refs']} reference(s)"))   # a recipe is one of the creator's own edits
 
 
 # --------------------------------------------------------------------------
