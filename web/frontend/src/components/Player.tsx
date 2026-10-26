@@ -128,7 +128,7 @@ export function Player({ videoRef, backRef, veilRef, bars, segment, label, gap, 
           {/* the last frame, held while the next clip loads (hold.ts) */}
           <canvas data-hold className={`pointer-events-none absolute inset-0 z-[4] size-full object-contain ${gap ? 'hidden' : ''}`} style={{ visibility: 'hidden' }} />
           {gap && <div className="absolute inset-0 grid place-items-center text-[11px] text-zinc-700">gap</div>}
-          {staged && overlay && overlay.items.length > 0 && <OverlayCanvas view={overlay} width={stage.w} height={stage.h} edit={overlayEdit} />}
+          {staged && overlay && (overlay.items.length > 0 || !!overlay.graphics?.length) && <OverlayCanvas view={overlay} width={stage.w} height={stage.h} edit={overlayEdit} />}
         </div>
       </div>
       {controls ?? (

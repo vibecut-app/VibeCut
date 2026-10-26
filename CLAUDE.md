@@ -853,6 +853,90 @@ The promise to a user is therefore *not* "this will be beautiful." It is
   Known: the length slider, the bed's beat snap and restyle still count
   source seconds, so they're approximate on a shot that isn't at 1×.
   `tests/test_shot_fixes.py`.
+- **Clip tools: Duplicate, Freeze frame, Reverse, Copy / Paste settings,
+  music Volume** (sarah, 2026-10-19, "Build it"; Inspector Edit tab, ⌘D,
+  ⌥⌘C / ⌥⌘V; `tests/test_clip_tools.py`). `duplicate_shot` puts a copy
+  right after the shot; `freeze_frame {shot, at, dur}` (default `FREEZE_S`
+  3 s, CapCut's) cuts in a held frame `{freeze: True}` whose span is its
+  length (start = the frame), silent, keeps turn / mirror / fill; its ends
+  only change how long it holds. `reverse` is a `set_shot` field: a cut or
+  trim on a reversed shot acts on what plays first / last (`board.
+  play_offset`; the frontend's `toSource` gives true source time).
+  `reverse.py` makes the backwards span in 2 s pieces (ffmpeg's reverse
+  holds every frame) for both the player (`/api/reversed`, 540p) and export
+  (output size); the mixer reverses the samples; no handles, no carries.
+  Copy / Paste settings is frontend only (one `set_shot`). Music volume is
+  `set_music volume` (1 = as placed, ≤2) folded into the gain by
+  `export.music_spec`; with `level` the loudnorm still levels the whole
+  mix, so on a short it mostly moves the balance.
+- **My resources** (`web/backend/resources.py`, `/api/resources`,
+  `Resources.tsx`; sarah, 2026-10-19: "a resources folder so i can save my
+  own animations or templates forever", on the left rail, in the profile,
+  signed out it guides to sign in). A folder on the rail under AI Edit:
+  caption looks (the hand-picked `overlay_style` fields, never the
+  entrance), animations, transitions, effects, shot settings (`SHOT_FX`;
+  a held frame takes only what it can show) and songs (track + in-point).
+  Saved by "Save from your video" at the top of the folder (sarah, 2026-10-19:
+  she couldn't find the tabs' buttons) and by "Save … to My resources" at the
+  top of where each is made (Captions, Effects, Edit, Audio tabs): what's on
+  the video now, never typed in; one readiness list (`saveWhy` in App.tsx)
+  says what to do first when there's nothing to keep. One click
+  puts it on as ops (`overlay_style`, `set_transition`, `set_shot`,
+  `set_music` at the current levels, else the bed's) in one undoable turn,
+  on the clicked shot / cut else everywhere. Kept in `$VIBECUT_CACHE/
+  resources.json`, outside projects, and mirrored as kind `resource`
+  (migration 0002; a delete is `{deleted: true}`). No accounts yet: the
+  browser on the computer VibeCut runs on is signed in; a request relayed
+  from elsewhere (X-Forwarded-For etc.) or `VIBECUT_PUBLIC=1` is signed out,
+  sees "You need to log in to save your resources" with Log in and "No
+  account? Create one now" (her words), and every Save opens it;
+  `VIBECUT_SIGNIN_URL` / `VIBECUT_SIGNUP_URL` are where they will go. The
+  app's `?visitor` (header `x-vibecut-visitor`, can only take rights away)
+  shows the owner what a visitor sees. `tests/test_resources.py`.
+- **Your profile, after an export** (sarah, 2026-10-14, draft #26 never
+  merged; rebuilt 2026-10-19: "there isnt any page for me to build my own
+  profile after my export"; `ProfileAsk.tsx`, `/api/profile/start`,
+  `/api/profile/skip`, `defaults.asked` / `answer`). Closing Export after a
+  video came out asks once: the email (the only typing; on the profile
+  page's profile, never sent anywhere) and name, then taps preset to what
+  that video used: Vlogs / Lessons, Quick / Steady / Calm, the transition for
+  every cut, the caption style (Soft, a template, or No captions), plus "Keep
+  this video's looks in My resources" for what it has. Not now = never asked
+  again. The picks are defaults keys (`makes`, `pace`, `transition`,
+  `captions` "off", `caption_template`): `/api/brief/auto` takes the pace
+  ("…, as in your profile.") and, for lessons, captions "transcribe"; after
+  Make (and on a chosen story) `_from_profile` adds one undoable "From your
+  profile" turn: no captions, or a lesson's subtitles in place of Make's
+  lines, the transition at every cut, on a chosen story the caption style.
+  Once made, Frames keeps it up (the pace, the Captions switch, a transition
+  for every cut); a skip learns nothing. The profile page's "How your videos
+  start" saves each tap. Logged out (`?visitor`) it asks for an account
+  instead, once per browser. `tests/test_profile_start.py`.
+- **Graphic animations** (sarah, 2026-10-19: "make it an extra tool on the
+  right called graphic animations"; `web/backend/graphics.py`,
+  `web/frontend/src/graphicDraw.ts`, `Graphics.tsx`, the inspector's
+  Graphic animations tab). Ten pieces drawn in code over her own frames,
+  opt-in, free: Title card, Chapter opener, Route map, Place pin, Camcorder,
+  Clock, Beat sticker, Sparkles, Circle it, Progress bar. They are board
+  `graphics` (`add_graphic` / `edit_graphic` / `drop_graphic`, anchored like
+  overlays, undone like any turn), kept apart from captions so the Captions
+  switch, caption checks and the writer never touch them. Words come only
+  from what the edit knows (name, days, part titles, places, recording
+  time); the beat, camcorder clock, clock time and route are derived per
+  request (`graphics.public`), and a piece with nothing true to show says
+  why (`can`); the clock with no recording time shows no time. Editable:
+  words, colour (muted swatches), sticker, length, `size` (0.4–3, apart
+  from `place`), dragged on the picture like a caption (camcorder and
+  progress are frame-wide). One function draws preview, tab tiles and
+  export: each piece is a pure function of time; the export renders them
+  as an under-layer beneath the captions (`renderSchedule` `under`, one PNG
+  per run of equal `graphicsKey`s). Thin type and readouts use Montserrat
+  400/500 and Playfair 400 italic (OFL, in `public/fonts`, added by
+  FontFace so fonts.css is untouched). Saved to My resources as kind
+  `graphic`. Each piece was scored by a separate reviewer pass (7 areas,
+  redone below 7.5). Sizes, timings and colours are priors.
+  `tests/test_graphics.py`, `graphicDraw.test.ts` (safe area, frame
+  bounds, purity, export keys).
 - **Every cut checked** (`cutgrammar/joins.py`, `web/backend/seams.py`;
   research 08 P2). Report only: per cut, brightness jump, colour change
   (best-frame proxy), same view again, energy step, loudness step, going

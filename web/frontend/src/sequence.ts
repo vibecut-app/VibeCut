@@ -26,6 +26,8 @@ export type SeqItem = {
   fade_out?: number
   effect?: string | null   // Shake, VHS... (backend effects.py), drawn by effectView
   effect_amount?: number   // its Strength, 1 = 100%
+  reverse?: boolean  // plays backwards (backend reverse.py makes the file the player shows)
+  freeze?: boolean   // a held frame: shows src_start for the whole span (board freeze_frame)
 }
 
 /** Index of the item under t (binary search). The very end belongs to the
@@ -42,9 +44,36 @@ export function locate(items: SeqItem[], t: number): number {
   return lo
 }
 
-/** Source time inside the item under t. */
+/** Source time inside the item under t: what the edit's tools (split, trim,
+ *  remove) send. Backwards, the span plays from its end. A held frame keeps
+ *  plain arithmetic over its span (the board reads it as a length). */
 export function toSource(item: SeqItem, t: number): number {
-  return item.src_start + (t - item.seq_start) * (item.speed ?? 1)
+  const d = (t - item.seq_start) * (item.speed ?? 1)
+  return item.reverse ? item.src_end - d : item.src_start + d
+}
+
+/** The file the player shows for an item: the clip, or its span made backwards. */
+export function mediaUrl(item: SeqItem): string {
+  return item.reverse
+    ? `/api/reversed/${item.clip_id}?a=${item.src_start}&b=${item.src_end}`
+    : `/api/video/${item.clip_id}`
+}
+
+/** Time in that file at edit time t (a held frame: always its one frame). */
+export function toMedia(item: SeqItem, t: number): number {
+  if (item.freeze) return item.src_start
+  const d = (t - item.seq_start) * (item.speed ?? 1)
+  return item.reverse ? d : item.src_start + d
+}
+
+/** Edit time when that file is at `ct`. */
+export function fromMedia(item: SeqItem, ct: number): number {
+  return item.seq_start + (item.reverse ? ct : ct - item.src_start) / (item.speed ?? 1)
+}
+
+/** Where the item's part of that file ends. */
+export function mediaEnd(item: SeqItem): number {
+  return item.reverse ? item.src_end - item.src_start : item.src_end
 }
 
 /** "21.3", "0:21.3", "1:02:03.5", or SMPTE "00:00:21:09" -> seconds.

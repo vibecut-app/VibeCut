@@ -36,6 +36,7 @@ from . import projects as pj
 from . import audiomix, bed, brief, cloud, cutnotes, defaults, habits, make, vibes, vlog, tempo, ink, moment, cut, export, looks, pitch, seams, selfcheck, smooth, sound, subtitles, places, indexer, llm, locate, musiclib, oai, overlays, reference, remix, share, covers, postcopy, speech, story, storyboard, talk, timeline, vision, voiceover, youtube
 from .preferences import PreferenceError, Preferences
 from .workflow import GATE, Workflow, WorkflowError
+from . import graphics, resources, reverse, transitions
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
@@ -182,6 +183,7 @@ def _cloud_pull() -> None:
     prof = [r for r in rows if r.get("kind") == "profile" and r.get("key") == "me"]
     if prof:
         _profile_store(prof[-1]["value"], prof[-1].get("at") or 0, sync=False)
+    resources.absorb([r for r in rows if r.get("kind") == "resource"])
 
 
 def _profile_store(profile: dict, at: float, sync: bool = True) -> dict:
@@ -226,6 +228,254 @@ def api_profile_put(req: ProfileReq) -> dict:
     return {"profile": rec["value"], "at": rec["at"], "cloud": cloud.status()}
 
 
+# --------------------------------------------------------------------------
+# My resources: what the creator saved to keep, in the left rail and the profile
+# --------------------------------------------------------------------------
+
+SIGN_IN = "You need to log in to save your resources."
+
+
+def _who(request: Request) -> dict:
+    return resources.who(request.client.host if request.client else None, request.headers)
+
+
+def _owner(request: Request) -> None:
+    if not _who(request)["signed_in"]:
+        raise HTTPException(401, SIGN_IN)
+
+
+def _song_title(track_id: str) -> str | None:
+    t = musiclib.find(track_id)
+    return t.title if t else None
+
+
+@app.get("/api/resources")
+def api_resources(request: Request) -> dict:
+    me = _who(request)
+    return {**me, "signin_url": resources.signin_url(), "signup_url": resources.signup_url(),
+            "kinds": [{"id": k, "title": resources.TITLES[k]} for k in resources.KINDS],
+            "items": resources.all_items() if me["signed_in"] else []}
+
+
+class ResourceSaveReq(BaseModel):
+    kind: str
+    name: str | None = None
+    shot: str | None = None     # the clicked shot (effect, shot settings)
+    after: str | None = None    # the clicked cut: the shot before it (transition)
+    graphic: str | None = None  # the clicked graphic animation
+
+
+@app.post("/api/resources")
+def api_resources_save(req: ResourceSaveReq, request: Request) -> dict:
+    """A Save button: what's on the video now, kept in the folder."""
+    _owner(request)
+    with LOCK:
+        try:
+            value = resources.capture(req.kind, SESSION.board, req.shot, req.after, title_of=_song_title, graphic=req.graphic)
+        except resources.ResourceError as e:
+            raise HTTPException(409, str(e)) from e
+    try:
+        item = resources.add(req.kind, value, req.name)
+    except resources.ResourceError as e:
+        raise HTTPException(400, str(e)) from e
+    return {"item": item, "items": resources.all_items()}
+
+
+class ResourceNameReq(BaseModel):
+    name: str
+
+
+@app.patch("/api/resources/{rid}")
+def api_resources_rename(rid: str, req: ResourceNameReq, request: Request) -> dict:
+    _owner(request)
+    try:
+        resources.rename(rid, req.name)
+    except resources.ResourceError as e:
+        raise HTTPException(404 if "no longer" in str(e) else 400, str(e)) from e
+    return {"items": resources.all_items()}
+
+
+@app.delete("/api/resources/{rid}")
+def api_resources_delete(rid: str, request: Request) -> dict:
+    _owner(request)
+    resources.remove(rid)
+    return {"items": resources.all_items()}
+
+
+class ResourceUseReq(BaseModel):
+    shot: str | None = None
+    after: str | None = None
+    t: float | None = None      # the playhead, where a graphic animation goes
+
+
+@app.post("/api/resources/{rid}/use")
+def api_resources_use(rid: str, req: ResourceUseReq, request: Request) -> dict:
+    """One click in the folder: it goes on the video as one undoable turn."""
+    _owner(request)
+    item = next((x for x in resources.all_items() if x["id"] == rid), None)
+    if item is None:
+        raise HTTPException(404, "That's no longer in your resources.")
+    with LOCK:
+        try:
+            ops, said = resources.ops_for(item, SESSION.board, req.shot, req.after,
+                                          have_track=lambda t: musiclib.find(t) is not None,
+                                          graphic_op=lambda v: _graphic_op(v["piece"], req.t or 0.0,
+                                                                          **{k: x for k, x in v.items() if k != "piece"}))
+        except (resources.ResourceError, graphics.GraphicError) as e:
+            raise HTTPException(409, str(e)) from e
+        if item["kind"] == "song":
+            musiclib.use(item["value"]["track"])
+        SESSION.add({"kind": "direct", "text": f"From My resources: {item['name']}", "ops": ops,
+                     "reply": said + "."}, CATALOG["cat"], _make_proposals)
+        return _session()
+
+
+# --------------------------------------------------------------------------
+# graphic animations (graphics.py): a piece from the tab goes on at the
+# playhead, filled from what the edit knows, as one undoable turn
+# --------------------------------------------------------------------------
+
+def _graphic_op(piece: str, t: float, **picked) -> dict:
+    b = SESSION.board
+    gps = [c.get("gps") for c in CLIPS.values()]
+    found = places.lookup(gps) if piece in ("route", "pin", "title") else None   # the Mac's geocoder, cached
+    name = PROJECT["p"].name if PROJECT["p"] else ""
+    return graphics.op_for(piece, b or {}, CATALOG["cat"], t, name, found,
+                           **{k: picked.get(k) for k in ("tint", "sticker", "place", "size")})
+
+
+class GraphicReq(BaseModel):
+    piece: str
+    t: float = 0.0
+    tint: str | None = None
+    sticker: str | None = None
+
+
+@app.post("/api/graphics")
+def api_graphics_add(req: GraphicReq) -> dict:
+    """A tile in the Graphic animations tab: that piece at the playhead."""
+    with LOCK:
+        if not SESSION.board:
+            raise HTTPException(409, "Make your video first.")
+        try:
+            op = _graphic_op(req.piece, req.t, tint=req.tint, sticker=req.sticker)
+        except graphics.GraphicError as e:
+            raise HTTPException(409, str(e)) from e
+        op["id"] = "g" + uuid.uuid4().hex[:8]
+        try:   # tried on a copy first, so a piece that can't go on leaves no turn behind
+            bd.apply(SESSION.board, copy.deepcopy(op), CATALOG["cat"], SESSION.proposals, new_id=lambda: "x")
+        except bd.OpError as e:
+            raise HTTPException(409, str(e)) from e
+        what = graphics.label(req.piece).lower()
+        SESSION.add({"kind": "direct", "text": f"You added the {what}", "ops": [op],
+                     "reply": f"Added the {what}. Undo takes it away."}, CATALOG["cat"], _make_proposals)
+        return {**_session(), "added": op["id"]}
+
+
+# --------------------------------------------------------------------------
+# your profile's start: asked once after an export (sarah, 2026-10-14; back
+# 2026-10-19: "there isnt any page for me to build my own profile after my
+# export"), the start of every next video. The name and email live with the
+# profile page's profile; the picks live with the defaults (defaults.py).
+# --------------------------------------------------------------------------
+
+MAKES = ("vlog", "lesson")
+
+
+def _start_public(request: Request) -> dict:
+    me = _who(request)
+    if not me["signed_in"]:
+        return {"signed_in": False, "ask": False, "made": False}
+    d, how = defaults.get(), defaults.asked()
+    return {"signed_in": True, "ask": how is None, "made": how == "made", "makes": d.get("makes"),
+            "pace": d.get("pace"), "transition": d.get("transition"),
+            "captions": d.get("captions") != "off", "template": d.get("caption_template")}
+
+
+@app.get("/api/profile/start")
+def api_profile_start(request: Request) -> dict:
+    return _start_public(request)
+
+
+class StartReq(BaseModel):
+    makes: str | None = None
+    pace: str | None = None
+    transition: str | None = None
+    captions: bool | None = None
+    template: str | None = None     # a caption style (overlays.TEMPLATES); None = Soft
+
+
+@app.post("/api/profile/start")
+def api_profile_start_save(req: StartReq, request: Request) -> dict:
+    """Saved from the popup after an export, or one tap on the profile page:
+    only the picks sent change."""
+    _owner(request)
+    sent = req.model_fields_set
+    allowed = {"makes": MAKES, "pace": tuple(tempo.NAMES), "transition": tuple(transitions.KINDS),
+               "template": tuple(overlays.TEMPLATES)}
+    for k, ok in allowed.items():
+        v = getattr(req, k)
+        if k in sent and v is not None and v not in ok:
+            raise HTTPException(422, f"{k} is one of {', '.join(ok)}")
+    picks: dict = {k: getattr(req, k) for k in ("makes", "pace", "transition") if k in sent}
+    if "transition" in picks and picks["transition"] == "cut":
+        picks["transition"] = None          # a plain cut is what every video starts with anyway
+    if "captions" in sent:
+        picks["captions"] = None if req.captions is not False else "off"
+    if "template" in sent:
+        picks["caption_template"] = req.template
+    defaults.note(**picks)
+    defaults.answer("made")
+    return _start_public(request)
+
+
+@app.post("/api/profile/skip")
+def api_profile_skip(request: Request) -> dict:
+    """Not now: the question isn't asked again."""
+    _owner(request)
+    defaults.answer("skipped")
+    return _start_public(request)
+
+
+def _from_profile(captions: bool, about: str = "") -> None:
+    """A video was just made (or a story chosen): what the creator's profile
+    says their videos start with, as its own turn so Undo takes only that away
+    -- no captions, or for lessons subtitles of what's said, in place of the
+    lines Make wrote; their transition at every cut; on a chosen story, their
+    caption style (Make brings that itself). `captions` False when the words
+    were already put on as the brief asked (_words_as_asked). Nothing without
+    a profile."""
+    if defaults.asked() != "made":
+        return
+    mine, b, cat = defaults.get(), SESSION.board, CATALOG["cat"]
+    if not b:
+        return
+    ops: list[dict] = []
+    said: list[str] = []
+    if captions and mine.get("captions") == "off":
+        gone = [{"op": "drop_overlay", "overlay": o["id"]} for o in b.get("overlays") or []]
+        if gone:
+            ops += gone
+            said.append("no captions")
+    elif captions and mine.get("makes") == "lesson":
+        subs, _ = subtitles.caption_ops(b, cat, CLIPS, about)
+        if subs:
+            ops += [{"op": "drop_overlay", "overlay": o["id"]} for o in b.get("overlays") or [] if o.get("kind") == "part"]
+            ops += subs
+            said.append("subtitles of what's said")
+    if not captions and mine.get("caption_template") and b.get("overlays"):
+        ops.append({"op": "overlay_style", "template": mine["caption_template"], "source": "defaults"})
+        said.append(f"{overlays.TEMPLATES[mine['caption_template']]} captions")
+    kind = mine.get("transition")
+    if kind in transitions.KINDS and sum(len(bt.get("shots") or []) for bt in b.get("beats") or []) > 1:
+        ops.append({"op": "set_transition", "all": True, "kind": kind})
+        said.append(f"{transitions.KINDS[kind]['name'].lower()} at every cut")
+    if ops:
+        SESSION.add({"kind": "direct", "text": "From your profile", "ops": ops,
+                     "reply": "From your profile: " + " and ".join(said) + ". Undo takes it away."},
+                    cat, _make_proposals)
+
+
 def _prefs_public() -> dict:
     out = PREFS.public(SESSION, PROJECT["p"].exports if PROJECT["p"] else None)
     # a habit used three times without an undo is offered once as a rule, in the creator's words
@@ -261,6 +511,10 @@ _NO_PROJECT_OK = ("/api/projects", "/api/upload", "/api/locate", "/api/polish", 
                   "/api/references", "/api/profile", "/api/vibes", "/api/youtube")
 _NOT_SAVED = ("/api/projects", "/api/upload", "/api/locate", "/api/polish", "/api/music/folder", "/api/profile", "/api/vibes",
               "/api/youtube")
+
+
+# My resources stand apart too: the profile page renames and deletes them with no video open.
+_NO_PROJECT_OK += ("/api/resources",)
 
 
 @app.middleware("http")
@@ -355,6 +609,7 @@ def _session() -> dict:
         "ai_spent": _ai_spent(),
         "timeline": tl,
         "overlays": _overlays_public(b, cat, tl),
+        "graphics": graphics.public(b, cat, tl.get("grid"), graphics.cached_places()),
         "workflow": WORKFLOW.public(),
         "cut": cut.summary(PLAN["plan"]) if PLAN["plan"] else None,
         "music": _music_public(),
@@ -460,6 +715,8 @@ def _music_public() -> dict | None:
     lic = (t.meta or {}).get("licence")
     return {"id": t.id, "title": t.title, "duration": round(t.duration, 2),
             "bpm": t.bpm, "audio": f"/api/music/audio/{t.id}",
+            # the Volume slider: 1 = as it was placed (board.set_music volume)
+            "volume": float(((SESSION.board or {}).get("music") or {}).get("volume", 1.0)),
             # the licence's credit line, for the caption (pasted with it on Save)
             "credit": ov.credit(lic) if lic else None}
 
@@ -1220,12 +1477,21 @@ def api_brief_auto(req: BriefAutoReq | None = None) -> dict:
         marks = brief.length_marks(_usable_s(), about)
         # the tempo the footage asks for (sarah, 2026-10-07), not a question
         feel = tempo.read(list(CLIPS.values()), cut.for_story(PLAN["plan"]))
+        # ... unless the creator's profile says how they like it (asked after an export)
+        mine = defaults.get() if defaults.asked() == "made" else {}
+        if mine.get("pace") in tempo.NAMES:
+            feel = {**feel, "pace": mine["pace"], "why": f"{tempo.NAMES[mine['pace']]}, as in your profile."}
+        said_words = ("none" if mine.get("captions") == "off" else "transcribe" if mine.get("makes") == "lesson"
+                      else "describe")
+        if said_words == "transcribe":
+            subtitles.prefetch(list(CLIPS.values()), about)
         fmt = req.format or brief.suggest_format(_portrait_share(), marks["max"])
-        style = {"seconds": brief.length_for(fmt, marks), "captions": "describe", "pace": feel["pace"],
+        style = {"seconds": brief.length_for(fmt, marks), "captions": said_words, "pace": feel["pace"],
                  "format": fmt, "look": req.look or "cozy", "vibe": req.vibe or None}
         pr.brief = {"message": about, "style": brief.clean_style(style) or {}, "tempo": feel["why"],
                     "said": f"{brief.FORMATS[fmt].split(' ·')[0]} · about {brief.say_length(style['seconds'])} · "
-                            f"{tempo.NAMES[feel['pace']].lower()} · {looks.get(style['look'])['name']} · captions",
+                            f"{tempo.NAMES[feel['pace']].lower()} · {looks.get(style['look'])['name']} · "
+                            f"{dict(none='no captions', transcribe='subtitles').get(said_words, 'captions')}",
                     "at": time.time()}
         # the pace is known now: start fetching the free tracks for it, so the
         # bed under the story lands in seconds rather than minutes (bed.py)
@@ -1331,6 +1597,7 @@ def api_make(req: BriefAutoReq | None = None) -> dict:
                                     CATALOG["cat"], _make_proposals)
                 except Exception as e:  # noqa: BLE001 -- a nudge that fails leaves the cut as made
                     job.result.setdefault("notes", []).append(f"no nudge: {e}")
+            _from_profile(True, about)      # its own Undo, like the check
             pr_ = PROJECT["p"]
             if pr_ is not None and pr_.brief:
                 # the chips read the brief: after Make it must describe the cut, not the guess
@@ -1800,6 +2067,8 @@ def api_pace(req: PaceReq) -> dict:
         if pr is not None and pr.brief:
             pr.brief = {**pr.brief, "style": {**(pr.brief.get("style") or {}), "pace": req.pace},
                         "tempo": f"{name}, as you chose."}
+        if defaults.asked() == "made":
+            defaults.note(pace=req.pace)        # the profile keeps up
         return _session()
 
 
@@ -1821,9 +2090,33 @@ def api_captions(req: CaptionsReq) -> dict:
             if ops:
                 SESSION.add({"kind": "direct", "text": "Captions off", "ops": ops,
                              "reply": "Captions off. Undo puts them back."}, CATALOG["cat"], _make_proposals)
+            if defaults.asked() == "made":
+                defaults.note(captions="off")
             return _session()
         if not b.get("overlays"):
             _words_as_asked(force=True)
+        if defaults.asked() == "made":
+            defaults.note(captions=None)
+        return _session()
+
+
+class MusicVolumeReq(BaseModel):
+    volume: float   # 1 = as placed, 0 = silent, 2 = twice as loud
+
+
+@app.post("/api/music/volume")
+def api_music_volume(req: MusicVolumeReq) -> dict:
+    """The music's Volume slider, let go: one undoable turn, the rest of the
+    bed (track, in-point, ducks) as it was."""
+    with LOCK:
+        b = SESSION.board
+        m = (b or {}).get("music") or {}
+        if not b or not m.get("track"):
+            raise HTTPException(409, "There's no music under this video.")
+        v = max(0.0, min(bd.MUSIC_VOLUME_MAX, float(req.volume)))
+        SESSION.add({"kind": "direct", "text": f"Music volume {round(v * 100)}%",
+                     "ops": [{"op": "set_music", **{**m, "volume": v}}],
+                     "reply": f"Music at {round(v * 100)}%."}, CATALOG["cat"], _make_proposals)
         return _session()
 
 
@@ -2093,9 +2386,12 @@ def api_ops(req: OpsReq) -> dict:
                 habits.remember_phrase(o["text"])   # how they phrase things, for the writer
             if o.get("op") == "overlay_style" and o.get("source") != "defaults":
                 defaults.note(**{f"caption_{k}": o[k] for k in ("template", "enter") if k in o})
+            if o.get("op") == "set_transition" and o.get("all") and defaults.asked() == "made":
+                defaults.note(transition=None if o.get("kind") == "cut" else o.get("kind"))
         if [o.get("op") for o in req.ops] == ["choose_option"]:
             _drop_repeats()
             _words_as_asked()
+            _from_profile(False)
             _bed_start()
         return _session()
 
@@ -3094,6 +3390,21 @@ def api_video(clip_id: str) -> FileResponse:
         raise HTTPException(404)
     # Chrome plays HEVC/H.264 .mov happily when told it's mp4.
     return FileResponse(c["path"], media_type="video/mp4")
+
+
+@app.get("/api/reversed/{clip_id}")
+def api_reversed(clip_id: str, a: float, b: float) -> FileResponse:
+    """A reversed shot for the player: browsers can't play backwards, so it
+    gets a small copy of the span made backwards (reverse.py, as export)."""
+    c = CLIPS.get(clip_id)
+    if not c or not 0 <= a < b or b - a > 600:
+        raise HTTPException(404)
+    try:
+        p = reverse.reversed_span(c["path"], a, b)
+    except (subprocess.CalledProcessError, ValueError, OSError) as e:
+        raise HTTPException(500, f"couldn't play that shot backwards: {e}") from e
+    return FileResponse(p, media_type="video/mp4",
+                        headers={"Cache-Control": "public, max-age=31536000, immutable"})
 
 
 @app.get("/api/thumbs/{clip_id}/{name}")

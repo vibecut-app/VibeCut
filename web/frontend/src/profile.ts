@@ -6,6 +6,8 @@ export const FONTS = ['Clean', 'Editorial', 'Rounded'] as const
 export type CreatorProfile = {
   version: 1
   name: string
+  /** names the profile (asked after an export); nothing is sent to it */
+  email: string
   handle: string
   about: string
   goal: string
@@ -19,10 +21,21 @@ export type CreatorProfile = {
   references: { url: string; note: string }[]
 }
 export const emptyProfile = (): CreatorProfile => ({
-  version: 1, name: '', handle: '', about: '', goal: '', platforms: [], vibes: [],
+  version: 1, name: '', email: '', handle: '', about: '', goal: '', platforms: [], vibes: [],
   pace: 'Balanced', font: 'Clean', color: '#b9d9eb', captionPosition: 'Lower',
   avoid: '', references: [],
 })
+
+export const EMAIL = /^[^@\s]{1,64}@[^@\s]+\.[^@\s]{2,}$/
+
+// the profile page's pacing words and the editor's pace (tempo.NAMES), one for one
+export const PACE_WORDS: Record<string, typeof PACES[number]> = { fast: 'Quick', balanced: 'Balanced', calm: 'Unhurried' }
+
+// logged out, the popup after an export asks for an account once in this browser (ProfileAsk.tsx)
+export const ASKED_HERE = 'vibecut.profile-asked'
+export function askedHere(): boolean {
+  try { return window.localStorage.getItem(ASKED_HERE) === '1' } catch { return false }
+}
 
 export function safeReference(url: string): boolean {
   try { return ['https:', 'http:'].includes(new URL(url).protocol) } catch { return false }
@@ -37,6 +50,7 @@ export function decodeProfile(raw: string | null): CreatorProfile {
   for (const key of ['name', 'handle', 'about', 'goal', 'avoid'] as const) {
     if (typeof p[key] === 'string') result[key] = p[key].slice(0, key === 'name' || key === 'handle' ? 80 : 1000)
   }
+  if (typeof p.email === 'string' && EMAIL.test(p.email.trim())) result.email = p.email.trim()
   result.platforms = PLATFORMS.filter(v => Array.isArray(p.platforms) && p.platforms.includes(v))
   result.vibes = VIBES.filter(v => Array.isArray(p.vibes) && p.vibes.includes(v))
   if (PACES.includes(p.pace)) result.pace = p.pace

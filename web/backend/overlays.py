@@ -333,13 +333,14 @@ def anchor_at(board: dict, t: float, prefer: dict | None = None) -> tuple[dict, 
     raise OverlayError(f"nothing in the edit at {t:.2f}s")
 
 
-def resolve(board: dict | None) -> list[dict]:
-    """Every overlay with its sequence start and end, in time order."""
+def resolve(board: dict | None, items: list[dict] | None = None) -> list[dict]:
+    """Every overlay (or `items` anchored the same way: graphics.py) with its
+    sequence start and end, in time order."""
     if not board:
         return []
     beats, shots, total = _spans(board)
     out = []
-    for o in board.get("overlays", []):
+    for o in board.get("overlays", []) if items is None else items:
         span = anchor_span(board, o["anchor"])
         if span is None:
             continue
@@ -458,7 +459,9 @@ def set_style(b: dict, op: dict) -> None:
 
 
 def prune(b: dict) -> None:
-    """Overlays go with what they hang off."""
+    """Overlays go with what they hang off, and so do graphics."""
+    from . import graphics
+    graphics.prune(b)
     if b.get("overlays"):
         b["overlays"] = [o for o in b["overlays"] if exists(b, o["anchor"])]
         if not b["overlays"]:

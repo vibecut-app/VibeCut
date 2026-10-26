@@ -8,6 +8,8 @@ const ROWS: [string, string][] = [
   ['⌥ ← →', 'Jump to the previous / next moment the playhead sticks to'],
   ['↑ ↓', 'Jump to the previous / next change of shot'],
   ['B  or  ⌘K', 'Cut the shot in two here — while playing, it lands on the nearest moment'],
+  ['⌘D', 'Duplicate the clicked shot, right after itself'],
+  ['⌥⌘C  /  ⌥⌘V', 'Copy the clicked shot’s settings / paste them onto another shot'],
   ['Q · W', 'Trim this shot so it starts · ends here; the rest moves up'],
   ['⌥Q · ⌥W', 'Same, but leave empty space instead'],
   [', .', 'Make this shot one frame shorter · longer'],

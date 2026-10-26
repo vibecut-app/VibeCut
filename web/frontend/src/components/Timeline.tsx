@@ -2,8 +2,9 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { clock, locate, parseTimecode, readout, smpte, type SeqItem } from '../sequence'
 import { approaching, DEFAULT_THRESHOLD_PX, snap, type Target, type TargetType } from '../snap'
 import { phStore, snapStore, transport, transportStore, useStore } from '../transport'
-import type { JoinInfo, Overlay, SoundStrip, TimelineData } from '../types'
+import type { Graphic, JoinInfo, Overlay, SoundStrip, TimelineData } from '../types'
 import { KIND_META } from '../overlayDraw'
+import { PIECES } from '../graphicDraw'
 import { SHOT_MIME } from './Shelf'
 import { Icon, type IconName } from './icons'
 import { LABEL_GAP_PX, rulerFps, rulerLabel, rulerMarks, rulerScale, TICK_GAP_PX } from '../ruler'
@@ -38,11 +39,21 @@ const LABEL_W = 96
 type Drag = { id: string; mode: 'move' | 'start' | 'end'; x0: number; start0: number; end0: number; start: number; end: number
   moved: boolean; guide: number | null; pending: boolean }
 const MIN_CAPTION_S = 0.5
+// a graphic animation's pill, beside the captions' own colours
+const ART = { icon: '✦', color: '#f9c5de' }
+
+/** How much longer (source seconds) a shot gets with one end dragged to `to`.
+ *  `edge` is the end that plays first ('in') or last; backwards, the first to
+ *  play is the source's end (board.trim). */
+function growOf(it: SeqItem, ed: { edge: 'in' | 'out'; to: number }): number {
+  const first = ed.edge === 'in'
+  return first !== !!it.reverse ? it.src_start - ed.to : ed.to - it.src_end
+}
 
 export function Timeline({ tl, marks, marksOf, selected, flash, alt, onSelect, onReorder,
-  onInsertShot, onClear, onHelp, overlays = [], selectedOverlay = null, onSelectOverlay, onOverlayEdit, onExport, onTrimEdge,
+  onInsertShot, onClear, onHelp, overlays = [], graphics = [], selectedOverlay = null, onSelectOverlay, onOverlayEdit, onExport, onTrimEdge,
   selectedAudio = null, onSelectAudio, onAudioMove, joins = [], selectedJoin = null, onSelectJoin,
-  music = null, onSelectMusic, onSplit, onDelete, height = 290 }: {
+  music = null, onSelectMusic, onSplit, onDelete, onTap, height = 290 }: {
   tl: TimelineData
   marks: Marks
   marksOf: Record<string, 'added' | 'moved' | 'trimmed' | undefined>
@@ -56,6 +67,8 @@ export function Timeline({ tl, marks, marksOf, selected, flash, alt, onSelect, o
   onClear: () => void
   onHelp: () => void
   overlays?: Overlay[]
+  /** the graphic animations: pills in the same lane, in their own colour; picked and edited by id like a caption */
+  graphics?: Graphic[]
   selectedOverlay?: string | null
   onSelectOverlay?: (id: string) => void
   onOverlayEdit?: (id: string, patch: { start?: number; dur?: number }) => void
@@ -76,6 +89,8 @@ export function Timeline({ tl, marks, marksOf, selected, flash, alt, onSelect, o
   onSelectMusic?: () => void
   /** the toolbar's Split (at the playhead) and Delete (the selection) */
   onSplit?: () => void
+  /** the ruler or a shot was clicked: the playhead is now there */
+  onTap?: () => void
   onDelete?: () => void
   height?: number
 }) {
@@ -151,7 +166,7 @@ export function Timeline({ tl, marks, marksOf, selected, flash, alt, onSelect, o
     const dur = (it: SeqItem) => {
       const d = it.seq_end - it.seq_start
       if (edge?.key !== it.key) return d
-      const grow = edge.edge === 'out' ? edge.to - it.src_end : it.src_start - edge.to
+      const grow = growOf(it, edge)
       return Math.max(0, d + grow / (it.speed ?? 1))
     }
     const w = items.map((it) => Math.max(MIN_W, dur(it) * pps))
@@ -351,7 +366,14 @@ export function Timeline({ tl, marks, marksOf, selected, flash, alt, onSelect, o
 
   // Words on screen get their own lane above the shots, stacked when they overlap.
   const [drag, setDrag] = useState<Drag | null>(null)
-  useEffect(() => { setDrag((d) => (d?.pending ? null : d)) }, [overlays])
+  useEffect(() => { setDrag((d) => (d?.pending ? null : d)) }, [overlays, graphics])
+  // what the lane draws: every caption, then every graphic animation
+  const pills = useMemo(() => [
+    ...overlays.map((o) => ({ id: o.id, start: o.start, shown_end: o.shown_end, meta: KIND_META[o.kind], ends: o.kind !== 'chapters',
+      text: o.kind === 'chapters' ? 'Chapter bar' : o.text })),
+    ...graphics.map((g) => ({ id: g.id, start: g.start, shown_end: g.shown_end, meta: { ...ART, label: PIECES[g.piece].name }, ends: true,
+      text: PIECES[g.piece].name + (g.text ? ` · ${g.text}` : '') })),
+  ], [overlays, graphics])
   // Moving a caption, as in CapCut: it follows the pointer one to one, and
   // only its edges stick, only to what you'd line it up with (a cut, the
   // playhead, the start or end, another caption), never to beats or movement.
@@ -366,7 +388,7 @@ export function Timeline({ tl, marks, marksOf, selected, flash, alt, onSelect, o
     const reach = DEFAULT_THRESHOLD_PX / Math.max(pps, 1e-6)
     const lines = bypass ? [] : [0, tl.total, ph,
       ...tl.targets.filter((g) => g.type === 'shot').map((g) => g.t),
-      ...overlays.filter((x) => x.id !== d.id).flatMap((x) => [x.start, x.shown_end])]
+      ...pills.filter((x) => x.id !== d.id).flatMap((x) => [x.start, x.shown_end])]
     const near = (t: number) => {
       let best: number | null = null
       for (const l of lines) if (Math.abs(l - t) <= reach && (best == null || Math.abs(l - t) < Math.abs(best - t))) best = l
@@ -397,27 +419,34 @@ export function Timeline({ tl, marks, marksOf, selected, flash, alt, onSelect, o
   const lanes = useMemo(() => {
     const ends: number[] = []
     const row = new Map<string, number>()
-    for (const o of overlays) {
+    for (const o of pills) {
       let r = ends.findIndex((e) => e <= o.start + 1e-3)
       if (r < 0) { r = Math.min(ends.length, 2); if (r === ends.length) ends.push(0) }
       ends[r] = Math.max(ends[r], o.shown_end)
       row.set(o.id, r)
     }
     return { row, n: ends.length }
-  }, [overlays])
+  }, [pills])
   const strips: SoundStrip[] = tl.audio?.strips ?? []
   const silent = useMemo(() => new Set(tl.audio?.off ?? []), [tl.audio])
   // Measured from the bottom: Audio (strips, then the music), Captions, and
   // the picture takes what is left.
+  // A taller panel stretches every lane, not only the picture, as in CapCut
+  // (sarah, 2026-10-20): from the usual height up to the tallest, caption and
+  // sound rows grow to 1.8x with their words; the picture still takes the rest.
+  const stretch = 1 + 0.8 * Math.max(0, Math.min(1, (height - 290) / 270))
+  const rowH = Math.round(LANE_ROW * stretch)
+  const soundH = Math.round(SOUND_H * stretch)
+  const chipText = Math.round(12 + (stretch - 1) * 5)
   const audioRows = (strips.length ? 1 : 0) + 1
-  const audioH = audioRows * SOUND_H + (audioRows - 1) * 4 + 8
-  const capH = Math.max(1, lanes.n) * LANE_ROW + 8
+  const audioH = audioRows * soundH + (audioRows - 1) * 4 + 8
+  const capH = Math.max(1, lanes.n) * rowH + 8
   const audioBottom = 8
   const capBottom = audioBottom + audioH + LANE_GAP
   const shotsBottom = capBottom + capH + LANE_GAP
   const lanesH = VIDEO_TOP + MIN_VIDEO_H + shotsBottom
   const musicBottom = audioBottom + 4
-  const stripBottom = musicBottom + SOUND_H + 4
+  const stripBottom = musicBottom + soundH + 4
   const [moving, setMoving] = useState<{ id: string; x0: number; grab: number; at: number; moved: boolean } | null>(null)
   const overlayTime = (clientX: number, bypass: boolean) => {
     const el = track.current!
@@ -549,7 +578,7 @@ export function Timeline({ tl, marks, marksOf, selected, flash, alt, onSelect, o
                 scrubTo(e.clientX, e.altKey)
               }}
               onPointerMove={(e) => { if (scrubbing.current) scrubTo(e.clientX, e.altKey) }}
-              onPointerUp={() => { scrubbing.current = false }}
+              onPointerUp={() => { if (scrubbing.current) { scrubbing.current = false; onTap?.() } }}
             >
               <svg className="absolute inset-0 h-full" width={geo.end + 2 * PAD}>
                 {inX != null && outX != null && outX > inX && (
@@ -581,26 +610,25 @@ export function Timeline({ tl, marks, marksOf, selected, flash, alt, onSelect, o
             {music && (
               <button type="button" onPointerDown={(e) => e.stopPropagation()} onClick={onSelectMusic}
                       title={`${music.title}: click for the music's controls`}
-                      className="absolute flex items-center gap-2 overflow-hidden rounded-md px-2.5 text-[14px] text-[#1d5c46] hover:brightness-95"
-                      style={{ left: PAD, width: Math.max(40, still.end), bottom: musicBottom, height: SOUND_H,
+                      className="absolute flex items-center gap-2 overflow-hidden rounded-md px-2.5 text-[#1d5c46] hover:brightness-95"
+                      style={{ left: PAD, width: Math.max(40, still.end), bottom: musicBottom, height: soundH, fontSize: chipText + 2,
                         background: 'repeating-linear-gradient(90deg, #bfe3d3 0 2px, #cdeadd 2px 5px)' }}>
                 <Icon name="music" size={16} />
                 <span className="truncate">{music.title}</span>
               </button>
             )}
 
-            {overlays.map((o) => {
+            {pills.map((o) => {
               const d = drag?.id === o.id ? drag : null
               const a = d ? d.start : o.start
               const z = d ? d.end : o.shown_end
               const x = xAt(a)
               const w = Math.max(12, xAt(Math.min(z, tl.total)) - x)
-              const meta = KIND_META[o.kind]
-              const ends = o.kind !== 'chapters'   // both ends drag, as in CapCut / iMovie
+              const { meta, ends } = o   // both ends drag, as in CapCut / iMovie (not the chapter bar)
               const sel = selectedOverlay === o.id
               return (
                 <div key={o.id}
-                     title={`${meta.label}: ${o.kind === 'chapters' ? 'chapter bar' : o.text}\nDrag to move it, drag either end to change how long it shows. It sticks to cuts, the playhead and other captions; hold ⌥ to place it exactly.`}
+                     title={`${meta.label}: ${o.text}\nDrag to move it, drag either end to change how long it shows. It sticks to cuts, the playhead and other captions; hold ⌥ to place it exactly.`}
                      onPointerDown={(e) => {
                        if (e.button !== 0 || drag?.pending) return
                        e.stopPropagation(); e.preventDefault()
@@ -626,12 +654,12 @@ export function Timeline({ tl, marks, marksOf, selected, flash, alt, onSelect, o
                        onOverlayEdit?.(o.id, patch)
                      }}
                      onPointerCancel={() => setDrag(null)}
-                     className={`absolute flex touch-none items-center gap-1 overflow-hidden rounded-md px-2 text-[12px] leading-none text-stone-900 ${
+                     className={`absolute flex touch-none items-center gap-1 overflow-hidden rounded-md px-2 leading-none text-stone-900 ${
                        d?.moved && !d.pending ? 'cursor-grabbing shadow-lg ring-2 ring-white' : 'cursor-grab'} ${sel ? 'ring-2 ring-accent' : ''}`}
-                     style={{ left: x, width: w, bottom: capBottom + capH - 4 - ((lanes.row.get(o.id) ?? 0) + 1) * LANE_ROW + 3, height: LANE_ROW - 3,
-                       background: meta.color, zIndex: d ? 6 : undefined }}>
+                     style={{ left: x, width: w, bottom: capBottom + capH - 4 - ((lanes.row.get(o.id) ?? 0) + 1) * rowH + 3, height: rowH - 3,
+                       fontSize: chipText, background: meta.color, zIndex: d ? 6 : undefined }}>
                   <span className="shrink-0 font-semibold">{meta.icon}</span>
-                  <span className="truncate">{o.kind === 'chapters' ? 'Chapter bar' : o.text}</span>
+                  <span className="truncate">{o.text}</span>
                   {ends && <span className={`absolute inset-y-0 left-0 w-1.5 cursor-ew-resize ${sel || d ? 'bg-black/25' : 'hover:bg-black/20'}`} />}
                   {ends && <span className={`absolute inset-y-0 right-0 w-1.5 cursor-ew-resize ${sel || d ? 'bg-black/25' : 'hover:bg-black/20'}`} />}
                 </div>
@@ -659,7 +687,7 @@ export function Timeline({ tl, marks, marksOf, selected, flash, alt, onSelect, o
               const thumb = it.kind === 'shot' ? `/api/thumbs/${it.clip_id}/shot${String(Number(it.shot_id!.split(':')[1])).padStart(3, '0')}.jpg` : null
               const mark = marksOf[it.key]
               const ed = edge?.key === it.key ? edge : null
-              const grow = ed ? (ed.edge === 'out' ? ed.to - it.src_end : it.src_start - ed.to) : 0
+              const grow = ed ? growOf(it, ed) : 0
               const sp = it.speed ?? 1   // source seconds per second of the edit
               const w = geo.w[k]
               const lo = it.src_min ?? it.src_start
@@ -673,14 +701,16 @@ export function Timeline({ tl, marks, marksOf, selected, flash, alt, onSelect, o
                     if (e.button !== 0) return
                     e.stopPropagation(); e.preventDefault()
                     e.currentTarget.setPointerCapture(e.pointerId)
-                    edging.current = { x: e.clientX, base: side === 'in' ? it.src_start : it.src_end, pps: pps / sp }
+                    // backwards, the left end is where the source ends, and dragging it left takes in more of it
+                    edging.current = { x: e.clientX, base: (side === 'in') !== !!it.reverse ? it.src_start : it.src_end,
+                                       pps: (it.reverse ? -pps : pps) / sp }
                     setEdge({ key: it.key, edge: side, to: edging.current.base })
                   }}
                   onPointerMove={(e) => {
                     const g = edging.current
                     if (!g) return
                     const t = g.base + (e.clientX - g.x) / g.pps
-                    const to = side === 'in' ? Math.max(lo, Math.min(t, it.src_end - 0.2)) : Math.min(hi, Math.max(t, it.src_start + 0.2))
+                    const to = (side === 'in') !== !!it.reverse ? Math.max(lo, Math.min(t, it.src_end - 0.2)) : Math.min(hi, Math.max(t, it.src_start + 0.2))
                     setEdge({ key: it.key, edge: side, to })
                   }}
                   onPointerUp={() => {
@@ -705,6 +735,7 @@ export function Timeline({ tl, marks, marksOf, selected, flash, alt, onSelect, o
                     const rect = e.currentTarget.getBoundingClientRect()
                     scrubTo(e.clientX, e.altKey)   // a click also puts the playhead there
                     onSelect(it.key, new DOMRect(e.clientX - 1, rect.top, 2, rect.height))
+                    onTap?.()
                   }}
                   className={`group absolute cursor-pointer overflow-hidden rounded-md ${it.kind === 'gap'
                     ? 'bg-[repeating-linear-gradient(45deg,#efebe4,#efebe4_6px,#e2ddd4_6px,#e2ddd4_12px)]' : 'bg-black'} ${
@@ -720,8 +751,8 @@ export function Timeline({ tl, marks, marksOf, selected, flash, alt, onSelect, o
                   {handle('in')}
                   {handle('out')}
                   {ed && <div className="pointer-events-none absolute left-1/2 top-1 -translate-x-1/2 rounded bg-black/80 px-1.5 text-[12px] tabular-nums text-zinc-100">{((it.src_end - it.src_start + grow) / sp).toFixed(1)}s</div>}
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-1.5 pb-1 pt-3 text-[10px] tabular-nums text-zinc-200">
-                    {it.kind === 'gap' ? 'gap ' : it.n != null ? `${it.n} · ` : ''}{(it.seq_end - it.seq_start).toFixed(1)}s{sp !== 1 ? ` · ${sp}×` : ''}{it.mute ? ' · muted' : it.gain != null ? ` · ${Math.round(it.gain * 100)}%` : ''}{silent.has(it.key) ? ' · sound below' : ''}
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-1.5 pb-1 pt-3 tabular-nums text-zinc-200" style={{ fontSize: chipText - 2 }}>
+                    {it.kind === 'gap' ? 'gap ' : it.n != null ? `${it.n} · ` : ''}{(it.seq_end - it.seq_start).toFixed(1)}s{it.freeze ? ' · held frame' : ''}{it.reverse ? ' · backwards' : ''}{sp !== 1 ? ` · ${sp}×` : ''}{it.mute ? ' · muted' : it.gain != null ? ` · ${Math.round(it.gain * 100)}%` : ''}{silent.has(it.key) ? ' · sound below' : ''}
                   </div>
                 </div>
               )
@@ -774,10 +805,10 @@ export function Timeline({ tl, marks, marksOf, selected, flash, alt, onSelect, o
                        if (!m.moved) { onSelectAudio?.(a.id, e.currentTarget.getBoundingClientRect()); return }
                        if (Math.abs(m.at - a.at) > 1 / 60) onAudioMove?.(a.id, Math.round(m.at * 1000) / 1000)
                      }}
-                     className={`absolute flex cursor-grab items-center gap-1.5 overflow-hidden rounded-md px-1.5 text-[12px] leading-none active:cursor-grabbing ${
+                     className={`absolute flex cursor-grab items-center gap-1.5 overflow-hidden rounded-md px-1.5 leading-none active:cursor-grabbing ${
                        a.mute ? 'bg-stone-300 text-stone-600' : 'bg-teal-600 text-white'} ${
                        selectedAudio === a.id ? 'ring-2 ring-accent' : ''} ${m?.moved ? 'opacity-80' : ''}`}
-                     style={{ left: x, width: w, bottom: stripBottom, height: SOUND_H,
+                     style={{ left: x, width: w, bottom: stripBottom, height: soundH, fontSize: chipText,
                        backgroundImage: a.mute ? undefined : 'repeating-linear-gradient(90deg, rgba(255,255,255,.18) 0 2px, transparent 2px 5px)' }}>
                   <span className="shrink-0">{a.mute ? '🔇' : '♪'}</span>
                   <span className="truncate">{label}{a.mute ? ' · muted' : a.gain !== 1 ? ` · ${Math.round(a.gain * 100)}%` : ''}</span>

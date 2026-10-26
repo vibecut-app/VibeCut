@@ -1,6 +1,6 @@
 import type { SetupData } from './components/Setup'
 import type { FaceArea } from './overlayDraw'
-import type { Habit, Capabilities, CutData, CutReport, ExportJob, Job, LengthSlider, LookFit, PrefClass, Project, ProjectMeta, RefCard, RefJob, RefSummary, Session, StyleAnswers, StyleQuestion, TalkState } from './types'
+import type { Habit, Capabilities, GraphicPiece, ProfileStart, StickerKind, Resource, ResourceFolder, ResourceKind, StartPicks, CutData, CutReport, ExportJob, Job, LengthSlider, LookFit, PrefClass, Project, ProjectMeta, RefCard, RefJob, RefSummary, Session, StyleAnswers, StyleQuestion, TalkState } from './types'
 
 export type MomentInfo = { header: string; key: string; llm: boolean; provider: ChatProvider
   estimate: { tokens_in: number; usd: [number, number] } }
@@ -81,6 +81,18 @@ const post = (url: string, body: unknown) => {
     .finally(() => { inFlight--; savers.forEach((f) => f()) })
 }
 
+// "?visitor" in the address: see My resources as someone without an account
+// (resources.who reads the header; it can only take rights away, never give them)
+const asVisitor = (): Record<string, string> => {
+  try { return new URLSearchParams(window.location.search).has('visitor') ? { 'x-vibecut-visitor': '1' } : {} } catch { return {} }
+}
+const sendAs = (method: string, url: string, body?: unknown) => {
+  inFlight++
+  savers.forEach((f) => f())
+  return fetch(url, { method, headers: { 'content-type': 'application/json', ...asVisitor() }, body: body === undefined ? undefined : JSON.stringify(body) })
+    .finally(() => { inFlight--; savers.forEach((f) => f()) })
+}
+
 export const api = {
   // projects: the dashboard's list, and which one is open
   projects: () => j<ProjectList>(fetch('/api/projects')),
@@ -131,6 +143,7 @@ export const api = {
   pile: (clip: string, into: boolean) => j<Session>(post('/api/pile', { clip, into })),
   captions: (on: boolean) => j<Session>(post('/api/captions', { on })),
   bed: (on: boolean) => j<Session>(post('/api/bed', { on })),
+  musicVolume: (volume: number) => j<Session>(post('/api/music/volume', { volume })),   // 1 = as placed
   pace: (pace: string) => j<Session>(post('/api/pace', { pace })),
   guess: () => j<{ about: string }>(fetch('/api/brief/guess')),
   suggestions: () => j<{ suggestions: string[]; source: string }>(fetch('/api/brief/suggestions')),
@@ -199,5 +212,21 @@ export const api = {
   refApply: (rid: string, traits: string[], strength: 'subtle' | 'full') =>
     j<Session>(post(`/api/references/${rid}/apply`, { traits, strength })),
   refForget: (rid: string) => j<{ references: RefSummary[]; links: boolean }>(fetch(`/api/references/${rid}`, { method: 'DELETE' })),
+  // My resources: logged out, the folder is empty and saving or using one answers 401.
+  // ?visitor in the address shows the folder as someone without an account sees it.
+  resources: () => j<ResourceFolder>(fetch('/api/resources', { headers: asVisitor() })),
+  saveResource: (kind: ResourceKind, where: { shot?: string | null; after?: string | null; graphic?: string | null } = {}) =>
+    j<{ item: Resource; items: Resource[] }>(sendAs('POST', '/api/resources', { kind, shot: where.shot ?? null, after: where.after ?? null, graphic: where.graphic ?? null })),
+  useResource: (id: string, where: { shot?: string | null; after?: string | null; t?: number } = {}) =>
+    j<Session>(sendAs('POST', `/api/resources/${encodeURIComponent(id)}/use`, { shot: where.shot ?? null, after: where.after ?? null, t: where.t ?? null })),
+  // a piece from the Graphic animations tab at the playhead (backend graphics.py)
+  addGraphic: (piece: GraphicPiece, t: number, picked: { tint?: string | null; sticker?: StickerKind | null } = {}) =>
+    j<Session & { added: string }>(post('/api/graphics', { piece, t, ...picked })),
+  renameResource: (id: string, name: string) => j<{ items: Resource[] }>(sendAs('PATCH', `/api/resources/${encodeURIComponent(id)}`, { name })),
+  deleteResource: (id: string) => j<{ items: Resource[] }>(sendAs('DELETE', `/api/resources/${encodeURIComponent(id)}`)),
+  // your profile's start: asked once after an export, where every next video starts
+  profileStart: () => j<ProfileStart>(fetch('/api/profile/start', { headers: asVisitor() })),
+  profileStartSave: (picks: StartPicks) => j<ProfileStart>(sendAs('POST', '/api/profile/start', picks)),
+  profileSkip: () => j<ProfileStart>(sendAs('POST', '/api/profile/skip', {})),
   useTrack: (trackId: string | null) => j<Session>(post('/api/music/use', { track_id: trackId })),
 }

@@ -3,7 +3,7 @@ import { CAPTION_FONTS, type CaptionFont } from '../captionFonts'
 import type { SeqItem } from '../sequence'
 import { dressOf, isDressed, KIND_META } from '../overlayDraw'
 import { multiline, typable, wordsOf, wordsPatch } from '../captionWords'
-import type { HeadingLook, JoinInfo, LookInfo, Overlay, OverlayPlace, OverlayStyle, SoundStrip } from '../types'
+import type { HeadingLook, JoinInfo, LookInfo, Overlay, OverlayPlace, OverlayStyle, ResourceKind, SoundStrip } from '../types'
 import { Button, cx } from '../ui'
 import { Icon, type IconName } from './icons'
 import { CaptionAnimations, CaptionStyles, Transitions } from './StyleBars'
@@ -13,15 +13,16 @@ import { lineLabel, lineName } from '../overlayDraw'
 import type { LineLook, LineRole } from '../types'
 
 // The right-hand inspector of the edit screen (sarah, 2026-10-16: the layout
-// of her reference picture). Five tabs: Edit (the clicked shot: trim, speed,
+// of her reference picture). Six tabs: Edit (the clicked shot: trim, speed,
 // turn, fit or fill; with nothing clicked, the whole video), Captions (the
 // clicked caption's words, then one style and entrance for every caption),
 // Effects (the clicked shot's effect, else every shot's; the transition at a cut),
-// Audio (the shot's or a sound strip's volume and fades, and the music) and
-// Adjust (the look). Clicking something on the timeline opens its tab.
+// Audio (the shot's or a sound strip's volume and fades, and the music),
+// Adjust (the look) and Graphic animations (graphics.py: pieces drawn over
+// the video, Graphics.tsx). Clicking something on the timeline opens its tab.
 // Every change is one undoable turn, sent when a slider is let go.
 
-export type InspectorTab = 'edit' | 'captions' | 'effects' | 'audio' | 'adjust'
+export type InspectorTab = 'edit' | 'captions' | 'effects' | 'audio' | 'adjust' | 'graphics'
 type Patch = Record<string, unknown>
 
 const TABS: { id: InspectorTab; icon: IconName; label: string }[] = [
@@ -30,6 +31,8 @@ const TABS: { id: InspectorTab; icon: IconName; label: string }[] = [
   { id: 'effects', icon: 'spark', label: 'Effects' },
   { id: 'audio', icon: 'music', label: 'Audio' },
   { id: 'adjust', icon: 'adjust', label: 'Adjust' },
+  // sarah, 2026-10-19: "an extra tool on the right called graphic animations"
+  { id: 'graphics', icon: 'shapes', label: 'Graphic animations' },
 ]
 
 export type JoinPick = { join: JoinInfo; before: number | null; after: number | null; from: string | null; to: string | null }
@@ -62,9 +65,17 @@ export function Inspector(p: {
   music: ReactNode
   /** Length, tempo, frame, smoother cuts: the whole video's own controls */
   video: ReactNode
+  /** the Graphic animations tab (Graphics.tsx) */
+  graphics?: ReactNode
   onFix: (patch: Patch, label: string) => void
   onTrim: (edge: 'in' | 'out', to: number) => void
   onSplit: () => void
+  /** the clip tools next to Split: the shot again right after itself, the frame under the playhead held */
+  onDuplicate: () => void
+  onFreeze: () => void
+  /** the clicked shot's speed, turn, look, effect and sound settings, kept to put on another shot */
+  onCopyFx: () => void
+  onPasteFx: (() => void) | null
   onSwap: () => void
   onDelete: () => void
   onCloseGap: () => void
@@ -82,6 +93,10 @@ export function Inspector(p: {
   allEffect: { effect: string | null; amount: number; thumb: string | null }
   onEffect: (patch: { effect?: string | null; effect_amount?: number }, all: boolean, label: string) => void
   onLook: (id: string, name: string) => void
+  /** "Save to My resources": what's on the video now, kept in the folder (signed out: the sign-in card) */
+  onSave: (kind: ResourceKind, why: string | null) => void
+  /** what can be saved right now: null = ready, else what to do first (App works it out, for the folder too) */
+  saveWhy: Record<ResourceKind, string | null>
 }) {
   const it = p.item
   // A title with a line under it (or a caption with its place name) is a
@@ -92,12 +107,18 @@ export function Inspector(p: {
   const ownLook = cap?.kind === 'heading'
   const role: LineRole | null = cap && grouped ? p.line ?? (ownLook ? 'main' : null) : null
   const shot = it && it.kind === 'shot' ? it : null
+  // at the top of what it saves, so it's seen without scrolling past the tiles
+  const save = (kind: ResourceKind, what: string) => (
+    <div><SaveChip what={what} ready={!p.saveWhy[kind]} onClick={() => p.onSave(kind, p.saveWhy[kind])} /></div>
+  )
   return (
     <aside className="flex min-h-0 min-w-0 flex-1 flex-col">
       <nav className="flex shrink-0 gap-0.5 border-b border-line px-2 pt-2" role="tablist">
         {TABS.filter((t) => t.id !== 'adjust' || p.looks?.all.length).map((t) => (
           <button key={t.id} type="button" role="tab" aria-selected={p.tab === t.id} onClick={() => p.onTab(t.id)}
-                  className={cx('-mb-px flex min-w-0 flex-1 flex-col items-center gap-1 rounded-t-lg border-b-2 px-1 pb-2 pt-2 font-serif text-[15px]',
+                  // a two-word name (Graphic animations) goes on two tighter lines
+                  className={cx('-mb-px flex min-w-0 flex-1 flex-col items-center gap-1 rounded-t-lg border-b-2 px-1 pb-2 pt-2 text-center font-serif',
+                    t.label.includes(' ') ? 'text-[13.5px] leading-[1.1]' : 'text-[15px]',
                     p.tab === t.id ? 'border-accent bg-accent/8 text-accent' : 'border-transparent text-zinc-300 hover:text-zinc-100')}>
             <Icon name={t.icon} size={22} />
             {t.label}
@@ -120,8 +141,17 @@ export function Inspector(p: {
               <Button size="sm" onClick={p.onSwap} title="Put a different shot in its place">Replace</Button>
             </div>
           </Section>
-          <Section title="Trim"><TrimBar item={shot} thumb={p.itemThumb} onTrim={p.onTrim} /></Section>
-          <SpeedLine speed={shot.speed ?? 1} onFix={(x) => p.onFix({ speed: x }, x === 1 ? `You put shot ${shot.n} back to normal speed` : `You set shot ${shot.n} to ${x}×`)} />
+          {shot.freeze ? (
+            <Slider label="Hold for" value={Math.round((shot.seq_end - shot.seq_start) * 10) / 10} min={0.5} max={10} step={0.1} unit=" s"
+                    onCommit={(v) => p.onTrim('out', shot.src_start + v)} />
+          ) : <>
+            <Section title="Trim"><TrimBar item={shot} thumb={p.itemThumb} onTrim={p.onTrim} /></Section>
+            <SpeedLine speed={shot.speed ?? 1} onFix={(x) => p.onFix({ speed: x }, x === 1 ? `You put shot ${shot.n} back to normal speed` : `You set shot ${shot.n} to ${x}×`)} />
+            <Line label="Reverse">
+              <Segmented options={[['off', 'Forwards'], ['on', 'Backwards']]} value={shot.reverse ? 'on' : 'off'}
+                         onPick={(v) => (v === 'on') !== !!shot.reverse && p.onFix({ reverse: v === 'on' }, v === 'on' ? `Shot ${shot.n} plays backwards` : `Shot ${shot.n} plays forwards again`)} />
+            </Line>
+          </>}
           <Line label="Rotate">
             <IconChip label="Turn left" icon="turnL" onClick={() => p.onFix({ rotate: ((shot.rotate ?? 0) + 270) % 360 }, `You turned shot ${shot.n} left`)} />
             <IconChip label="Turn right" icon="turnR" onClick={() => p.onFix({ rotate: ((shot.rotate ?? 0) + 90) % 360 }, `You turned shot ${shot.n} right`)} />
@@ -138,6 +168,11 @@ export function Inspector(p: {
           </Line>
           <div className="flex flex-wrap gap-2 pt-1">
             <Chip onClick={p.onSplit}><Icon name="split" size={17} /> Split at the playhead</Chip>
+            <Chip onClick={p.onDuplicate} title="The same shot again, right after this one (⌘D)"><Icon name="copy" size={17} /> Duplicate</Chip>
+            {!shot.freeze && <Chip onClick={p.onFreeze} title="Hold the frame under the playhead for 3 seconds"><Icon name="freeze" size={17} /> Freeze frame</Chip>}
+            <Chip onClick={p.onCopyFx} title="Keep this shot's speed, turn, crop, effect and sound settings (⌥⌘C)"><Icon name="adjust" size={17} /> Copy settings</Chip>
+            <Chip onClick={() => p.onPasteFx?.()} disabled={!p.onPasteFx} title="Give this shot the settings you copied (⌥⌘V)"><Icon name="paste" size={17} /> Paste settings</Chip>
+            <SaveChip what="settings" ready={!p.saveWhy.shot} onClick={() => p.onSave('shot', p.saveWhy.shot)} />
             <Chip danger onClick={p.onDelete}><Icon name="trash" size={17} /> Delete</Chip>
             {!!(shot.rotate || shot.fill || shot.mirror) && <Chip onClick={() => p.onFix({ rotate: 0, fill: false, mirror: false }, `You put shot ${shot.n} back as filmed`)}>Back to as filmed</Chip>}
           </div>
@@ -169,6 +204,7 @@ export function Inspector(p: {
           )}
           {cap && role ? <LineLookPanel key={cap.id + role} o={cap} role={role} style={p.style} onLook={(look, label) => p.onLineLook(role, look, label)} /> : <>
           {p.captionsOn ? <>
+            {save('caption', 'caption look')}
             <Section title={p.caption ? 'Font of every caption' : 'Font'}>
               <CaptionFonts value={p.style.typeface ?? null}
                             onPick={(f) => p.onCaptionStyle({ typeface: f?.id ?? null }, f ? `The captions are in ${f.name}` : 'The captions are back to their own font')} />
@@ -179,7 +215,10 @@ export function Inspector(p: {
             </Section>
             <CaptionDress style={p.style} onPick={p.onCaptionStyle} />
             <Section title="Word art"><CaptionStyles style={p.style} thumb={p.captionThumb} onPick={p.onCaptionStyle} /></Section>
-            <Section title={p.caption ? 'Animation of every caption' : 'Animation'}><CaptionAnimations style={p.style} thumb={p.captionThumb} sample={p.captionSample} onPick={p.onCaptionStyle} /></Section>
+            <Section title={p.caption ? 'Animation of every caption' : 'Animation'}>
+              {save('animation', 'animation')}
+              <CaptionAnimations style={p.style} thumb={p.captionThumb} sample={p.captionSample} onPick={p.onCaptionStyle} />
+            </Section>
             {!p.caption && <Hint>One style for every caption. Click a caption on the picture or the timeline to change its words.</Hint>}
           </> : <Hint>Turn captions on to put the time and place of each moment on the video.</Hint>}
           </>}
@@ -188,6 +227,7 @@ export function Inspector(p: {
         {p.tab === 'effects' && <>
           {!p.joinPicked && (shot ? (
             <Section title={`Effect on shot ${shot.n}`}>
+              {save('effect', 'effect')}
               <EffectTiles n={shot.n} effect={shot.effect ?? null} amount={shot.effect_amount ?? 1} thumb={p.itemThumb}
                            onPick={(patch, label) => p.onEffect(patch, false, label)}
                            onAll={() => p.onEffect({ effect: shot.effect ?? null, effect_amount: shot.effect_amount ?? 1 }, true,
@@ -196,6 +236,7 @@ export function Inspector(p: {
           ) : (
             <Section title="Effect on every shot">
               <Hint>Or click a shot on the timeline to give just that shot an effect.</Hint>
+              {save('effect', 'effect')}
               <EffectTiles n={null} effect={p.allEffect.effect} amount={p.allEffect.amount} thumb={p.allEffect.thumb}
                            onPick={(patch, label) => p.onEffect(patch, true, label)} onAll={() => {}} />
             </Section>
@@ -203,6 +244,7 @@ export function Inspector(p: {
           {p.join ? (
             <Section title={p.joinPicked ? `The cut from shot ${p.join.before} to shot ${p.join.after}` : 'Transition at every cut'}>
               {!p.joinPicked && <Hint>Or click the dot between two shots on the timeline to change just that cut.</Hint>}
+              {save('transition', 'transition')}
               <Transitions {...p.join} before={p.joinPicked ? p.join.before : null} after={p.joinPicked ? p.join.after : null} onPick={p.onJoin} />
             </Section>
           ) : <Hint>Transitions go between two shots. Your edit has no cuts yet.</Hint>}
@@ -225,7 +267,9 @@ export function Inspector(p: {
                 <div className="pt-1"><Chip onClick={p.onExtract}>Take the sound off</Chip></div>
               </>}
           </Section>
-        ) : <Section title="Music">{p.music}<Hint>Click a shot on the timeline to change its own sound.</Hint></Section>)}
+        ) : <Section title="Music">{p.music}{!p.saveWhy.song && save('song', 'song')}<Hint>Click a shot on the timeline to change its own sound.</Hint></Section>)}
+
+        {p.tab === 'graphics' && p.graphics}
 
         {p.tab === 'adjust' && p.looks && (
           <Section title="Look">
@@ -606,10 +650,24 @@ function TrimBar({ item, thumb, onTrim }: { item: SeqItem; thumb: string | null;
   )
 }
 
-export function Chip({ children, onClick, on, danger }: { children: ReactNode; onClick: () => void; on?: boolean; danger?: boolean }) {
+// "Save to My resources", where the thing was made (CapCut's "Save as preset").
+// Always there; with nothing to keep yet it's quieter, and a click says what to do first.
+export function SaveChip({ what, ready, onClick }: { what: string; ready: boolean; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick}
-            className={cx('inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-3 py-1.5 font-serif text-[15px]',
+    <button type="button" onClick={onClick} title={`Keep this ${what} in My resources, to use on any video`}
+            className={cx('inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-dashed px-3 py-1.5 font-serif text-[15px] hover:bg-raised',
+              ready ? 'border-accent/60 text-accent' : 'border-line text-zinc-300')}>
+      <Icon name="resources" size={17} /> Save {what} to My resources
+    </button>
+  )
+}
+
+export function Chip({ children, onClick, on, danger, disabled, title }: {
+  children: ReactNode; onClick: () => void; on?: boolean; danger?: boolean; disabled?: boolean; title?: string
+}) {
+  return (
+    <button type="button" onClick={onClick} disabled={disabled} title={title}
+            className={cx('inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-3 py-1.5 font-serif text-[15px] disabled:opacity-40 disabled:pointer-events-none',
               on ? 'border-accent bg-accent text-accent-ink' : danger ? 'border-rose-200/40 text-rose-200 hover:bg-rose-500/10'
                 : 'border-line bg-panel text-zinc-100 hover:bg-raised')}>
       {children}

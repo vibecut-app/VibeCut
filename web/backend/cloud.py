@@ -45,7 +45,7 @@ from .indexer import CACHE
 
 ENV_FILE = Path(__file__).resolve().parent.parent / ".env"
 SETTINGS = CACHE / "settings.json"
-KINDS = ("default", "rule", "profile", "vibe")
+KINDS = ("default", "rule", "profile", "vibe", "resource")
 CLOCK_SLOP = 5.0
 TIMEOUT_S = 8.0
 _lock = threading.Lock()

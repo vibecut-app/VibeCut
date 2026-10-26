@@ -3,8 +3,12 @@ import { drawOverlays, ensureFonts, safe, typeLook, type OverlayBox, type Part, 
 import { phStore } from '../transport'
 import { multiline, typable, wordsOf, wordsPatch } from '../captionWords'
 import type { Overlay, OverlayPlace, OverlayStyle } from '../types'
+import { drawGraphics, ensureGraphicFonts } from '../graphicDraw'
+import type { Graphic } from '../types'
 
-export type OverlayView = { items: Overlay[]; style: OverlayStyle; parts: Part[] }
+// the graphic animations ride along: drawn under the words, picked and
+// dragged the same way (a caption on top wins the click)
+export type OverlayView = { items: Overlay[]; style: OverlayStyle; parts: Part[]; graphics?: Graphic[] }
 
 // Moving words by hand on the picture: pick one, drag it, drag a corner to
 // size it. Each drop is one undoable edit; export draws the same place.
@@ -37,6 +41,7 @@ type Guides = { v: boolean; h: boolean } | null
 // pixels; the composition scales with it, so it matches the export frame.
 export function OverlayCanvas({ view, width, height, edit }: { view: OverlayView; width: number; height: number; edit?: OverlayEdit }) {
   const ref = useRef<HTMLCanvasElement>(null)
+  const gref = useRef<HTMLCanvasElement>(null)
   const boxes = useRef<OverlayBox[]>([])
   const [drag, setDrag] = useState<Drag | null>(null)
   const [live, setLive] = useState<{ id: string; place: OverlayPlace } | null>(null)
@@ -48,7 +53,8 @@ export function OverlayCanvas({ view, width, height, edit }: { view: OverlayView
   const typingRef = useRef<Typing | null>(null)
   typingRef.current = typing
   const placed: OverlayView = live
-    ? { ...view, items: view.items.map((o) => (o.id === live.id ? { ...o, place: live.place } : o)) }
+    ? { ...view, items: view.items.map((o) => (o.id === live.id ? { ...o, place: live.place } : o)),
+        graphics: view.graphics?.map((g) => (g.id === live.id ? { ...g, place: live.place, size: live.place.scale } : g)) }
     : view
   // the words being typed stand in for the drawn ones until they're saved
   const shown: OverlayView = typing ? { ...placed, items: placed.items.filter((o) => o.id !== typing.id) } : placed
@@ -64,15 +70,23 @@ export function OverlayCanvas({ view, width, height, edit }: { view: OverlayView
     const c = ref.current
     if (!c) return
     const dpr = window.devicePixelRatio || 1
-    c.width = Math.max(1, Math.round(width * dpr))
-    c.height = Math.max(1, Math.round(height * dpr))
+    const gc = gref.current
+    for (const k of gc ? [c, gc] : [c]) {
+      k.width = Math.max(1, Math.round(width * dpr))
+      k.height = Math.max(1, Math.round(height * dpr))
+    }
     const ctx = c.getContext('2d')!
+    const gctx = gc?.getContext('2d') ?? null
     let raf = 0
     const draw = () => {
       cancelAnimationFrame(raf)
       raf = requestAnimationFrame(() => {
         const v = viewRef.current
         const out: OverlayBox[] = []
+        if (gctx) {
+          gctx.clearRect(0, 0, c.width, c.height)
+          drawGraphics(gctx, c.width, c.height, v.graphics ?? [], phStore.get(), out)
+        }
         drawOverlays(ctx, c.width, c.height, v.items, v.style, v.parts, phStore.get(), out)
         const css = <T extends { x: number; y: number; w: number; h: number }>(b: T): T => ({ ...b, x: b.x / dpr, y: b.y / dpr, w: b.w / dpr, h: b.h / dpr })
         boxes.current = out.map((b) => ({ ...css(b), rows: b.rows?.map(css) }))
@@ -86,6 +100,7 @@ export function OverlayCanvas({ view, width, height, edit }: { view: OverlayView
     draw()
     let alive = true
     ensureFonts(shown.style).then(() => { if (alive) draw() })
+    if (shown.graphics?.length) ensureGraphicFonts().then(() => { if (alive) draw() })
     const off = phStore.subscribe(draw)
     return () => { alive = false; off(); cancelAnimationFrame(raf) }
   }, [width, height, drawn, edit?.selected]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -100,8 +115,12 @@ export function OverlayCanvas({ view, width, height, edit }: { view: OverlayView
   const placeOf = (id: string): OverlayPlace => {
     const o = view.items.find((x) => x.id === id)
     if (o?.place) return o.place
+    // a graphic's size is its own, so a drag keeps it
+    const g = view.graphics?.find((x) => x.id === id)
+    if (g?.place) return { ...g.place, scale: g.size ?? 1 }
     const b = boxes.current.find((x) => x.id === id)
-    return b ? { x: (b.x + b.w / 2) / width, y: (b.y + b.h / 2) / height, scale: 1 } : { x: 0.5, y: 0.5, scale: 1 }
+    const sc = g?.size ?? 1
+    return b ? { x: (b.x + b.w / 2) / width, y: (b.y + b.h / 2) / height, scale: sc } : { x: 0.5, y: 0.5, scale: sc }
   }
   const local = (e: React.PointerEvent) => {
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
@@ -120,7 +139,8 @@ export function OverlayCanvas({ view, width, height, edit }: { view: OverlayView
   // a different caption picked (or none) ends typing without saving
   useEffect(() => { if (typing && edit?.selected !== typing.id) setTyping(null) }, [edit?.selected]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!edit) return <canvas ref={ref} className="pointer-events-none absolute inset-0 z-[5] size-full" aria-hidden="true" />
+  const art = !!view.graphics?.length && <canvas ref={gref} className="pointer-events-none absolute inset-0 z-[5] size-full" aria-hidden="true" />
+  if (!edit) return <>{art}<canvas ref={ref} className="pointer-events-none absolute inset-0 z-[5] size-full" aria-hidden="true" /></>
 
   const pickedRow = edit.line && selBox ? selBox.rows?.find((r) => r.role === edit.line) ?? null : null
   const startTyping = (id: string) => {
@@ -230,8 +250,10 @@ export function OverlayCanvas({ view, width, height, edit }: { view: OverlayView
     if (drag && !drag.moved && drag.again) startTyping(drag.id)
   }
   const sel = edit.selected ? view.items.find((o) => o.id === edit.selected) : null
+  const selArt = edit.selected && !sel ? view.graphics?.find((g) => g.id === edit.selected) : null
   return (
     <>
+      {art}
       <canvas ref={ref} className="pointer-events-none absolute inset-0 z-[5] size-full" aria-hidden="true" />
       <div className="absolute inset-0 z-[6]" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
            onDoubleClick={(e) => { const p = local(e as unknown as React.PointerEvent); const b = hit(p.x, p.y); if (b) { e.stopPropagation(); edit.onOpen(b.id); startTyping(b.id) } }}
@@ -255,6 +277,13 @@ export function OverlayCanvas({ view, width, height, edit }: { view: OverlayView
                                    look={typeLook(sel, view.style, Math.min(width, height))}
                                    onChange={(value) => setTyping((t) => (t ? { ...t, value } : t))}
                                    onDone={stopTyping} />}
+        {selBox && selArt?.place && !drag && (
+          <div className="absolute text-[10px]" onPointerDown={(e) => e.stopPropagation()}
+               style={{ left: Math.max(4, Math.min(selBox.x, width - 80)), ...(selBox.y > 64 ? { bottom: height - selBox.y + 8 } : { top: selBox.y + selBox.h + 8 }) }}>
+            <button type="button" onClick={(e) => { e.stopPropagation(); edit.onPlace(selArt.id, null) }}
+                    className="rounded bg-zinc-900/90 px-2 py-1 text-zinc-300 ring-1 ring-line hover:bg-zinc-800">Reset</button>
+          </div>
+        )}
         {selBox && sel && !drag && !typing && (
           <div className="absolute flex flex-wrap gap-1 whitespace-nowrap text-[10px]"
                // on a narrow (vertical) frame the buttons wrap rather than run off it

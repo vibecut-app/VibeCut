@@ -45,7 +45,9 @@ OPS = LLM_OPS + ("split", "trim", "drop_range", "overlay_style", "apply_style", 
 # How the sound crosses a cut (audiomix.py): hard, carried out (L), carried in (J).
 JOIN_SOUNDS = ("cut", "carry_out", "carry_in", "default")
 # What set_music may record about the bed under the edit (export and preview mix it the same).
-MUSIC_KEYS = ("track", "in", "gain", "original", "level", "fade_out", "duck", "sfx")
+MUSIC_KEYS = ("track", "in", "gain", "original", "level", "fade_out", "duck", "sfx", "volume")
+# volume: the music's own Volume slider, on top of the level it was placed at (1 = as placed, up to 2)
+MUSIC_VOLUME_MAX = 2.0
 # Words on screen (overlays.py): same log, same undo, but they never touch a shot.
 OVERLAY_OPS = ("add_overlay", "edit_overlay", "drop_overlay", "overlay_style")
 # A shot's own sound taken off onto its own strip under the picture (the
@@ -53,19 +55,30 @@ OVERLAY_OPS = ("add_overlay", "edit_overlay", "drop_overlay", "overlay_style")
 # quieter, muted or deleted on its own. From the timeline, never chat.
 SOUND_OPS = ("extract_audio", "edit_audio", "drop_audio")
 OPS = OPS + SOUND_OPS
+# Graphic animations drawn over the footage (graphics.py): same log, same
+# undo, anchored like captions. From the Graphic animations tab, never chat.
+GRAPHIC_OPS = ("add_graphic", "edit_graphic", "drop_graphic")
+OPS = OPS + GRAPHIC_OPS
 AUDIO_GAIN_MAX = 2.0   # 200%: louder than filmed, short of distorting most phone sound
 # The everyday shot fixes every editor has, on the shot itself: speed (slow
 # motion, fast forward), its own volume or mute, a quarter turn for a clip
 # filmed sideways, and filling the frame (crop the edges) instead of bars.
 # From the shot menu, never chat. Kept on the entry, so a cut keeps them.
 OPS = OPS + ("set_shot",)
+# The clip tools every editor has next to Split: Duplicate (the shot again,
+# right after itself), Freeze frame (hold the frame under the playhead, like
+# CapCut's Freeze), and Reverse (a set_shot field: the shot plays backwards).
+OPS = OPS + ("duplicate_shot", "freeze_frame")
+FREEZE_S = 3.0        # a freeze frame's length when none is asked for (CapCut's default)
+FREEZE_MAX = 30.0
 SPEEDS = (0.25, 4.0)           # the slowest and fastest a shot may play
 SHOT_FX = ("speed", "gain", "mute", "rotate", "fill", "mirror", "fade_in", "fade_out",
-           "punch", "effect", "effect_amount")
+           "punch", "effect", "effect_amount", "reverse")
 PUNCH_MAX = 0.25     # a push into (or out of) the frame over the shot, as a share of its size
 # effect: one of effects.KINDS (Shake, Glitch, VHS...), picked in the Effects tab
 FX_PLAIN = {"speed": 1.0, "gain": 1.0, "mute": False, "rotate": 0, "fill": False, "mirror": False,
-            "fade_in": 0.0, "fade_out": 0.0, "punch": 0.0, "effect": None, "effect_amount": 1.0}
+            "fade_in": 0.0, "fade_out": 0.0, "punch": 0.0, "effect": None, "effect_amount": 1.0,
+            "reverse": False}
 FADE_MAX = 5.0   # a shot's own sound fading in or out, seconds
 
 FRAME = 1 / 30  # sequence frame; the smallest piece a cut or trim may leave
@@ -82,6 +95,13 @@ def key(e: dict) -> str:
 def seq_dur(e: dict) -> float:
     """How long an entry lasts in the edit: its source seconds at its speed."""
     return (e["end"] - e["start"]) / float(e.get("speed") or 1.0)
+
+
+def is_freeze(e: dict) -> bool:
+    """A held frame (freeze_frame): it shows `start` for end - start seconds.
+    Its span is kept as long as it lasts so every sum over the edit stays
+    plain arithmetic; only the player, export and mixer read it as one frame."""
+    return bool(e.get("freeze"))
 
 
 def is_gap(e: dict) -> bool:
@@ -200,13 +220,35 @@ def _split(board: dict, k: str, at: float) -> str | None:
     second = {"key": _fresh_key(board, f"{e['id']}~{int(round(at * 1000))}"), "id": e["id"],
               "start": round(at, 3), "end": e["end"],
               **{f: e[f] for f in SHOT_FX if f in e and f != "fade_in"}}
+    if is_freeze(e):
+        # both halves hold the same frame; `at` only says how long each lasts
+        second.update(freeze=True, start=e["start"], end=round(e["start"] + e["end"] - at, 3))
+    elif e.get("reverse"):
+        # played backwards, the later source plays first: the first piece
+        # keeps [at, end], the second is [start, at]
+        second.update(start=e["start"], end=round(at, 3))
+        e["start"] = round(at, 3)
+        e.pop("fade_out", None)
+        beat["shots"].insert(i + 1, second)
+        _sound_follows(board, k, second["key"])
+        return second["key"]
     e.pop("fade_out", None)   # the fade in stays at the start, the fade out goes with the end
     e["end"] = round(at, 3)
     beat["shots"].insert(i + 1, second)
+    _sound_follows(board, k, second["key"])
+    return second["key"]
+
+
+def _sound_follows(board: dict, k: str, new: str) -> None:
     off = (board.get("sound") or {}).get("off")
     if off is not None and k in off:
-        off.append(second["key"])   # its sound is on a strip: cutting the picture doesn't bring it back
-    return second["key"]
+        off.append(new)   # its sound is on a strip: a copy or a cut doesn't bring it back
+
+
+def play_offset(e: dict, at: float) -> float:
+    """Seconds into the entry (at its speed) where source time `at` plays."""
+    sp = float(e.get("speed") or 1.0)
+    return ((e["end"] - at) if e.get("reverse") else (at - e["start"])) / sp
 
 
 def _insert_at(beat: dict, entry: dict, op: dict) -> None:
@@ -271,9 +313,43 @@ def _shot_fx(b: dict, op: dict) -> None:
     if "effect_amount" in op:
         from . import effects
         e["effect_amount"] = effects.clamp_amount(op["effect_amount"])
+    if "reverse" in op:
+        if is_freeze(e) and op["reverse"]:
+            raise OpError("a held frame looks the same backwards")
+        e["reverse"] = bool(op["reverse"])
     for f, plain in FX_PLAIN.items():
         if f in e and e[f] == plain:
             del e[f]
+
+
+def _freeze(b: dict, op: dict) -> None:
+    """Hold the frame at source time `at` of a shot for `dur` seconds, cut in
+    where it plays (CapCut's Freeze). The held frame keeps the shot's turn,
+    mirror and fill, plays no sound, and is a shot of its own after that."""
+    beat, i = _where(b, op.get("shot"))
+    e = beat["shots"][i]
+    if is_gap(e):
+        raise OpError("an empty space has no frame to hold")
+    if is_freeze(e):
+        raise OpError("this is already a held frame — drag its end to make it longer")
+    at = float(op.get("at", e["start"]))
+    if not (e["start"] - FRAME / 2 <= at <= e["end"] + FRAME / 2):
+        raise OpError(f"{at:.2f}s is outside that shot ({e['start']:.2f}–{e['end']:.2f}s)")
+    off = play_offset(e, at)
+    at = max(e["start"], min(at, e["end"] - FRAME))   # the last frame still has to be a frame
+    dur = max(FRAME, min(FREEZE_MAX, float(op.get("dur") or FREEZE_S)))
+    hold = {"key": op.get("key") or _fresh_key(b, f"{e['id']}#{int(round(at * 1000))}"), "id": e["id"],
+            "start": round(at, 3), "end": round(at + dur, 3), "freeze": True,
+            **{f: e[f] for f in ("rotate", "fill", "mirror") if f in e}}
+    op["key"], op["dur"] = hold["key"], round(dur, 3)
+    if off < FRAME / 2:
+        pos = i                               # at the moment it starts playing: before it
+    elif off > seq_dur(e) - FRAME * 1.5:
+        pos = i + 1                           # at its last frame: after it
+    else:
+        _split(b, key(e), at)
+        pos = i + 1
+    beat["shots"].insert(pos, hold)
 
 
 def _effect_name(k) -> str:
@@ -291,8 +367,8 @@ def _sound_op(b: dict, op: dict, kind: str, new_id) -> None:
         k = op.get("shot")
         beat, i = _where(b, k)
         e = beat["shots"][i]
-        if is_gap(e):
-            raise OpError("an empty space has no sound to take off")
+        if is_gap(e) or is_freeze(e):
+            raise OpError("an empty space has no sound to take off" if is_gap(e) else "a held frame has no sound")
         if k in snd["off"]:
             raise OpError("this shot's sound is already on its own strip")
         sid = op.get("id") or new_id()
@@ -347,7 +423,7 @@ def apply(board: dict | None, op: dict, cat: Catalog, proposals: dict | None,
     # null means "not given" -- except an overlay's length, where it means
     # "as long as what it hangs off" (a caption filling its spoken line) and its
     # place, where it means "back where it usually goes" (undoing a drag).
-    op = {k: v for k, v in op.items() if v is not None or (k in ("dur", "place") and kind in OVERLAY_OPS)
+    op = {k: v for k, v in op.items() if v is not None or (k in ("dur", "place") and kind in OVERLAY_OPS + GRAPHIC_OPS)
           or (k in ("template", "enter", "text_color", "typeface", "outline", "shadow", "backdrop", "thick")
               and kind == "overlay_style")   # None = back to the look's own
           or (k == "effect" and kind == "set_shot")}   # None = no effect
@@ -375,6 +451,14 @@ def apply(board: dict | None, op: dict, cat: Catalog, proposals: dict | None,
             {"add_overlay": lambda: ov.add(b, op, new_id), "edit_overlay": lambda: ov.edit(b, op),
              "drop_overlay": lambda: ov.drop(b, op), "overlay_style": lambda: ov.set_style(b, op)}[kind]()
         except (ov.OverlayError, ValueError, TypeError) as e:
+            raise OpError(str(e)) from e
+        return b, op
+
+    if kind in GRAPHIC_OPS:
+        from . import graphics
+        try:
+            graphics.apply(b, op, new_id)
+        except (graphics.GraphicError, ValueError, TypeError) as e:
             raise OpError(str(e)) from e
         return b, op
 
@@ -423,6 +507,22 @@ def apply(board: dict | None, op: dict, cat: Catalog, proposals: dict | None,
         _shot_fx(b, op)
         return b, op
 
+    if kind == "duplicate_shot":
+        # the shot again, right after itself, with everything done to it
+        beat, i = _where(b, op.get("shot"))
+        e = beat["shots"][i]
+        if is_gap(e):
+            raise OpError("an empty space has nothing to copy")
+        dup = {**copy.deepcopy(e), "key": op.get("key") or _fresh_key(b, key(e))}
+        op["key"] = dup["key"]
+        beat["shots"].insert(i + 1, dup)
+        _sound_follows(b, key(e), dup["key"])
+        return b, op
+
+    if kind == "freeze_frame":
+        _freeze(b, op)
+        return b, op
+
     if kind in SOUND_OPS:
         _sound_op(b, op, kind, new_id)
         return b, op
@@ -440,6 +540,12 @@ def apply(board: dict | None, op: dict, cat: Catalog, proposals: dict | None,
         # The bed under the whole edit: which track, where it starts, how
         # loud, where it ducks. From the music card or a Remix, never chat.
         b["music"] = {k: op[k] for k in MUSIC_KEYS if k in op}
+        if "volume" in b["music"]:
+            v = round(max(0.0, min(MUSIC_VOLUME_MAX, float(b["music"]["volume"]))), 2)
+            if v == 1.0:
+                del b["music"]["volume"]
+            else:
+                b["music"]["volume"] = v
         return b, op
 
     if kind == "move_beat":
@@ -469,6 +575,31 @@ def apply(board: dict | None, op: dict, cat: Catalog, proposals: dict | None,
             raise OpError("trim a shot, not a gap")
         src = cat.get(e["id"])
         to, edge = float(op.get("to", 0)), op.get("edge")
+        if edge not in ("in", "out"):
+            raise OpError("trim needs edge 'in' or 'out'")
+        if is_freeze(e):
+            # a held frame keeps its frame; either end only makes it longer or shorter
+            grow = (e["start"] - to) if edge == "in" else (to - e["end"])
+            new = max(FRAME, min(FREEZE_MAX, e["end"] - e["start"] + grow))
+            removed = e["end"] - e["start"] - new
+            e["end"] = round(e["start"] + new, 3)
+            if op.get("leave_gap") and removed > FRAME / 2:
+                beat["shots"].insert(i + (edge == "out"), _gap(f"gap~{edge}~{key(e)}", removed))
+            return b, op
+        if e.get("reverse"):
+            # `edge` is the end that plays first / last; backwards, the
+            # first to play is the source's end. `to` stays a source time.
+            if edge == "in":
+                to = min(src.end, max(to, e["start"] + FRAME))
+                removed, e["end"] = e["end"] - to, round(to, 3)
+                if op.get("leave_gap") and removed > FRAME / 2:
+                    beat["shots"].insert(i, _gap(f"gap~in~{key(e)}", removed))
+            else:
+                to = max(src.start, min(to, e["end"] - FRAME))
+                removed, e["start"] = to - e["start"], round(to, 3)
+                if op.get("leave_gap") and removed > FRAME / 2:
+                    beat["shots"].insert(i + 1, _gap(f"gap~out~{key(e)}", removed))
+            return b, op
         if edge == "in":
             to = max(src.start, min(to, e["end"] - FRAME))
             removed, e["start"] = to - e["start"], round(to, 3)
@@ -491,8 +622,8 @@ def apply(board: dict | None, op: dict, cat: Catalog, proposals: dict | None,
         f_e = _where(b, op["from_shot"])
         t_e = _where(b, op["to_shot"])
         fe, te = f_e[0]["shots"][f_e[1]], t_e[0]["shots"][t_e[1]]
-        a = t0 + (float(op["from_at"]) - fe["start"]) / float(fe.get("speed") or 1.0)
-        z = t1 + (float(op["to_at"]) - te["start"]) / float(te.get("speed") or 1.0)
+        a = t0 + play_offset(fe, float(op["from_at"]))
+        z = t1 + play_offset(te, float(op["to_at"]))
         if z - a < FRAME / 2:
             raise OpError("mark an out point after the in point")
         k2 = _split(b, op["to_shot"], float(op["to_at"]))
@@ -713,6 +844,18 @@ def describe(d: dict, a: dict | None, b: dict | None, ops: list[dict] | None = N
     if d["replaced"] and b:
         lines.append({"kind": "replaced", "text": f"Started from “{b['name']}”"})
         return lines
+    # A copy or a held frame shares its source shot, so the diff alone reads it as a cut.
+    if ops and b is not None and all(o.get("op") in ("duplicate_shot", "freeze_frame") for o in ops):
+        for o in ops:
+            k = o.get("key")
+            t = seq_start(b, k) if k else None
+            if t is None:
+                continue
+            bt, _ = _where(b, k)
+            text = (f"Copied a shot in “{bt['title']}”" if o["op"] == "duplicate_shot"
+                    else f"Held a frame for {float(o.get('dur') or FREEZE_S):g}s at {int(t // 60)}:{t % 60:05.2f}")
+            lines.append({"kind": "added", "beat": bt["id"], "shot": k, "text": text})
+        return lines
 
     def mmss(s: float) -> str:
         return f"{int(s // 60)}:{int(s % 60):02d}"
@@ -795,6 +938,8 @@ def describe(d: dict, a: dict | None, b: dict | None, ops: list[dict] | None = N
     lines += looks.describe(a, b)
     from . import transitions
     lines += transitions.describe(a, b)
+    from . import graphics
+    lines += graphics.describe(a, b)
     if not lines:
         lines.append({"kind": "none", "text": "No change"})
     return lines
@@ -843,6 +988,7 @@ def _describe_sound(a: dict | None, b: dict | None) -> list[dict]:
                         "effect_amount": lambda: f"Shot's effect at {round(y * 100)}%",
                         # Make's motion on the beat; a describe without it raised on "Make my video again"
                         "punch": lambda: ("Shot pushes in" if y > 0 else "Shot pulls out") if y else "Shot holds still",
+                        "reverse": lambda: "Shot plays backwards" if y else "Shot plays forwards again",
                         }[f]()
                 lines.append({"kind": "sound" if f in ("gain", "mute", "fade_in", "fade_out") else "trimmed", "beat": bt["id"],
                               "shot": key(s), "text": text})
@@ -865,8 +1011,11 @@ def _describe_sound(a: dict | None, b: dict | None) -> list[dict]:
         if x["at"] != y["at"]:
             lines.append({"kind": "sound", "text": f"Moved a sound strip {'later' if y['at'] > x['at'] else 'earlier'} by {abs(y['at'] - x['at']):.2f}s"})
     if (a.get("music") or None) != (b.get("music") or None):
-        m = b.get("music") or {}
-        lines.append({"kind": "sound", "text": "Music taken off the edit" if "track" in m and not m["track"]
+        m, m0 = b.get("music") or {}, a.get("music") or {}
+        only_volume = {k: v for k, v in m.items() if k != "volume"} == {k: v for k, v in m0.items() if k != "volume"}
+        lines.append({"kind": "sound", "text": f"Music volume {round(float(m0.get('volume', 1)) * 100)}% → "
+                                              f"{round(float(m.get('volume', 1)) * 100)}%" if only_volume and m
+                      else "Music taken off the edit" if "track" in m and not m["track"]
                       else "Music under the edit changed"})
     return lines
 

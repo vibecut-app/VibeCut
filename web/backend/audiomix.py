@@ -165,6 +165,8 @@ def fits(items: list[dict], clips: dict, k: int, sound: str) -> bool:
         return sound == "cut"
     if float(a.get("speed") or 1) != 1 or float(b.get("speed") or 1) != 1:
         return False
+    if any(x.get("reverse") or x.get("freeze") for x in (a, b)):
+        return False   # backwards or held, the footage past the cut isn't what plays next to it
     if sound == "carry_out":
         room, other = _room(a, clips, "tail"), (b["seq_end"] - b["seq_start"]) / 2
     else:
@@ -184,10 +186,10 @@ def plan(items: list[dict], clips: dict, joins: list[dict] | None = None,
     joins = joins if joins is not None else joins_for(items)
     spans: list[dict | None] = []
     for it in items:
-        if it["kind"] != "shot":
-            spans.append(None)
+        if it["kind"] != "shot" or it.get("freeze"):
+            spans.append(None)   # a gap, or a held frame: silent
             continue
-        spans.append({"key": it.get("key"), "speed": float(it.get("speed") or 1.0),
+        spans.append({"key": it.get("key"), "speed": float(it.get("speed") or 1.0), "reverse": bool(it.get("reverse")),
                       "gain": 0.0 if it.get("mute") else float(1.0 if it.get("gain") is None else it["gain"]),
                       "fades": (float(it.get("fade_in") or 0.0), float(it.get("fade_out") or 0.0)), "clip_id": it["clip_id"], "src": [float(it["src_start"]), float(it["src_end"])],
                       "seq": [float(it["seq_start"]), float(it["seq_end"])],
@@ -211,6 +213,8 @@ def plan(items: list[dict], clips: dict, joins: list[dict] | None = None,
         sound = joins[k]["sound"] if k < len(joins) else "cut"
         if sound == "cut" or not (sa and sb):
             continue
+        if sa["reverse"] or sb["reverse"]:
+            continue   # played backwards, the sound past the cut is on the wrong side
         if sa["speed"] != 1 or sb["speed"] != 1:
             continue   # a sped-up or slowed shot's sound isn't carried: its handle would play at the wrong speed
         if sound == "carry_out":
@@ -313,6 +317,8 @@ def render(items: list[dict], clips: dict, *, joins: list[dict] | None = None,
             lo, hi = max(0, s0), min(len(snd), s1)
             if hi > lo:
                 seg[lo - s0:hi - s0] = snd[lo:hi]
+        if s.get("reverse"):
+            seg = np.ascontiguousarray(seg[::-1])   # backwards, like the picture
         env = np.ones(length, np.float32)
         fi = min(length, int(round(s["fin"][0] * SR)))
         fo = min(length, int(round(s["fout"][0] * SR)))
@@ -445,7 +451,8 @@ def spec(items: list[dict], clips: dict, board_joins: dict | None, transitions: 
     """Everything the mix depends on, as plain data -- its hash is the file name."""
     return {
         "items": [{k: it.get(k) for k in ("key", "kind", "clip_id", "src_start", "src_end", "seq_start",
-                                          "seq_end", "beat_id", "speed", "gain", "mute", "fade_in", "fade_out")}
+                                          "seq_end", "beat_id", "speed", "gain", "mute", "fade_in", "fade_out",
+                                          "reverse", "freeze")}
                   for it in items],
         "files": {cid: [c.get("path"), c.get("duration")] for cid, c in clips.items()
                   if any(it.get("clip_id") == cid for it in items)

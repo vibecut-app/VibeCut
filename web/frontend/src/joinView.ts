@@ -4,7 +4,7 @@
 // dissolve, and any dip to black or flash to white at its edges. Pure
 // functions of the sequence time -- the transport applies them each frame.
 
-import type { SeqItem } from './sequence'
+import { mediaUrl, toMedia, type SeqItem } from './sequence.ts'
 
 export type Trans = { key: string; head: number; tail: number; fade_in: [number, string] | null; fade_out: [number, string] | null
   /** on the outgoing shot: how the two pictures blend (transitions.py); null = a dissolve */
@@ -68,11 +68,11 @@ export function mixAt(d: { from: number; to: number }, t: number): number {
 
 /** Where to have the next shot waiting before its cut: its first source
  *  second, or earlier by its dissolve handle. */
-export function preloadAt(items: SeqItem[], k: number, tr: TransMap, fps: number): { clip: string; t: number } | null {
+export function preloadAt(items: SeqItem[], k: number, tr: TransMap, fps: number): { clip: string; url: string; t: number } | null {
   const b = items[k + 1]
   if (!b || b.kind !== 'shot' || !b.clip_id) return null
   const head = (tr.get(b.key)?.head ?? 0) / fps
-  return { clip: b.clip_id, t: Math.max(0, b.src_start - head) }
+  return { clip: b.clip_id, url: mediaUrl(b), t: Math.max(0, toMedia(b, b.seq_start) - head) }
 }
 
 /** How each picture looks at progress m (0..1) through a blend, as the
