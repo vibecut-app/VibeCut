@@ -389,7 +389,10 @@ def captions(plan: sel.Plan, title: str | None, sub: str | None, hold_s: float |
         # an empty written line means the stop has nothing new to say (make.plain_lines), not "use the table"
         phrase = (phrases[n_] or None) if phrases is not None and n_ < len(phrases) else _phrase(picks)
         if not clock and not phrase:
-            continue      # no clock stamps on their own (2026-10-18): a stop with nothing to say says nothing
+            # no clock stamps on their own (2026-10-18): a stop with nothing to say says nothing --
+            # but its seconds still pass, or every later line lands a stop early (2026-10-25)
+            t += sum(p.duration for p in picks)
+            continue
         if phrase:
             words = f"{words} · {phrase}" if words else phrase
         if words:

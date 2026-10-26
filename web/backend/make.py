@@ -138,33 +138,51 @@ HOUR_LINES = {"late night": "late night", "early morning": "early start", "morni
 PLACE_SEP = "\n"     # "Place\nline": the place rides above the line (the overlay's `sub`), as the describe captions do
 
 
-def plain_lines(plan: sel.Plan, found: dict | None) -> list[str]:
+def plain_lines(plan: sel.Plan, found: dict | None, memory=None, fmt: str | None = None) -> list[str]:
     """Without a key: one line per stop, the way a day vlog is captioned.
     A day spent on one campus said "Columbia University, morning",
     "…, around noon", "…, night" seven times over (2026-10-25): a geotag,
     not a caption. So the place is named once, above the line, where the
-    day arrives there; the line says what's happening, from what the
-    picture shows (daylog's phrase table: "coffee run", "class time"),
-    else how the day has moved on ("good morning", "night time"); no line
-    is said twice, and a stop with nothing new to say says nothing
-    (an empty line)."""
-    from . import daylog
+    day arrives there. The line is, first, one of the creator's own lines
+    whose moment matches this one (captionmem.py: learnt from what she
+    retyped, deleted and wrote by hand; no model writes a word); else what
+    the picture shows (daylog's phrase table: "coffee run", "class time"),
+    else how the day has moved on ("good morning", "night time") -- both
+    shaped by her rules (her case, her ending, none of the lines she always
+    deletes). No line is said twice, and a stop with nothing new to say
+    says nothing (an empty line). `memory`: a captionmem.Memory (tests),
+    else the one on this Mac."""
+    from . import captionmem, daylog
+    mem = memory if memory is not None else captionmem.Memory()
     named = stop_places(plan, found)
     out: list[str] = []
     said = {remix.TAG_TEXT.lower()}      # never the title again
+    mem.used |= said
     last_hour = None
     for n_, (picks, arrived) in enumerate(zip(plan.sessions, arrivals(named))):
         if not picks:
             out.append("")
             continue
+        if not mem.keep_place():
+            arrived = None                # she takes the place line off every time
         hour = time_of_day(picks[0].shot.when)
-        line = ""
-        for p in picks:                    # what the picture shows, most specific first, not said before
-            line = next((x for x in daylog.phrases(getattr(p.shot, "labels", None) or {}) if x.lower() not in said), "")
-            if line:
-                break
-        if not line and hour and hour != last_hour and HOUR_LINES.get(hour, hour).lower() not in said:
-            line = HOUR_LINES.get(hour, hour)
+        labels: dict[str, float] = {}
+        for p in picks[:4]:
+            for k, v in (getattr(p.shot, "labels", None) or {}).items():
+                labels[k] = max(labels.get(k, 0.0), float(v))
+        ctx = captionmem.context(labels, picks[0].shot.when, named[n_], "stop", fmt)
+        hers = mem.suggest(ctx)
+        if hers:
+            line = hers[0]
+        else:
+            line, hourly = "", False
+            for p in picks:                # what the picture shows, most specific first, not said before
+                line = next((x for x in daylog.phrases(getattr(p.shot, "labels", None) or {}) if x.lower() not in said), "")
+                if line:
+                    break
+            if not line and hour and hour != last_hour and HOUR_LINES.get(hour, hour).lower() not in said:
+                line, hourly = HOUR_LINES.get(hour, hour), True
+            line = mem.shape(line, hour_line=hourly)
         if line:
             said.add(line.lower())
         out.append(f"{arrived}{PLACE_SEP}{line}" if arrived and line else (arrived or line))

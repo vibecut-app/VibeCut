@@ -1,6 +1,6 @@
 import type { SetupData } from './components/Setup'
 import type { FaceArea } from './overlayDraw'
-import type { Habit, Capabilities, CutData, CutReport, ExportJob, Job, LengthSlider, LookFit, PrefClass, Project, ProjectMeta, RefCard, RefJob, RefSummary, Session, StyleAnswers, StyleQuestion, TalkState } from './types'
+import type { CaptionVoice, Habit, Capabilities, CutData, CutReport, ExportJob, Job, LengthSlider, LookFit, PrefClass, Project, ProjectMeta, RefCard, RefJob, RefSummary, Session, StyleAnswers, StyleQuestion, TalkState } from './types'
 
 export type MomentInfo = { header: string; key: string; llm: boolean; provider: ChatProvider
   estimate: { tokens_in: number; usd: [number, number] } }
@@ -179,6 +179,9 @@ export const api = {
     j<YouTubePost>(post(`/api/export/${id}/youtube`, req)),
   youtubePostStatus: (pid: string) => j<YouTubePost>(fetch(`/api/youtube/posts/${pid}`)),
   youtubePostStop: (pid: string) => j<YouTubePost>(post(`/api/youtube/posts/${pid}/stop`, {})),
+  captionVoice: () => j<CaptionVoice>(fetch('/api/captions/voice')),
+  captionLine: (text: string, remove = false) => j<CaptionVoice>(post('/api/captions/lines', { text, remove })),
+  captionRule: (id: string, on: boolean) => j<CaptionVoice>(post(`/api/captions/rules/${encodeURIComponent(id)}`, { on })),
   habits: () => j<{ habits: Habit[]; phrases: string[]; last: { id: string; text: string }[] }>(fetch('/api/habits')),
   habitSwitch: (id: string, off: boolean, remake = false) => j<MakeJob & { habit?: Habit }>(post(`/api/habits/${encodeURIComponent(id)}`, { off, remake })),
   // "Which do you like better?" after Make (backend prefer.py)

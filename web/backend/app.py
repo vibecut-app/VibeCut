@@ -33,7 +33,7 @@ from cutgrammar import grade
 
 from . import board as bd
 from . import projects as pj
-from . import audiomix, bed, brief, cloud, cutnotes, defaults, habits, make, vibes, vlog, tempo, ink, moment, cut, export, looks, pitch, seams, selfcheck, smooth, sound, subtitles, places, indexer, llm, locate, musiclib, oai, overlays, reference, remix, share, covers, postcopy, speech, story, storyboard, talk, timeline, vision, voiceover, youtube
+from . import audiomix, bed, brief, captionmem, cloud, cutnotes, defaults, habits, make, vibes, vlog, tempo, ink, moment, cut, export, looks, pitch, seams, selfcheck, smooth, sound, subtitles, places, indexer, llm, locate, musiclib, oai, overlays, reference, remix, share, covers, postcopy, speech, story, storyboard, talk, timeline, vision, voiceover, youtube
 from .preferences import PreferenceError, Preferences
 from .workflow import GATE, Workflow, WorkflowError
 
@@ -1403,6 +1403,37 @@ def api_habit_switch(hid: str, req: HabitReq) -> dict:
     return {"habit": h}
 
 
+@app.get("/api/captions/voice")
+def api_caption_voice() -> dict:
+    """Her caption voice (captionmem.py): the rules her edits support, in
+    plain words with their switches, and her lines. Local; never mirrored."""
+    return captionmem.voice()
+
+
+class CaptionLineReq(BaseModel):
+    text: str
+    remove: bool = False
+
+
+@app.post("/api/captions/lines")
+def api_caption_line(req: CaptionLineReq) -> dict:
+    """Add one of her lines by hand, or take one out of the bank."""
+    if not req.text.strip():
+        raise HTTPException(422, "a line needs some words")
+    (captionmem.remove_line if req.remove else captionmem.add_line)(req.text)
+    return captionmem.voice()
+
+
+class CaptionRuleReq(BaseModel):
+    on: bool
+
+
+@app.post("/api/captions/rules/{rid}")
+def api_caption_rule(rid: str, req: CaptionRuleReq) -> dict:
+    captionmem.switch(rid, req.on)
+    return captionmem.voice()
+
+
 @app.get("/api/vibes")
 def api_vibes() -> dict:
     """The library's vibes and the creator's own learnt reels, for "Cut it like"."""
@@ -2075,6 +2106,57 @@ def api_cut_approve() -> dict:
         return _session()
 
 
+CAPTION_KINDS = ("caption", "part", "title")      # the words VibeCut writes for a stop or the video
+
+
+def _caption_memory(ops: list[dict], before: dict[str, dict]) -> None:
+    """Her hand edits of captions, kept with what they sat over
+    (captionmem.py): a retype, a deletion, a line written over a
+    placeholder. Kept on this Mac only. Never raises into the request."""
+    try:
+        board = SESSION.board or {}
+        now = {o["id"]: o for o in board.get("overlays", [])}
+        for op in ops:
+            oid = op.get("overlay")
+            if op.get("op") not in ("edit_overlay", "drop_overlay") or oid not in before:
+                continue
+            old = before[oid]
+            if old.get("kind") not in CAPTION_KINDS:
+                continue
+            if op["op"] == "edit_overlay" and "text" not in op and "sub" not in op:
+                continue                  # moved, restyled: not her words
+            new = now.get(oid) if op["op"] == "edit_overlay" else None
+            captionmem.record(old.get("text"), (new or {}).get("text", ""), _caption_ctx(old),
+                              old.get("sub"), (new or {}).get("sub", ""),
+                              project=getattr(PROJECT["p"], "id", None))
+    except Exception as e:  # noqa: BLE001 -- memory is a nicety; the edit itself already landed
+        print(f"caption memory: {e!r}", file=sys.stderr)
+
+
+def _caption_ctx(o: dict) -> dict:
+    """The moment under a caption, read the way make.plain_lines chose its
+    line: the stop (beat) it sits in -- its first shots' labels together,
+    its first time and place -- not only the shot under its first frame
+    (shots inside a stop are reordered after the lines are written)."""
+    where = "title" if o.get("kind") == "title" else "stop"
+    entries = overlays._entries(SESSION.board or {})
+    beat = next((bid for bid, _k, a, z in entries if a <= float(o.get("start", 0.0)) < z), None)
+    cat = CATALOG["cat"]
+    shots = [cat.shots.get(k.split("~")[0]) for bid, k, _a, _z in entries if bid == beat] if cat and beat else []
+    shots = [s_ for s_ in shots if s_ is not None]
+    if not shots:
+        return captionmem.context([], None, None, where)
+    labels: dict[str, float] = {}
+    for s_ in shots[:4]:
+        for k, v in (s_.labels or {}).items():
+            labels[k] = max(labels.get(k, 0.0), float(v))
+    when = min((s_.when for s_ in shots if s_.when), default=None)
+    gps = next((s_.gps for s_ in shots if s_.gps), None)
+    place = places.name_at(gps, places.cached([gps])) if gps else None
+    fmt = ((PROJECT["p"].brief or {}).get("style") or {}).get("format") if PROJECT["p"] is not None else None
+    return captionmem.context(labels, when, place, where, fmt)
+
+
 class OpsReq(BaseModel):
     ops: list[dict]
     label: str
@@ -2084,8 +2166,10 @@ class OpsReq(BaseModel):
 def api_ops(req: OpsReq) -> dict:
     """Direct manipulation (Apply, timeline drag/delete) -- same log, same undo."""
     with LOCK:
+        before = {o["id"]: o for o in overlays.resolve(SESSION.board)} if SESSION.board else {}
         SESSION.add({"kind": "direct", "text": req.label, "ops": req.ops},
                     CATALOG["cat"], _make_proposals)
+        _caption_memory(req.ops, before)
         for o in req.ops:   # picks made by hand follow the creator to the next video
             if o.get("op") == "set_look" and o.get("look"):
                 defaults.note(look=o["look"])

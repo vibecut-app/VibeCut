@@ -1,4 +1,4 @@
-import type { Habit } from '../types'
+import type { CaptionVoice, Habit } from '../types'
 import { api } from '../api'
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { emptyProfile, FONTS, loadProfile, PACES, PLATFORMS, safeReference, saveProfile, VIBES, type CreatorProfile as Profile } from '../profile'
@@ -114,10 +114,13 @@ export function CreatorProfile({ onClose }: { onClose: () => void }) {
               <Field label="Things to avoid"><textarea value={profile.avoid} rows={2} maxLength={1000} placeholder="No heavy filters. Keep natural sound. Go easy on zooms." onChange={e => update('avoid', e.target.value)} className={inputCls + ' resize-y'} /></Field>
             </Section>
 
+            <Section n="04" title="Your caption voice" text="Learnt from captions you retype, delete and write yourself. VibeCut offers your own lines first and never has a model write the words. Kept on this Mac.">
+              <CaptionVoiceCard />
+            </Section>
             <Section n="05" title="What VibeCut has learned about you" text="From what you cut, kept and switched off on more than one video. Each one is a small nudge, never a decision; switch any off here or with one tap on the video.">
               <Habits />
             </Section>
-            <Section n="04" title="Videos you look up to" text="Bookmarks with a note. To actually borrow a video's feel, use Reference inside a project.">
+            <Section n="06" title="Videos you look up to" text="Bookmarks with a note. To actually borrow a video's feel, use Reference inside a project.">
               {profile.references.length > 0 && (
                 <ul className="space-y-2">
                   {profile.references.map((r, i) => (
@@ -210,6 +213,47 @@ function Habits() {
         </label>
       ))}
       {phrases.length > 0 && <p className="text-[12px] text-muted">Your own lines the writer learns from: {phrases.slice(0, 5).map((p) => `“${p}”`).join(', ')}</p>}
+    </div>
+  )
+}
+
+
+function CaptionVoiceCard() {
+  const [v, setV] = useState<CaptionVoice | null>(null)
+  const [draft, setDraft] = useState('')
+  useEffect(() => { api.captionVoice().then(setV).catch(() => setV({ rules: [], lines: [], edits: 0, trend: null })) }, [])
+  if (v === null) return <p className="text-[12px] text-muted">Looking…</p>
+  const add = async () => { if (draft.trim()) { setV(await api.captionLine(draft.trim())); setDraft('') } }
+  return (
+    <div className="space-y-3">
+      {v.rules.length === 0
+        ? <p className="text-[12px] text-muted">No habits yet. Retype or delete a few captions and they show up here.</p>
+        : v.rules.map((r) => (
+          <label key={r.id} className="flex items-center gap-3 text-[13px] text-zinc-200">
+            {r.describes ? <span className="w-[13px]" /> : (
+              <input type="checkbox" checked={r.on} onChange={async (e) => setV(await api.captionRule(r.id, e.target.checked))} />
+            )}
+            <span className={!r.on && !r.describes ? 'line-through text-muted' : ''}>{r.says}</span>
+            <span className="text-[11px] text-muted">from {r.n} edit{r.n === 1 ? '' : 's'}</span>
+          </label>
+        ))}
+      {v.trend && <p className="text-[12px] text-muted">Your changes to its lines: {v.trend.before} → {v.trend.after} letters on average (smaller is closer to you).</p>}
+      <div>
+        <p className="mb-1.5 text-[12px] text-muted">My lines · offered first when a moment matches</p>
+        <ul className="flex flex-wrap gap-1.5">
+          {v.lines.map((l) => (
+            <li key={l.text} className="flex items-center gap-1 rounded-md border border-line px-2 py-0.5 text-[12px] text-zinc-200">
+              {l.text}
+              <button type="button" aria-label={`Remove “${l.text}”`} className="text-muted hover:text-zinc-100" onClick={async () => setV(await api.captionLine(l.text, true))}>×</button>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-2 flex gap-2">
+          <input value={draft} maxLength={80} placeholder="lunch at the usual spot" onChange={(e) => setDraft(e.target.value)}
+                 onKeyDown={(e) => { if (e.key === 'Enter') add() }} className={inputCls} />
+          <Button size="sm" variant="ghost" onClick={add} disabled={!draft.trim()}>Add</Button>
+        </div>
+      </div>
     </div>
   )
 }
