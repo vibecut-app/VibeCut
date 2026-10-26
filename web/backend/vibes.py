@@ -74,15 +74,9 @@ def learn_set(niche: str, sources: list[str], name: str | None = None, say=print
     # Deep learning: Extract EVERYTHING about how the vlogs are made
     say("  analyzing style in depth...")
     # Merge all styles for comprehensive analysis
-    merged_style = {
-        "transitions": styles[0].get("transitions", {}),
-        "beat": styles[0].get("beat", {}),
-        "music": styles[0].get("music", {}),
-        "pace": styles[0].get("pace", {}),
-        "look": styles[0].get("look", {}),
-        "frame": styles[0].get("frame", {}),
-        "words": styles[0].get("words", {}),
-    }
+    # a reel with no steady tempo learns "beat": None (style.py); read as empty, not a crash
+    merged_style = {k: styles[0].get(k) or {}
+                    for k in ("transitions", "beat", "music", "pace", "look", "frame", "words")}
     blueprint = deep_learn.from_style(merged_style)
     blueprint_data = deep_learn.blueprint_to_dict(blueprint)
 
