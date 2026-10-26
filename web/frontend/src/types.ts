@@ -158,6 +158,10 @@ export type Overlay = {
   look?: HeadingLook
   /** one line of the group tuned on its own (main = the title or words, sub = the line under or the place name above) */
   lines?: Partial<Record<LineRole, LineLook>>
+  /** a subtitle of what's said, heard on this Mac (subtitles.py) */
+  heard?: boolean
+  /** the words the recogniser wasn't sure of, for the creator to check; gone once retyped or checked */
+  unsure?: string[]
 }
 export type LineRole = 'main' | 'sub'
 /** the Captions panel's fields for one line, plus its size and a nudge (shares of the frame's short side) */
@@ -187,7 +191,10 @@ export type Motion = { curve: [number, number, number, number]; in_s: number; st
   caption_enter?: CaptionEnter }
 export type LookInfo = { id: string; name: string; line: string; font: OverlayStyle['font']; palette: string[]; status: string; review_by: string }
 export type OverlayFinding = { overlay: string; rule: string; value: number; verdict: 'ok' | 'warn' | 'bad' | 'pending'; basis: string; message: string }
+export type CaptionsMode = 'off' | 'describe' | 'subtitles'
 export type Overlays = { items: Overlay[]; style: OverlayStyle; findings: OverlayFinding[]
+  /** which kind is on, read from the board (app._captions_mode) */
+  mode?: CaptionsMode
   look?: { id: string | null; overrides: string[]; all: LookInfo[] } }
 // Graphic animations (backend graphics.py, drawn by graphicDraw.ts): pieces
 // drawn over the footage, anchored like captions. What a piece shows is read

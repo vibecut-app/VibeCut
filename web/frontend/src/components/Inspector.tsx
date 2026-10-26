@@ -3,7 +3,7 @@ import { CAPTION_FONTS, type CaptionFont } from '../captionFonts'
 import type { SeqItem } from '../sequence'
 import { dressOf, isDressed, KIND_META } from '../overlayDraw'
 import { multiline, typable, wordsOf, wordsPatch } from '../captionWords'
-import type { HeadingLook, JoinInfo, LookInfo, Overlay, OverlayPlace, OverlayStyle, ResourceKind, SoundStrip } from '../types'
+import type { CaptionsMode, HeadingLook, JoinInfo, LookInfo, Overlay, OverlayPlace, OverlayStyle, ResourceKind, SoundStrip } from '../types'
 import { Button, cx } from '../ui'
 import { Icon, type IconName } from './icons'
 import { CaptionAnimations, CaptionStyles, Transitions } from './StyleBars'
@@ -50,12 +50,16 @@ export function Inspector(p: {
   join: JoinPick | null
   joinPicked: boolean
   style: OverlayStyle
-  captionsOn: boolean
+  /** which captions are on: off, the time and place of each moment, or subtitles of what's said */
+  captionsMode: CaptionsMode
+  /** subtitles with words the recogniser wasn't sure of, in time order */
+  captionsToCheck: Overlay[]
   captionThumb: string | null
   captionSample: string
   /** the caption clicked on the picture or the timeline */
   caption: Overlay | null
-  onCaptionEdit: (patch: { text?: string; sub?: string; look?: HeadingLook }, label: string) => void
+  onCaptionEdit: (patch: { text?: string; sub?: string; look?: HeadingLook; unsure?: string[] }, label: string) => void
+  onCaptionPick: (id: string) => void
   onCaptionDelete: () => void
   onCaptionAdd: () => void
   onCaptionWatch: () => void
@@ -82,7 +86,7 @@ export function Inspector(p: {
   onExtract: () => void
   onStrip: (patch: Patch, label: string) => void
   onStripDelete: () => void
-  onCaptions: () => void
+  onCaptions: (mode: CaptionsMode) => void
   onCaptionStyle: (patch: CaptionStylePatch, label: string) => void
   /** one line of the picked group (a title and the line under it), null = the whole group */
   line: LineRole | null
@@ -190,9 +194,24 @@ export function Inspector(p: {
                                       onWatch={p.onCaptionWatch} onDone={p.onCaptionDone} onPlace={p.onCaptionPlace} />}
           {!p.caption && <>
             <Line label="Captions">
-              <Segmented options={[['off', 'Off'], ['on', 'On']]} value={p.captionsOn ? 'on' : 'off'}
-                         onPick={(v) => (v === 'on') !== p.captionsOn && p.onCaptions()} />
+              <Segmented options={[['off', 'Off'], ['describe', 'Describe'], ['subtitles', 'Subtitles']]} value={p.captionsMode}
+                         onPick={(v) => v !== p.captionsMode && p.onCaptions(v as CaptionsMode)} />
             </Line>
+            {p.captionsMode === 'subtitles' && (p.captionsToCheck.length ? (
+              <Section title={`Words to check · ${p.captionsToCheck.length}`}>
+                <Hint>Heard on this Mac. These words it wasn't sure of: click one to fix it.</Hint>
+                <ul className="space-y-1">
+                  {p.captionsToCheck.map((o) => (
+                    <li key={o.id}>
+                      <button type="button" onClick={() => p.onCaptionPick(o.id)}
+                              className="block w-full rounded-lg border border-line px-3 py-2 text-left font-serif text-[15px] leading-snug text-zinc-200 hover:bg-raised">
+                        <span className="text-zinc-400">{mmss(o.start)} · </span>{markUnsure(o.text, o.unsure ?? [])}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </Section>
+            ) : <Hint>Subtitles of what's said, heard on this Mac. Every word was heard clearly.</Hint>)}
             <Button onClick={p.onCaptionAdd}>+ Add a caption at the playhead</Button>
           </>}
           {cap && grouped && (
@@ -203,7 +222,7 @@ export function Inspector(p: {
             </Line>
           )}
           {cap && role ? <LineLookPanel key={cap.id + role} o={cap} role={role} style={p.style} onLook={(look, label) => p.onLineLook(role, look, label)} /> : <>
-          {p.captionsOn ? <>
+          {p.captionsMode !== 'off' ? <>
             {save('caption', 'caption look')}
             <Section title={p.caption ? 'Font of every caption' : 'Font'}>
               <CaptionFonts value={p.style.typeface ?? null}
@@ -220,7 +239,7 @@ export function Inspector(p: {
               <CaptionAnimations style={p.style} thumb={p.captionThumb} sample={p.captionSample} onPick={p.onCaptionStyle} />
             </Section>
             {!p.caption && <Hint>One style for every caption. Click a caption on the picture or the timeline to change its words.</Hint>}
-          </> : <Hint>Turn captions on to put the time and place of each moment on the video.</Hint>}
+          </> : <Hint>Describe puts the time and place of each moment on the video. Subtitles put what's said, heard on this Mac.</Hint>}
           </>}
         </>}
 
@@ -301,7 +320,7 @@ export function Inspector(p: {
 // or Enter is pressed; Escape puts the words back.
 function CaptionWords({ o, onEdit, onDelete, onWatch, onDone, onPlace }: {
   o: Overlay
-  onEdit: (patch: { text?: string; sub?: string; look?: HeadingLook }, label: string) => void
+  onEdit: (patch: { text?: string; sub?: string; look?: HeadingLook; unsure?: string[] }, label: string) => void
   onDelete: () => void; onWatch: () => void; onDone: () => void
   onPlace: (place: OverlayPlace | null, label: string) => void
 }) {
@@ -319,6 +338,16 @@ function CaptionWords({ o, onEdit, onDelete, onWatch, onDone, onPlace }: {
   return (
     <Section title={`This ${name.toLowerCase()} · ${mmss(o.start)}`}>
       {typable(o) && <WordsBox key={o.id + shown} value={shown} lines={multiline(o)} onCommit={commit} />}
+      {!!o.unsure?.length && (
+        // a subtitle the recogniser doubted: the creator knows what they said
+        <div className="space-y-2">
+          <p className="font-serif text-[15px] leading-snug text-zinc-300">
+            Not sure it heard {o.unsure.length === 1 ? 'this' : 'these'} right: {o.unsure.map((w, i) => (
+              <span key={w}>{i > 0 && ', '}<b className="font-medium text-amber-300">{w}</b></span>))}
+          </p>
+          <Chip onClick={() => onEdit({ unsure: [] }, 'You checked the words of the subtitle')}><Icon name="check" size={17} /> Sounds right</Chip>
+        </div>
+      )}
       {o.kind === 'heading' && (
         // a chapter title has its own look; the line under it stays plain
         <Line label="Title look">
@@ -342,6 +371,13 @@ function CaptionWords({ o, onEdit, onDelete, onWatch, onDone, onPlace }: {
       {o.place && <Chip onClick={() => onPlace(null, `You put the ${name.toLowerCase()} back in its usual place`)}>Put it back in its usual place</Chip>}
     </Section>
   )
+}
+
+// A subtitle's words with the doubted ones marked, for the list in the tab.
+function markUnsure(text: string, unsure: string[]): ReactNode {
+  if (!unsure.length) return text
+  const parts = text.split(new RegExp(`(${unsure.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`))
+  return parts.map((x, i) => unsure.includes(x) ? <b key={i} className="font-medium text-amber-300">{x}</b> : <span key={i}>{x}</span>)
 }
 
 const HEADING_LOOKS: [string, string][] = [['spaced', 'Spaced'], ['script', 'Script'], ['serif', 'Serif'], ['bold', 'Bold']]

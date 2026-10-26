@@ -35,7 +35,7 @@ import { PreviewBar, type FrameChoice } from './components/PreviewBar'
 import { Handle, useLayout } from './components/Split'
 import { GraphicAnimations, type GraphicPatch } from './components/Graphics'
 import { PIECES } from './graphicDraw'
-import type { Graphic, GraphicPiece } from './types'
+import type { Graphic, GraphicPiece, CaptionsMode } from './types'
 import { Icon, type IconName } from './components/icons'
 import { lineName } from './overlayDraw'
 import type { LineRole } from './types'
@@ -1315,8 +1315,13 @@ export default function App({ id, view }: { id: string; view: 'story' | 'frames'
   )
 
   // ---- the edit screen's pieces ------------------------------------------------
-  const toggleCaptions = async () => {
-    try { const r = await api.captions(!ovData.items.length); setSession(r); offerUndo(r) }
+  // The Captions switch: Off / Describe / Subtitles. One undoable turn; what
+  // can't be done (no recogniser on this machine, nobody talking) is said
+  // where the switch is and nothing changes.
+  const captionsMode: CaptionsMode = ovData.mode ?? (ovData.items.length ? 'describe' : 'off')
+  const setCaptions = async (mode: CaptionsMode) => {
+    if (mode === captionsMode) return
+    try { const r = await api.captions(mode !== 'off', mode === 'off' ? undefined : mode); setSession(r); offerUndo(r) }
     catch (e) { note((e as Error).message) }
   }
   const looking = session?.bed?.stage === 'looking'
@@ -1396,7 +1401,7 @@ export default function App({ id, view }: { id: string; view: 'story' | 'frames'
                extracted={!!selItem && !!tl.audio?.off.includes(selItem.key)}
                strip={selStrip}
                join={pickedJoin ? joinAt(pickedJoin) : allJoins[0] ? joinAt(allJoins[0]) : null} joinPicked={!!pickedJoin}
-               style={ovData.style} captionsOn={!!ovData.items.length} captionThumb={shotThumb(capUnder)}
+               style={ovData.style} captionsMode={captionsMode} captionsToCheck={ovData.items.filter((o) => o.unsure?.length)} captionThumb={shotThumb(capUnder)}
                captionSample={capText.length > 20 ? capText.slice(0, Math.max(10, capText.lastIndexOf(' ', 20))) : capText}
                caption={ovSel ?? null}
                onCaptionEdit={(patch, label) => ovSel && run([{ op: 'edit_overlay', overlay: ovSel.id, ...patch }], label)}
@@ -1449,7 +1454,7 @@ export default function App({ id, view }: { id: string; view: 'story' | 'frames'
                onExtract={() => selItem && run([{ op: 'extract_audio', shot: selItem.key }], `You took the sound off shot ${selItem.n}`)}
                onStrip={(patch, label) => selStrip && run([{ op: 'edit_audio', audio: selStrip.id, ...patch }], label)}
                onStripDelete={() => { if (!selStrip) return; run([{ op: 'drop_audio', audio: selStrip.id }], `You deleted the sound of shot ${selStrip.n ?? ''}`); setSelAudio(null) }}
-               onCaptions={toggleCaptions}
+               onCaptions={setCaptions} onCaptionPick={(id) => setSelOverlay(id)}
                onCaptionStyle={(patch, label) => run([{ op: 'overlay_style', ...patch }], label)}
                onJoin={(op, label) => run([{ op: 'set_transition', ...(op.all || !pickedJoin ? {} : { shot: pickedJoin.after }), ...op }], label)}
                onLook={(id, name) => run([{ op: 'set_look', look: id }], `The video now has the ${name} look`)}

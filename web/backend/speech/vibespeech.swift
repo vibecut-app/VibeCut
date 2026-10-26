@@ -9,17 +9,20 @@ import NaturalLanguage
 //
 // usage: vibespeech <audio file> <locale e.g. zh-CN>
 // stdout: one JSON object per finalized result:
-//   {"text", "start", "end", "words": [{"t": text, "s": start, "e": end}], "segs": [word...]}
+//   {"text", "start", "end", "words": [{"t": text, "s": start, "e": end, "c": confidence}], "segs": [word...]}
 // Chinese comes back one character per timed run; English one word. "segs"
 // is the text split into words by NLTokenizer (on-device), so subtitles can
-// break between words even in Chinese, which has no spaces.
+// break between words even in Chinese, which has no spaces. "c" is the
+// recogniser's own confidence in that run (0..1), null where it gives none:
+// subtitles.py marks the words it wasn't sure of, so the creator can fix
+// them instead of reading a guess as fact.
 @main struct VibeSpeech {
   static func main() async {
     let args = CommandLine.arguments
     guard args.count >= 3 else { FileHandle.standardError.write("usage: vibespeech <audio> <locale>\n".data(using: .utf8)!); exit(2) }
     do {
       let transcriber = SpeechTranscriber(locale: Locale(identifier: args[2]), transcriptionOptions: [],
-                                          reportingOptions: [], attributeOptions: [.audioTimeRange])
+                                          reportingOptions: [], attributeOptions: [.audioTimeRange, .transcriptionConfidence])
       if let req = try await AssetInventory.assetInstallationRequest(supporting: [transcriber]) {
         FileHandle.standardError.write("downloading speech model for \(args[2])\n".data(using: .utf8)!)
         try await req.downloadAndInstall()
@@ -32,7 +35,9 @@ import NaturalLanguage
           for run in r.text.runs {
             guard let tr = run.audioTimeRange else { continue }
             let t = String(r.text[run.range].characters)
-            words.append(["t": t, "s": tr.start.seconds, "e": tr.end.seconds])
+            var w: [String: Any] = ["t": t, "s": tr.start.seconds, "e": tr.end.seconds]
+            if let c = run.transcriptionConfidence { w["c"] = c } else { w["c"] = NSNull() }
+            words.append(w)
           }
           let text = String(r.text.characters)
           let tok = NLTokenizer(unit: .word)

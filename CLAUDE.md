@@ -769,7 +769,32 @@ The promise to a user is therefore *not* "this will be beautiful." It is
   heard, Apple SpeechTranscriber on the Mac (speech.py, cached), lines
   broken at pauses ≥0.6 s / sentence ends / 42 chars (16 CJK), timed to the
   words, anchored to the shot; prefetched in the background when the brief
-  is saved. Words never decide the cut. **Ink** (`ink.py`): each overlay's
+  is saved. Words never decide the cut. **Subtitles on the switch**
+  (2026-10-26, the user: "make Transcribe reachable … with word confidence
+  so uncertain words are shown for me to fix"; until then transcribe was
+  only an answer in the chat's popup, off the main path): the Captions
+  switch in Frames is Off / Describe / Subtitles (`POST /api/captions {on,
+  mode}`, `app.CAPTION_MODES`), one undoable turn that replaces the other
+  kind's lines (`STOP_KINDS` caption + part; a title or chapter heading
+  stays); the same kind again is no turn; no recogniser or nobody talking →
+  409 said where the switch is, nothing changes. Which kind is on is read
+  from the board (`_captions_mode`, `overlays.mode` on the session: any
+  `heard` caption = subtitles), so Undo moves the switch. The Swift helper
+  asks for `.transcriptionConfidence` (speech cache `v3`, `speech.parse`);
+  `subtitles.unsure` marks words under `UNSURE` 0.5 on the subtitle
+  (`unsure`, bare of punctuation; a word with no confidence isn't marked)
+  and every subtitle `heard`; the Captions tab lists "Words to check" (click
+  = pick it), the picked subtitle shows them in amber with "Sounds right"
+  (`edit_overlay unsure: []`); a retype clears the mark too. A fixed
+  subtitle never enters caption memory. The profile's captions default may
+  be "subtitles". On the Mac's TTS the recogniser is sure of nearly every
+  word (median 1.0): a misheard character (第二部) read 0.96 and a right
+  word (Heights) 0.47, so the threshold catches little and isn't a judge of
+  wrongness; a context word list (place names, labels, her own lines) for
+  the recogniser is the next step, not built.
+  `tests/test_subtitles_switch.py` (parser, marking, the overlay fields,
+  the switch through the API); `test_talk_speech.py` checks the real helper
+  reports a confidence per word. **Ink** (`ink.py`): each overlay's
   colour is checked against the frame behind it (32×18 tone grid per index
   sample, `tones.npy`, written at index time or once from the sample JPEGs
   for older clips); where the look's colour is under WCAG 4.5 it takes a

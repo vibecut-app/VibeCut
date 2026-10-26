@@ -457,7 +457,7 @@ def _from_profile(captions: bool, about: str = "") -> None:
         if gone:
             ops += gone
             said.append("no captions")
-    elif captions and mine.get("makes") == "lesson":
+    elif captions and (mine.get("makes") == "lesson" or mine.get("captions") == "subtitles"):
         subs, _ = subtitles.caption_ops(b, cat, CLIPS, about)
         if subs:
             ops += [{"op": "drop_overlay", "overlay": o["id"]} for o in b.get("overlays") or [] if o.get("kind") == "part"]
@@ -821,7 +821,7 @@ def _overlays_public(b: dict | None, cat, tl: dict) -> dict:
         items = looks.beat_lock(items, tl.get("grid"), tl.get("total", 0.0))
     # each overlay's colour against what's behind it, from the video's own palette
     items = ink.for_board(items, style, timeline.layout(b), CLIPS)
-    return {"items": items, "style": style, "findings": overlays.check(b, cat),
+    return {"items": items, "style": style, "findings": overlays.check(b, cat), "mode": _captions_mode(b),
             "look": {"id": (b or {}).get("look"), "overrides": looks.overrides(b), "all": looks.public()}}
 
 
@@ -2195,13 +2195,34 @@ def api_pace(req: PaceReq) -> dict:
 
 class CaptionsReq(BaseModel):
     on: bool
+    mode: str | None = None     # describe (the time, the place, what's happening) | subtitles (what's said)
+
+
+# The Captions switch's kinds, as the brief's answers name them.
+CAPTION_MODES = {"describe": "describe", "subtitles": "transcribe"}
+# What the switch replaces: a line for a moment or a stop (daylog, Make) or a
+# subtitle -- never a title or a chapter heading, which aren't about a moment.
+STOP_KINDS = ("caption", "part")
+
+
+def _captions_mode(b: dict | None) -> str:
+    """What's on the video now, read from the board (never kept apart from
+    it, so Undo moves the switch too): off, describe, or subtitles when the
+    captions were heard (`heard`, subtitles.py)."""
+    ovs = (b or {}).get("overlays") or []
+    if not ovs:
+        return "off"
+    return "subtitles" if any(o.get("heard") for o in ovs) else "describe"
 
 
 @app.post("/api/captions")
 def api_captions(req: CaptionsReq) -> dict:
-    """Captions on or off in Frames, as one undoable turn. Off takes every
-    caption away; on puts back what the style asked for (else the time and
-    place of each moment)."""
+    """The Captions switch in Frames, one undoable turn: Off takes every
+    caption away; Describe puts the time and place of each moment on; Subtitles
+    puts on what's said, heard on this Mac (subtitles.py), with the words the
+    recogniser doubted marked for the creator to check. Switching kinds
+    replaces the captions of the other kind; what can't be done (no
+    recogniser, nobody talking) is said, and nothing changes."""
     with LOCK:
         b = SESSION.board
         if not b:
@@ -2214,10 +2235,18 @@ def api_captions(req: CaptionsReq) -> dict:
             if defaults.asked() == "made":
                 defaults.note(captions="off")
             return _session()
-        if not b.get("overlays"):
-            _words_as_asked(force=True)
+        if req.mode is not None and req.mode not in CAPTION_MODES:
+            raise HTTPException(422, "captions are describe or subtitles")
+        have = _captions_mode(b)
+        if req.mode is None:
+            if have == "off":
+                _words_as_asked(force=True)
+        elif req.mode != have:
+            added, notes = _words_as_asked(force=True, answer=CAPTION_MODES[req.mode], replace=have != "off")
+            if not added:
+                raise HTTPException(409, " ".join(notes) or "There's nothing to put on screen.")
         if defaults.asked() == "made":
-            defaults.note(captions=None)
+            defaults.note(captions="subtitles" if (req.mode or have) == "subtitles" else None)
         return _session()
 
 
@@ -2509,8 +2538,8 @@ def _caption_memory(ops: list[dict], before: dict[str, dict]) -> None:
             if op.get("op") not in ("edit_overlay", "drop_overlay") or oid not in before:
                 continue
             old = before[oid]
-            if old.get("kind") not in CAPTION_KINDS:
-                continue
+            if old.get("kind") not in CAPTION_KINDS or old.get("heard"):
+                continue                  # a fixed subtitle is what she said, not a line she writes
             if op["op"] == "edit_overlay" and "text" not in op and "sub" not in op:
                 continue                  # moved, restyled: not her words
             new = now.get(oid) if op["op"] == "edit_overlay" else None
@@ -2657,32 +2686,44 @@ def api_bed(req: BedReq) -> dict:
         return _session()
 
 
-def _words_as_asked(force: bool = False) -> None:
+def _words_as_asked(force: bool = False, answer: str | None = None,
+                    replace: bool = False) -> tuple[bool, list[str]]:
     """A story was just chosen: put on screen the words the style questions
     asked for, as their own turn so Undo takes only the words away. `force`
-    (the Captions switch in Frames) puts captions on even if none were asked."""
+    (the Captions switch in Frames) puts captions on even if none were asked;
+    `answer` says which kind over the brief's; `replace` (switching kinds)
+    takes the captions already on off in the same turn. -> (a turn was
+    added, notes on what couldn't be done)."""
     b = SESSION.board
     d = _direction() or {}
     style = d.get("style") or {}
-    answer = style.get("captions")
+    answer = answer or style.get("captions")
     if force and answer not in ("describe", "transcribe"):
         answer = "describe"
-    if not b or b.get("overlays") or (b.get("look") and not force) or not (d or force):
-        return
+    if not b or (b.get("overlays") and not replace) or (b.get("look") and not force) or not (d or force):
+        return False, []
     said = (d.get("text") or "").split("\n")[0].strip()
     found = places.lookup([c.get("gps") for c in CLIPS.values()]) if answer in ("describe", None, "day") else {}
     ops, notes = brief.caption_ops(b, CATALOG["cat"], answer, said if len(said) <= 48 else None, said,
                                    look=style.get("look") or style.get("caption_look"), clips=CLIPS, places=found)
+    if replace:
+        # the look is already on; the other kind's lines go (a subtitle, a stop's
+        # line: STOP_KINDS), the rest (a title, a chapter heading) stays
+        ops = [o for o in ops if o["op"] != "set_look"]
+        gone = [{"op": "drop_overlay", "overlay": o["id"]} for o in b.get("overlays") or [] if o.get("kind") in STOP_KINDS]
+        ops = gone + ops if ops else []
     if not ops:
-        return
+        return False, notes
     n = sum(o["op"] == "add_overlay" for o in ops)
     what = {"transcribe": "subtitles of what's said", "none": "words"}.get(answer or "", "captions: the time, the place and what's happening")
     reply = (f"Added {n} caption{'s' * (n != 1)} — {what}. Click one to retype it." if n
              else f"The {looks.get(ops[0]['look'])['name']} look, as you picked.")
     if notes:
         reply += " " + " ".join(notes)
-    SESSION.add({"kind": "direct", "text": "Captions, as you asked", "ops": ops, "reply": reply},
-                CATALOG["cat"], _make_proposals)
+    text = ("Subtitles of what's said" if answer == "transcribe" else "Captions: the time and place") if replace \
+        else "Captions, as you asked"
+    SESSION.add({"kind": "direct", "text": text, "ops": ops, "reply": reply}, CATALOG["cat"], _make_proposals)
+    return True, notes
 
 
 @app.post("/api/turns/{tid}/toggle")

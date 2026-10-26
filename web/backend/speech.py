@@ -83,10 +83,12 @@ def audio(clip: dict) -> np.ndarray:
 
 
 def transcribe(clip: dict, locale: str) -> list[dict]:
-    """[{text, start, end, words: [{t, s, e}], segs: [word…]}] in source seconds. Cached."""
+    """[{text, start, end, words: [{t, s, e, c}], segs: [word…]}] in source
+    seconds; `c` is the recogniser's confidence in the word (0..1), None where
+    it gave none. Cached."""
     if locale not in LOCALES:
         raise SpeechError(f"unsupported language {locale}")
-    cache = indexer.clip_dir(clip["id"]) / "speech" / f"{locale}.v2.json"   # v2: + word segments
+    cache = indexer.clip_dir(clip["id"]) / "speech" / f"{locale}.v3.json"   # v2: + word segments; v3: + confidence
     if cache.exists():
         return json.loads(cache.read_text())
     binary = ensure_built()
@@ -94,17 +96,33 @@ def transcribe(clip: dict, locale: str) -> list[dict]:
     p = subprocess.run([str(binary), str(wav), locale], capture_output=True, text=True, timeout=1800)
     if p.returncode != 0:
         raise SpeechError(f"couldn't transcribe {clip['name']}: {p.stderr.strip()[-200:]}")
+    out = parse(p.stdout)
+    cache.write_text(json.dumps(out, ensure_ascii=False))
+    return out
+
+
+def _conf(w: dict) -> float | None:
+    c = w.get("c")
+    if c is None:
+        return None
+    try:
+        return round(min(1.0, max(0.0, float(c))), 3)
+    except (TypeError, ValueError):
+        return None
+
+
+def parse(stdout: str) -> list[dict]:
+    """The helper's lines (one JSON result each) -> results in time order."""
     out = []
-    for line in p.stdout.splitlines():
+    for line in stdout.splitlines():
         try:
             r = json.loads(line)
         except json.JSONDecodeError:
             continue
-        words = [{"t": w["t"], "s": round(float(w["s"]), 3), "e": round(float(w["e"]), 3)}
+        words = [{"t": w["t"], "s": round(float(w["s"]), 3), "e": round(float(w["e"]), 3), "c": _conf(w)}
                  for w in r.get("words", []) if w.get("t", "").strip()]
         if words:
             out.append({"text": r.get("text", "").strip(), "start": words[0]["s"], "end": words[-1]["e"],
                         "words": words, "segs": [x for x in r.get("segs", []) if x.strip()]})
     out.sort(key=lambda r: r["start"])
-    cache.write_text(json.dumps(out, ensure_ascii=False))
     return out
