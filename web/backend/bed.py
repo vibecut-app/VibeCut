@@ -144,8 +144,16 @@ def prefetch(pace: str | None) -> None:
     threading.Thread(target=run, daemon=True).start()
 
 
-def pick(fp: dict, pool: list[mu.Track], need_s: float) -> dict | None:
-    return remix.pick_from(pool, fp, need_s + 4.0, fp["hook_s"])
+def pick(fp: dict, pool: list[mu.Track], need_s: float, look: str | None = None) -> dict | None:
+    """The best fit, carrying the next few as `others` (the Music panel's
+    swaps, songs.py), leaned by the look and the creator's past picks."""
+    from . import songs
+    ranked = remix.rank_from(pool, fp, need_s + 4.0, fp["hook_s"], songs.N, songs.lean_for(look))
+    if not ranked:
+        return None
+    mx = ranked[0]
+    mx["others"] = ranked[1:]
+    return mx
 
 
 # --------------------------------------------------------------------------
@@ -243,11 +251,12 @@ def start(board: dict, cat, pace: str | None, own: list[mu.Track] | None, need_s
                 job.stage, job.why = "nothing", ("No tracks could be read from your music folder." if own
                                                  else "No free track could be found — no music this time.")
                 return
-            mx = pick(fp, pool, need_s)
+            look = (board.get("look") or {}).get("id") if isinstance(board.get("look"), dict) else board.get("look")
+            mx = pick(fp, pool, need_s, look)
             if mx is None and job.source == ONLINE:
                 # online answered, but nothing it had fits this edit: the pack, not silence
                 pool, job.source = fallback(fp["pace"], progress), PACK
-                mx = pick(fp, pool, need_s)
+                mx = pick(fp, pool, need_s, look)
             if mx is None:
                 job.stage, job.why = "nothing", (f"None of the {len(pool)} tracks is long enough for this edit "
                                                  f"({need_s:.0f} s) with a steady beat — no music this time.")

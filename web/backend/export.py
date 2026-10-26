@@ -184,12 +184,22 @@ def create(items: list[dict], clips: dict[str, dict], name: str, music: str | No
     if look and not os.path.isfile(look.get("lut", "")):
         raise ValueError("the borrowed look's file is gone — apply the style again")
     size = frame_size(sp, clips, want)
+    guide_note = None
+    if mix and mix.get("guide"):
+        # a trending sound is a guide to cut by, licensed for use inside the
+        # platforms' apps: it never goes into a file (trend.py)
+        from . import musiclib, trend
+        t = musiclib.find(mix.get("track"))
+        guide_note = trend.note(t.title if t else "the sound", float(mix.get("in") or 0.0))
+        music, mix = None, None
     if crop:
         sp = cover_mismatched(sp, clips, size)
     job = Job(id=uuid.uuid4().hex[:10], items=sp, clips=clips, size=size,
               total=sum(s["frames"] for s in sp) / FPS, name=_safe_name(name), music=music, style=style,
               mix=mix, joins=joins, sound=sound)
     job.alt = crop
+    if guide_note:
+        job.notes.append(guide_note)
     job.dir.mkdir(parents=True, exist_ok=True)
     (job.dir / "frames").mkdir(exist_ok=True)
     JOBS[job.id] = job

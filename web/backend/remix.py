@@ -271,13 +271,23 @@ def pick_music(fp: dict, need_s: float, hook_s: float, moods: list[str] | None =
     return pick_from(src.list(), fp, need_s, hook_s)
 
 
-def pick_from(pool: list[mu.Track], fp: dict, need_s: float, hook_s: float) -> dict | None:
+def pick_from(pool: list[mu.Track], fp: dict, need_s: float, hook_s: float, lean=None) -> dict | None:
     """The best of `pool` for this edit (any source: Openverse, the creator's
     own folder), with its in-point and beat grid. None when nothing is long
-    enough or has a steady tempo."""
+    enough or has a steady tempo. `lean(track) -> float` adds to a track's
+    score (the creator's own picks, songs.lean)."""
+    got = rank_from(pool, fp, need_s, hook_s, 1, lean)
+    return got[0] if got else None
+
+
+def rank_from(pool: list[mu.Track], fp: dict, need_s: float, hook_s: float, n: int = 5, lean=None) -> list[dict]:
+    """Up to `n` tracks that fit, best first, each as pick_from returns it
+    (2026-10-24, the user: several suggestions to swap between; before, the
+    ranking past the first fit was thrown away). The same title twice (a
+    mix and its radio edit) counts once."""
     tracks = [t for t in pool if t.duration >= need_s + 8]
     if not tracks:
-        return None
+        return []
     lo, hi = fp["bpm"]
     mid = float(np.sqrt(lo * hi))
     want = np.asarray(fp["energy"] or np.linspace(0.2, 1.0, 32), dtype=np.float32)
@@ -298,11 +308,20 @@ def pick_from(pool: list[mu.Track], fp: dict, need_s: float, hook_s: float) -> d
             score = 0.35 * tempo + 0.2 * shape + 0.2 * vibe(t) + 0.1 * continuity(t.path) + 0.15 * timbre
         else:
             score = 0.4 * tempo + 0.25 * shape + 0.25 * vibe(t) + 0.1 * continuity(t.path)
+        if lean is not None:
+            score += float(lean(t))
         scored.append((score, t))
     if not scored:
-        return None
+        return []
     scored.sort(key=lambda x: -x[0])
-    for score, t in scored[:5]:
+    out: list[dict] = []
+    titles: set[str] = set()
+    for score, t in scored[:max(5, 3 * n)]:
+        if len(out) >= n:
+            break
+        key = (t.title or t.id).lower().split("(")[0].strip()
+        if key in titles:
+            continue
         phase = float(t.meta["tempo"]["phase"])
         bpm = float(t.bpm)
         if bpm < lo * 0.8 and 2 * bpm <= hi * 1.25:
@@ -314,10 +333,11 @@ def pick_from(pool: list[mu.Track], fp: dict, need_s: float, hook_s: float) -> d
         start = drop - hook_s
         if start < 0 or start + need_s > t.duration:
             continue
-        return {"track": t, "in": round(float(start), 3), "drop": round(float(drop), 3), "bpm": bpm,
-                "period": 60.0 / bpm, "score": round(float(score), 3),
-                "credit": ov.credit(t.meta["licence"]) if t.meta.get("licence") else t.title}
-    return None
+        titles.add(key)
+        out.append({"track": t, "in": round(float(start), 3), "drop": round(float(drop), 3), "bpm": bpm,
+                    "period": 60.0 / bpm, "score": round(float(score), 3),
+                    "credit": ov.credit(t.meta["licence"]) if t.meta.get("licence") else t.title})
+    return out
 
 
 def quantise(plan: sel.Plan, clips: dict[str, dict], period: float) -> None:

@@ -42,7 +42,7 @@ from pathlib import Path
 from taste import describe as ds
 from taste import model as tm
 
-from . import board as bd, make, remix, select as sel
+from . import board as bd, make, remix, select as sel, vlog
 
 MAX_VARIANTS = 8        # today's edit plus up to 7 changes; each costs ~0.05 s to build and read [prior]
 MIN_GAIN = 0.05         # a variant must beat today's edit by this much to replace it: scores are
@@ -211,7 +211,9 @@ def variants(plan: sel.Plan, fp: dict, fmt: str, look: str | None = None, mx: di
     changes that would change something are offered."""
     out = [{"name": "today"}]
     body = [p for s in plan.sessions for p in s]
-    if len({p.role for p in body}) > 1:
+    if len({p.role for p in body}) > 1 and not make.is_vlog(fmt, fp):
+        # a vlog's holds already follow what each shot is (vlog.breathe); the
+        # spread's held end there is a talking shot's, not a hero's
         out.append({"name": "rhythm_by_role"})
     if plan.hook and any(p.shot.end - p.shot.start > p.duration + 0.2 for p in plan.hook):
         out.append({"name": "held_open"})
@@ -231,7 +233,8 @@ def variants(plan: sel.Plan, fp: dict, fmt: str, look: str | None = None, mx: di
     return out[:MAX_VARIANTS]
 
 
-def _refit(clips: dict[str, dict], plan: sel.Plan, fp: dict, mx: dict | None, end: int | None = None) -> dict | None:
+def _refit(clips: dict[str, dict], plan: sel.Plan, fp: dict, mx: dict | None, end: int | None = None,
+           fmt: str = "short", talking: set[str] | None = None) -> dict | None:
     """make.music without the search: the same track and drop, this plan's
     shots on its beat, the in-point moved so the drop still lands at the end
     of the hook. False when the track no longer covers the edit."""
@@ -239,7 +242,7 @@ def _refit(clips: dict[str, dict], plan: sel.Plan, fp: dict, mx: dict | None, en
         return None
     vmx = dict(mx)
     period = vmx["period"]
-    remix.quantise(plan, clips, period)
+    make.fit_beat(plan, clips, fp, fmt, period, talking)
     make.hold_ending(clips, plan, period, make.end_beats(fp, period))
     if end and plan.sessions and plan.sessions[-1]:
         p = plan.sessions[-1][-1]
@@ -286,7 +289,7 @@ def build(spec: dict | list[dict], raw: sel.Plan, clips: dict[str, dict], fp: di
     for s in sorted(specs, key=lambda s: rank.get(s["name"], len(rank))):
         if not _change(plan, s["name"], clips, fp):
             return None
-    vmx = _refit(clips, plan, fp, mx, next((s["end"] for s in specs if s.get("end")), None))
+    vmx = _refit(clips, plan, fp, mx, next((s["end"] for s in specs if s.get("end")), None), fmt, talking)
     if vmx is False:
         return None
     ops = make.ops(plan, fp, vmx, fmt, look, about, talking, lines=lines)
@@ -302,6 +305,18 @@ def board_of(ops: list[dict], cat: bd.Catalog) -> dict | None:
         except bd.OpError:
             continue
     return b
+
+
+def keeps_length(plan: sel.Plan, base: sel.Plan, fp: dict, fmt: str) -> bool:
+    """A vlog version may not trade away the length the setup promised
+    (2026-10-25: a one-beat ending, picked by the model, took a 42 s vlog
+    to 33): it stays within vlog.LENGTH_OK of it, or no shorter than
+    today's edit when that one already fell short. A short is the reel's
+    length, whatever its ending."""
+    want = float(fp.get("duration") or 0.0)
+    if fmt == "short" or not want:
+        return True
+    return plan.duration >= vlog.LENGTH_OK * want - 1e-3 or plan.duration >= base.duration - 0.5
 
 
 def choose(clips: dict[str, dict], raw: sel.Plan, fp: dict, mx: dict | None, fmt: str, look: str | None,
@@ -326,6 +341,8 @@ def choose(clips: dict[str, dict], raw: sel.Plan, fp: dict, mx: dict | None, fmt
         made = base if spec["name"] == "today" else build(spec, raw, clips, fp, mx, fmt, look, about, talking, lines)
         if made is None or made[2] in seen:
             continue                      # couldn't be made, or came out as a cut already tried
+        if spec["name"] != "today" and not keeps_length(made[0], base[0], fp, fmt):
+            continue
         seen.append(made[2])
         board = board_of(made[2], cat)
         if not board:
@@ -350,7 +367,7 @@ def choose(clips: dict[str, dict], raw: sel.Plan, fp: dict, mx: dict | None, fmt
                 if PART.get(s_["name"]) != part:
                     continue
                 m_ = build(chosen + [s_], raw, clips, fp, mx, fmt, look, about, talking, lines)
-                if m_ is None or m_[2] in seen:
+                if m_ is None or m_[2] in seen or not keeps_length(m_[0], base[0], fp, fmt):
                     continue
                 seen.append(m_[2])
                 b_ = board_of(m_[2], cat)

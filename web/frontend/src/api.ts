@@ -2,6 +2,14 @@ import type { SetupData } from './components/Setup'
 import type { FaceArea } from './overlayDraw'
 import type { CaptionVoice, Habit, Capabilities, CutData, CutReport, ExportJob, Job, LengthSlider, LookFit, PrefClass, Project, ProjectMeta, RefCard, RefJob, RefSummary, Session, StyleAnswers, StyleQuestion, TalkState } from './types'
 
+// songs to swap between (songs.py), transition sounds (sfx.py), a trending sound as a guide (trend.py)
+export type Song = { id: string; title: string; duration: number; bpm: number; in: number; credit: string | null; why: string; audio: string; in_use: boolean; score: number | null }
+export type TrendJob = { id: string; stage: 'fetching' | 'reading' | 'done' | 'error'; error: string | null; title: string | null; bpm: number | null; elapsed: number }
+export type SongOptions = {
+  status: 'none' | 'looking' | 'ready'; songs: Song[]; why: string | null; rebuilds: boolean; sfx: number
+  sounds: { id: string; title: string; dur: number }[]; trend: TrendJob | null; can_link: boolean
+}
+
 export type MomentInfo = { header: string; key: string; llm: boolean; provider: ChatProvider
   estimate: { tokens_in: number; usd: [number, number] } }
 export type MomentAnswer = { reply: string; choices: string[]; ops: Record<string, unknown>[]
@@ -131,6 +139,11 @@ export const api = {
   pile: (clip: string, into: boolean) => j<Session>(post('/api/pile', { clip, into })),
   captions: (on: boolean) => j<Session>(post('/api/captions', { on })),
   bed: (on: boolean) => j<Session>(post('/api/bed', { on })),
+  songs: () => j<SongOptions>(fetch('/api/music/options')),
+  swapSong: (trackId: string) => j<Session>(post('/api/music/swap', { track_id: trackId })),
+  sfx: (on: boolean) => j<Session>(post('/api/sfx', { on })),
+  trend: (source: string) => j<TrendJob>(post('/api/music/trend', { source })),
+  trendStatus: (id: string) => j<TrendJob & { session: Session | null }>(fetch(`/api/music/trend/${id}`)),
   pace: (pace: string) => j<Session>(post('/api/pace', { pace })),
   guess: () => j<{ about: string }>(fetch('/api/brief/guess')),
   suggestions: () => j<{ suggestions: string[]; source: string }>(fetch('/api/brief/suggestions')),

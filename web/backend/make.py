@@ -37,11 +37,13 @@ import uuid
 
 from cutgrammar import music as mu
 
-from . import audiomix, bed, habits, oai, places, remix, select as sel, story, storyboard as sb, tempo, timeline
+from . import audiomix, bed, habits, house, oai, places, remix, select as sel, sfx, story, storyboard as sb, tempo, timeline, vlog
 
-# Shot length and hook by frame and pace [prior]. A short is cut like the
-# reels the creator brought on 2026-09-25 (0.7 s a shot, hook 1.4 s); a
-# vlog breathes (2-3 s) but still opens on its strongest moment.
+# Shot length and hook by frame and pace: since 2026-10-24 the house style
+# (house.py: what the good vlogs measured) sets them; PRIOR keeps only each
+# frame's length cap, and its old guesses are what a checkout without
+# taste/'s files falls back to. A short is cut like a reel, a vlog (tall or
+# wide) like the vlogs people love (vlog.py).
 PRIOR = {
     "short": {"median": {"fast": 0.7, "balanced": 0.9, "calm": 1.2}, "hook_s": 1.5, "max_s": 60.0},
     "tall": {"median": {"fast": 1.8, "balanced": 2.5, "calm": 3.2}, "hook_s": 2.5, "max_s": None},
@@ -75,10 +77,38 @@ def fingerprint(fmt: str, pace: str, seconds: float, styles: list[dict] | None =
     dur = float(seconds)
     if p["max_s"]:
         dur = min(dur, p["max_s"])
-    med = p["median"][pace]
-    return {"median_s": med, "curve": list(CURVE), "spread": SPREAD, "hook_s": p["hook_s"],
-            "bpm": bed.PACE_BPM[pace], "arc": "builds", "energy": None, "bright": None,
+    hs = house.recipe(fmt, pace)
+    if fmt == "short" or not hs["house"]["n"]:
+        # a short stays cut like a reel: on the creator's shoot the house's
+        # short numbers put every cut on the beat and scored lower than the
+        # reel prior (design/eval/house_style.py, 2026-10-24)
+        hs = {"median_s": p["median"][pace], "curve": list(CURVE), "spread": SPREAD, "hook_s": p["hook_s"],
+              "house": {**hs["house"], "group": house.GROUP.get(fmt, "long")}}
+    return {**hs, "bpm": bed.PACE_BPM[pace], "arc": "builds", "energy": None, "bright": None,
             "duration": round(max(15.0, dur), 1), "vertical": fmt != "wide", "refs": 0, "refs_used": False}
+
+
+def _copy_plan(plan: sel.Plan) -> sel.Plan:
+    from . import tastepick
+    return tastepick.copy_plan(plan)
+
+
+def with_sounds(made: list[dict], clips: dict[str, dict], mx: dict | None, fmt: str, fp: dict) -> list[dict]:
+    """Transition sounds (sfx.py) on the turn's set_music, placed on the board
+    the turn makes (its look's joins and the flash included). Returns them."""
+    m = next((op for op in made if op.get("op") == "set_music" and op.get("track")), None)
+    if m is None:
+        return []
+    from . import board as bd, tastepick
+    board = tastepick.board_of(made, bd.Catalog.from_clips(list(clips.values())))
+    items = sfx.place(board, clips, mx, is_vlog(fmt, fp)) if board else []
+    m["sfx"] = items
+    return items
+
+
+def is_vlog(fmt: str, fp: dict) -> bool:
+    """A tall or wide video not copying a reel is cut as a vlog (vlog.py)."""
+    return fmt != "short" and not fp.get("refs_used")
 
 
 def taste_text(profile: dict | None, rules: str = "") -> str:
@@ -199,14 +229,36 @@ def arrivals(named: list[str | None]) -> list[str | None]:
     return out
 
 
-def moments(clips: dict[str, dict], cut, fp: dict, judge=None, taste: str = "", bias: dict | None = None) -> sel.Plan:
-    plan = remix.plan_shots(clips, fp, length=fp["duration"], cut=cut, judge=judge, taste=taste, bias=bias)
+def moments(clips: dict[str, dict], cut, fp: dict, judge=None, taste: str = "", bias: dict | None = None,
+            fmt: str = "short", talking: set[str] | None = None) -> sel.Plan:
+    if not is_vlog(fmt, fp):
+        plan = remix.plan_shots(clips, fp, length=fp["duration"], cut=cut, judge=judge, taste=taste, bias=bias)
+    else:
+        # the vlog grammar (vlog.py): shots with room to rest in, scenes of
+        # wide -> medium -> close with talk broken up by cutaways, holds by
+        # what each shot is (house.py). Holds can come out shorter than asked
+        # (walks are cut short, some shots were filmed short), so a vlog that
+        # lands well under its length asks for more moments once.
+        length = fp["duration"]
+        for _ in range(2):
+            plan = remix.plan_shots(clips, fp, length=length, cut=cut, judge=judge, taste=taste, bias=bias,
+                                    min_s=vlog.MIN_PICK_S)
+            vlog.scenes(plan, talking)
+            vlog.flow(plan, clips, talking)
+            vlog.breathe(plan, clips, fp, talking)
+            if plan.duration >= vlog.LENGTH_OK * fp["duration"] or plan.duration <= 0:
+                break
+            length = min(fp["duration"] * fp["duration"] / plan.duration, fp["duration"] * vlog.ASK_MORE_MAX)
+        plan.notes.append(vlog.describe(plan))
     # The hook is lifted out of its stop, not copied: a Remix played the hook
     # shot again in its place (sarah: never the same shot twice). A stop that
     # was only its hook is not lost: it opens the video.
     hooked = {p.shot.id for p in plan.hook}
     for sess in plan.sessions:
         sess[:] = [p for p in sess if p.shot.id not in hooked]
+    if is_vlog(fmt, fp) and plan.duration < fp["duration"]:
+        # no more moments to ask for: the ones it has hold longer, so the length promised is the length made
+        vlog.fill(plan, clips, fp["duration"], talking)
     return plan
 
 
@@ -256,17 +308,34 @@ def pace_of(fp: dict) -> str:
     return "fast" if med < 1.3 else "calm" if med > 3.0 else "balanced"
 
 
+def fit_beat(plan: sel.Plan, clips: dict[str, dict], fp: dict, fmt: str, period: float,
+             talking: set[str] | None = None) -> None:
+    """The plan onto the track: a reel's cuts every one on the grid; a vlog's
+    scene changes on its phrases and the cuts inside where the action ends
+    (the good vlogs cut on a sound a third of the time, house.py)."""
+    if is_vlog(fmt, fp):
+        vlog.phrase(plan, clips, period, fp, talking)
+    else:
+        remix.quantise(plan, clips, period)
+
+
 def music(clips: dict[str, dict], plan: sel.Plan, fp: dict, pace: str, own: list[mu.Track] | None,
-          progress=None, pool: list[mu.Track] | None = None) -> tuple[dict | None, str]:
+          progress=None, pool: list[mu.Track] | None = None, fmt: str = "short",
+          talking: set[str] | None = None, look: str | None = None) -> tuple[dict | None, str]:
     """A track for this plan, and the plan re-cut to its beat. `pool` stands
     in for bed.candidates in tests. Returns (pick, where it came from)."""
     source = "given"
     if pool is None:
         pool, source = bed.candidates(pace, own, progress)
     hook_s = sum(p.duration for p in plan.hook) or fp["hook_s"]
-    mx = remix.pick_from(pool, fp, plan.duration + 4.0, hook_s)
+    # the top few, best first (songs.py): the first goes under the video, the
+    # rest are the Music panel's swaps; the look and the creator's past picks lean it
+    from . import songs
+    ranked = remix.rank_from(pool, fp, plan.duration + 4.0, hook_s, songs.N, songs.lean_for(look))
+    mx = ranked[0] if ranked else None
     if mx:
-        remix.quantise(plan, clips, mx["period"])
+        mx["others"] = ranked[1:]
+        fit_beat(plan, clips, fp, fmt, mx["period"], talking)
         hold_ending(clips, plan, mx["period"], end_beats(fp, mx["period"]))
         hook_s = sum(p.duration for p in plan.hook) or hook_s
         mx["in"] = round(max(0.0, mx["drop"] - hook_s), 3)
@@ -337,17 +406,24 @@ def ops(plan: sel.Plan, fp: dict, mx: dict | None, fmt: str, look: str | None, a
              "level": True, "fade_out": min(3.0, max(1.5, 4 * mx["period"])), "duck": [], "sfx": []}
         if fmt != "short" and talking:
             m["duck"] = bed.ducks(board, talking)
+        if is_vlog(fmt, fp):
+            # the place's own sound up front, music rising at a scene change and
+            # stepping out while someone talks to the lens (house.py)
+            m["gain"] = vlog.MUSIC_GAIN
+            m["duck"] = vlog.talk_out(board, talking) + vlog.swells(plan)
         out.append(m)
+    if is_vlog(fmt, fp):
+        out.extend(vlog.carries(plan))                       # the place's sound runs on under the next shot
     if look:
         out.append({"op": "set_look", "look": look})
-    out.extend(punches(plan, mx))
+    out.extend(punches(plan, mx, not is_vlog(fmt, fp)))
     if ramp:
         hook_key, cut_at, second = ramp
         out.append({"op": "split", "shot": hook_key, "at": cut_at})
         out.append({"op": "set_shot", "shot": second, "speed": RAMP_SPEED})
         if look in FLASH_LOOKS:
             out.append({"op": "set_transition", "shot": second, "kind": "flash", "dur": FLASH_S})
-    elif look in FLASH_LOOKS and plan.hook and mx:
+    elif look in FLASH_LOOKS and plan.hook and mx and not is_vlog(fmt, fp):
         out.append({"op": "set_transition", "shot": plan.hook[-1].shot.id, "kind": "flash", "dur": FLASH_S})
     if chapters:
         return out + story.heading_ops(plan, chapters)    # beat-anchored, so the ramp moves nothing
@@ -377,9 +453,10 @@ def ops(plan: sel.Plan, fp: dict, mx: dict | None, fmt: str, look: str | None, a
             out.append({"op": "add_overlay", "kind": "title", "text": c["text"], "sub": c.get("sub", ""),
                         "anchor": {"to": "edit"}, "at": 0.0, "dur": round(c["end"] - c["start"], 2), "anim": "rise"})
         elif c["kind"] == "scene":
+            # a vlog's words sit low, as in the good vlogs (12% of their words' time at the top, house.py)
             sub, _, text = c["text"].rpartition(PLACE_SEP)
-            op_ = {"op": "add_overlay", "kind": "part", "text": text or sub, "pos": "top", "size": "S",
-                   "start": c["start"], "dur": round(c["end"] - c["start"], 2), "anim": "rise"}
+            op_ = {"op": "add_overlay", "kind": "part", "text": text or sub, "pos": "bottom-left" if is_vlog(fmt, fp) else "top",
+                   "size": "S", "start": c["start"], "dur": round(c["end"] - c["start"], 2), "anim": "rise"}
             if sub and text:
                 op_["sub"] = sub                 # the place, named once, above the line
             out.append(op_)
@@ -394,7 +471,7 @@ PUSH_HOOK, PUSH_HIT, PUSH_BAR = 0.08, 0.14, 0.05
 BAR_BEATS = 4
 
 
-def punches(plan: sel.Plan, mx: dict | None) -> list[dict]:
+def punches(plan: sel.Plan, mx: dict | None, on_beat: bool = True) -> list[dict]:
     """set_shot ops with a push per shot: the hook, the hit on the drop, the
     bars. With no beat known, only the hook and the first body shot move."""
     out: list[dict] = []
@@ -410,8 +487,8 @@ def punches(plan: sel.Plan, mx: dict | None) -> list[dict]:
     for h in plan.hook:
         push(h, PUSH_HOOK)
     body = [p for sess in plan.sessions for p in sess]
-    if not body:
-        return out
+    if not body or not on_beat:
+        return out                 # a vlog rests: only the hook pushes
     push(body[0], PUSH_HIT)
     if mx:
         period, sign = mx["period"], 1
@@ -501,7 +578,7 @@ def start(clips: dict[str, dict], cut, fmt: str, pace: str, look: str | None, ab
           own: list[mu.Track] | None, styles: list[dict] | None, judge, on_done, want_music: bool = True,
           register=None, vibe: dict | None = None, taste: str = "", words_ask=None,
           bias: dict | None = None, found: dict | None = None, phrasing: list[str] | None = None,
-          use_ai: bool = False, check=None) -> Job:
+          use_ai: bool = False, check=None, want_sfx: bool = True) -> Job:
     """Run the pipeline in a thread; `on_done(job)` puts the ops on the session.
     Everything the thread needs is copied in now, so later edits can't move it.
     `register(job)` is called before the thread starts: a fast job (no music,
@@ -534,12 +611,14 @@ def start(clips: dict[str, dict], cut, fmt: str, pace: str, look: str | None, ab
                     paid = (getattr(e, "usage", None) or {}).get("cost", 0.0)
                     plan, chapters, ai = None, None, {"error": str(e)[:160], "cost": paid}
                 job.line = ""
+            pool, _ = sb.usable(sb.shots_from_clips(list(clips.values()), cut))
+            talking = tempo.talking(list(clips.values()), pool)
             if plan is None:
-                plan = moments(clips, cut, fp, judge, taste, bias)
+                plan = moments(clips, cut, fp, judge, taste, bias, fmt, talking)
             if not plan.picks:
                 raise ValueError("none of the clips had a moment worth keeping — add more footage")
-            if not chapters:
-                end_strong(plan)      # the AI already ends each chapter on its payoff
+            if not chapters and not is_vlog(fmt, fp):
+                end_strong(plan)      # the AI ends each chapter on its payoff, a vlog's scene on its detail or face
             # the taste model weighs a few cuts of these moments (tastepick.py), on the
             # rules path only: AI chapters name their own picks. It needs the plan as
             # it is before the music re-cuts it to the beat.
@@ -551,11 +630,10 @@ def start(clips: dict[str, dict], cut, fmt: str, pace: str, look: str | None, ab
                 except Exception as e:  # noqa: BLE001 -- no model to ask: today's edit, as before
                     print(f"tastepick: {e!r}; today's edit stands", file=sys.stderr)
             job.stage = "music"
-            mx, source = (music(clips, plan, fp, pace, own, progress) if want_music
+            remake = {"raw": _copy_plan(plan), "fp": fp, "fmt": fmt, "look": look, "about": about, "talking": talking}
+            mx, source = (music(clips, plan, fp, pace, own, progress, fmt=fmt, talking=talking, look=look) if want_music
                           else (None, "off, as last time"))
             job.stage = "words"
-            pool, _ = sb.usable(sb.shots_from_clips(list(clips.values()), cut))
-            talking = tempo.talking(list(clips.values()), pool)
             judged = any(n.startswith("Claude judged") for n in plan.notes)
             # chapters carry their own words (a designed title over a line), else a line per stop
             lines = None if chapters else words(plan, about, taste, words_ask, fp, found, phrasing)
@@ -570,16 +648,20 @@ def start(clips: dict[str, dict], cut, fmt: str, pace: str, look: str | None, ab
                     plan, mx, made, picked = tastepick.choose(clips, raw, fp, mx, fmt, look, about, talking, lines, base)
                     # what the "which do you like better?" cards cut their versions from (prefer.py)
                     deck = {"raw": raw, "base": base, "clips": clips, "fp": fp, "mx": base[1], "fmt": fmt,
-                            "look": look, "about": about, "talking": talking, "lines": lines}
+                            "look": look, "about": about, "talking": talking, "lines": lines, "sfx": want_sfx}
                 except Exception as e:  # noqa: BLE001 -- today's edit stands; the video is always made
                     print(f"tastepick: {e!r}; today's edit stands", file=sys.stderr)
                     picked = {"error": str(e)[:160]}
                 job.line = ""
             chose = tastepick.sentence(picked) if raw is not None else ""
+            sounds = with_sounds(made, clips, mx, fmt, fp) if want_sfx else []
+            remake.update(lines=lines, chosen=[c for c in ((picked or {}).get("chosen") or []) if c.get("name") != "today"],
+                          clips=clips)
             job.result = {"ops": made, "music": mx, "fp": fp, "plan": plan, "taste": taste, "written": wrote,
+                          "remake": None if chapters else remake,
                           "ai": ai, "taste_pick": picked, "deck": deck,
                           "reply": say(plan, fp, mx, source, judged, ai) + (" Claude wrote the lines, in your voice." if wrote else "")
-                          + (" " + chose if chose else "")}
+                          + (" " + chose if chose else "") + (" " + sfx.say(sounds) if sounds else "")}
             if check:
                 job.stage = "checking"
                 job.result["check"] = check(job.result["ops"], mx["period"] if mx else None)

@@ -310,17 +310,25 @@ The promise to a user is therefore *not* "this will be beautiful." It is
   a label and the creator's own retyped lines (`phrasing`), and any empty
   answer falls back to the plain line.
   **Rewritten 2026-10-25** (the user: "no repeated place names, write lines
-  a vlogger would actually post"; a day on one campus read "Columbia
-  University, morning … , night" seven times, two identical): the place is
-  named once, as the overlay's `sub` above the line, where the day arrives
-  there (`make.arrivals`, `PLACE_SEP` "\n" inside a line); the line says
-  what the picture shows (`daylog.phrases`, most specific first, not said
-  before), else how the day moved on (`HOUR_LINES`: "good morning",
-  "night time"); never a line twice, never the title again, and an empty
-  line stays empty (`remix.captions` no longer fills it from its own
-  table). On the face-free half of her shoot: "class time" (under Columbia
-  University), "lunch", "study time", "heading out", "night time",
-  "walking". `tests/test_plain_lines.py`. Priors.
+  a vlogger would actually post, and make the length match what was
+  promised"; a day on one campus read "Columbia University, morning … ,
+  night" seven times, two identical, and "about 50 seconds" made 29):
+  the place is named once, as the overlay's `sub` above the line, where
+  the day arrives there (`make.arrivals`, `PLACE_SEP` "\n" inside a line);
+  the line says what the picture shows (`daylog.phrases`, most specific
+  first, not said before), else how the day moved on (`HOUR_LINES`: "good
+  morning", "night time"); never a line twice, never the title again, and
+  an empty line stays empty (`remix.captions` no longer fills it from its
+  own table). Length: a thin shoot's vlog holds its b-roll longer, the
+  stillest first, up to `vlog.FILL_MAX_S` 5 s and never past what was
+  filmed (`vlog.fill`, after the hook is lifted); the setup never promises
+  a vlog longer than `vlog.reach` (`brief.length_for(…, reach)`); the beat
+  fit rounds a scene up to its next phrase while the video is short; the
+  taste pick may not choose a version under `vlog.LENGTH_OK` of the length
+  (`tastepick.keeps_length`: a one-beat ending had taken 42 s to 33). On
+  the face-free half of her shoot: 42 s promised, 39.8 made; lines "class
+  time" (under Columbia University), "lunch", "study time", "heading out",
+  "night time", "walking". `tests/test_plain_lines.py`. Priors.
   **Her lines first** (`web/backend/captionmem.py`, 2026-10-25; the user:
   "i dont want the caption to be ai generated … i fine tune it to make it
   something i want"; research in `reports/Vlog formats captions and
@@ -784,6 +792,36 @@ The promise to a user is therefore *not* "this will be beautiful." It is
   scene's labels and holds — the calibration record — and `habits.derive`
   reads cut / longer as removed / held; `launchlog.summary` counts them).
   Tested in `tests/test_vlog.py` and the wide Make in `test_make.py`.
+  **The house style** (`web/backend/house.py`, 2026-10-24; the user: "how
+  can we make that kind of vlog that people love?"). The Oct 23 merge
+  (449ce21) kept main's `make.py`, which never had the vlog grammar, so
+  from then until this date a tall / wide Make ran none of it (test_vlog
+  and test_make failed on it). Restored, and re-cut to what taste/ measured
+  instead of the 3–6 s guess: `house.recipe` reads `taste/fingerprints/`
+  and `taste/descriptions/` (median 2.5 s, quick shots ~1 s, held p90 up
+  to 16 s; b-roll ~2.2 s, talk to the lens ~3.2 s; music under ~2% of
+  talking time); `make.fingerprint` takes it for tall / wide (a short keeps
+  `PRIOR`: the house's short numbers put every cut on the beat and scored
+  lower). `vlog.hold_for`: talk keeps its sentence, a laugh is held, one
+  still rest per scene holds `REST` b-roll lengths, b-roll shortens
+  smoothly with movement (a walk ~1 s); `vlog.cutaways`: talk never runs
+  into talk while there's b-roll; `vlog.talk_out`: the bed steps out
+  (`TALK_OUT` 0.05) under talk; `phrase` keeps talk, laughs and the rest
+  as held; `make.fit_beat` is the one beat fitter (tastepick's refit uses
+  it; its rhythm_by_role variant is off for vlogs); a vlog's stop lines sit
+  bottom-left (12% of good vlogs' word time is at the top). Cozy no longer
+  fades from / to black (2 of 25 good long vlogs open on black, none
+  close). `describe.from_board` now reads music as the share of time it's
+  heard (`heard_share`: not ducked below `HEARD` 0.2, or in the footage's
+  own sound), as a real vlog is read; before, any track read 1.0.
+  `design/eval/house_style.py` scores a Make on her cached shoot (77 clips,
+  cached Openverse tracks): wide −10.5 → +1.27 on the taste model (good
+  long vlogs 0.15–14.8: from below all of them to above one), short −1.45
+  → +1.88 (`design/eval/2026-10-24-house-style-{before,after}.json`). Still
+  out of range: unevenness (0.5 vs 0.8–1.6) and held shots (3 s vs 5–16 s),
+  because her clips are filmed 3–5 s; the model also counts the lowercase
+  Soft captions against it (31% capitals in good vlogs), left as her
+  decision. Every number not read from taste/ is a prior. `tests/test_house.py`.
 
 - From montage-vlog-compiler (MIT; see NOTICE), four pieces:
   - **Evidence levels** (`cutgrammar/evidence.py`): every finding names
@@ -839,6 +877,45 @@ The promise to a user is therefore *not* "this will be beautiful." It is
   soon as the pace is read and the chip shows done/total. Openverse's
   commercial slice is thin: one-word moods only (phrases return 0).
   Not yet judged on real footage.
+  **Songs to swap, transition sounds, a trending sound** (2026-10-24, the
+  user: trending vlog audio and transition sounds, a song that fits their
+  style, a few suggestions to switch between). `remix.rank_from` keeps the
+  ranking (top `songs.N` 5, a title once; `pick_from` is its first): Make
+  and the bed hang the rest on `mx["others"]`, `app.SONGS` keeps them (and,
+  after Make, what a remake needs: the plan before music, fp, lines, the
+  taste pick's changes), `/api/music/options` lists them (looked for in the
+  background when there's none), `/api/music/swap` = one turn "Song: …":
+  a made vlog only moves the music (its cuts follow the action; mix kept,
+  in-point = drop − hook), a short untouched since Make is made again on
+  the new beat (`tastepick.build`, redress and caption defaults kept; the
+  prefer deck is dropped), anything else re-snaps like the Music switch.
+  `songs.py`: the look leans the ranking (`LOOK_WORDS`, +`LOOK_W`) and so
+  do the creator's own swaps (`$VIBECUT_CACHE/music-taste.json`: tempo and
+  tags of picks, +`PICK_W` at most; passed over `PASS_AFTER` times −`PASS_W`);
+  the machine's own picks never teach it. **Transition sounds**:
+  `cutgrammar/sfxpack.py` composes whoosh / swish / riser / hit / pop from
+  noise and sine sweeps (ours, CC0, rendered once to the cache, each with
+  its `peak_s`); `sfx.place` reads the joins the export will really draw
+  (`export.plan_transitions`): whoosh on a swipe / zoom, swish on a slide /
+  blur, hit on a white flash, riser + hit on a short's drop; a vlog gets
+  only scene-change swipes at `VLOG_GAIN`; ≥ `GAP_S` 1.5 s apart, ≤
+  `MAX_PER_MIN` 8. They ride on the bed's `sfx` (so none with the music
+  off). Make adds them (`make.with_sounds`, on by default, `defaults` key
+  `sfx`; the prefer cards add them the same way), `/api/sfx {on}` is one
+  turn. **Trending sounds** can't go in an export (research/01 §5: the
+  platforms' libraries are licensed in-app only), so `trend.py` reads one
+  as a *guide*: a TikTok / Reel / Short link (yt-dlp, first `LIMIT_S` 90 s
+  of sound) or a saved file → measured like a track → the same swap with
+  `guide: true` on the board's music (`board.MUSIC_KEYS`). Preview plays it
+  on this Mac; `export.create` drops it (and the sfx) and notes which sound
+  to add in the app from which second; no credit is offered. No charts are
+  read (research/04). The Music panel (`SongPicker.tsx`): Songs that fit
+  (play from its in-point, Use this), Transition sounds, Cut to a trending
+  sound; the folder list (`Music.tsx`) shrinks to its folder line while a
+  song plays. `tests/test_songs.py`. Walked through in the app on a scratch
+  cache with synthetic clips and cached Openverse songs; the trending path
+  was tried with a saved file, not a live TikTok link. Every weight and
+  gain is a prior.
 - **Sound as glue** (`web/backend/audiomix.py`; research
   `design/research/08-fluency-and-motion-ux.md`, P0/P1). One numpy mixer builds the
   edit's whole sound; the preview plays it (picture muted, rate-nudged to

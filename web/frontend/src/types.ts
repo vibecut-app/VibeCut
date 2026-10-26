@@ -183,7 +183,12 @@ export type LookInfo = { id: string; name: string; line: string; font: OverlaySt
 export type OverlayFinding = { overlay: string; rule: string; value: number; verdict: 'ok' | 'warn' | 'bad' | 'pending'; basis: string; message: string }
 export type Overlays = { items: Overlay[]; style: OverlayStyle; findings: OverlayFinding[]
   look?: { id: string | null; overrides: string[]; all: LookInfo[] } }
-export type MusicTrack = { id: string; title: string; duration: number; bpm: number | null; audio: string; credit?: string | null }
+export type MusicTrack = {
+  id: string; title: string; duration: number; bpm: number | null; audio: string; credit?: string | null
+  // a trending sound read as a guide (trend.py): plays here, never exported; add it in the app from start_at
+  guide?: boolean; start_at?: number | null
+  sfx?: number   // transition sounds on the bed (sfx.py)
+}
 export type Habit = { id: string; kind: 'avoid' | 'prefer' | 'music_off'; label: string | null; weight: number; n: number; evidence: string[]; text: string; used: number; off: boolean }
 
 export type CutSummary = { clips: number; kept: number; rejected: number; raw: number; cut: number; ratio: number | null; line_en: string }

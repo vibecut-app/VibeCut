@@ -33,7 +33,7 @@ from cutgrammar import grade
 
 from . import board as bd
 from . import projects as pj
-from . import audiomix, bed, brief, captionmem, cloud, cutnotes, defaults, habits, make, vibes, vlog, tempo, ink, moment, cut, export, looks, pitch, seams, selfcheck, smooth, sound, subtitles, places, indexer, llm, locate, musiclib, oai, overlays, reference, remix, share, covers, postcopy, speech, story, storyboard, talk, timeline, vision, voiceover, youtube
+from . import audiomix, bed, brief, captionmem, cloud, cutnotes, defaults, habits, make, sfx, songs, trend, vibes, vlog, tempo, ink, moment, cut, export, looks, pitch, seams, selfcheck, smooth, sound, subtitles, places, indexer, llm, locate, musiclib, oai, overlays, reference, remix, share, covers, postcopy, speech, story, storyboard, talk, timeline, vision, voiceover, youtube
 from .preferences import PreferenceError, Preferences
 from .workflow import GATE, Workflow, WorkflowError
 
@@ -458,10 +458,15 @@ def _music_public() -> dict | None:
         return None
     from cutgrammar import openverse as ov
     lic = (t.meta or {}).get("licence")
+    m = (SESSION.board or {}).get("music") or {}
+    guide = bool(m.get("guide")) and m.get("track") == t.id
     return {"id": t.id, "title": t.title, "duration": round(t.duration, 2),
             "bpm": t.bpm, "audio": f"/api/music/audio/{t.id}",
-            # the licence's credit line, for the caption (pasted with it on Save)
-            "credit": ov.credit(lic) if lic else None}
+            # the licence's credit line, for the caption (pasted with it on Save);
+            # a trending sound (trend.py) has none: it isn't in the file
+            "credit": None if guide else (ov.credit(lic) if lic else None),
+            "guide": guide, "start_at": round(float(m.get("in") or 0.0), 2) if guide else None,
+            "sfx": len(m.get("sfx") or [])}
 
 
 # Specs of mixes the UI has been told about, by key; the file is rendered
@@ -1187,7 +1192,7 @@ def api_brief_setup() -> dict:
         return {"format": remembered.get("format") or brief.suggest_format(share, marks["max"]),
                 "suggested": brief.suggest_format(share, marks["max"]), "remembered": remembered,
                 "music": remembered.get("music", "on") != "off", "portrait_share": round(share, 2),
-                "formats": [{"key": k, "label": v, "seconds": round(brief.length_for(k, marks))} for k, v in brief.FORMATS.items()],
+                "formats": [{"key": k, "label": v, "seconds": round(brief.length_for(k, marks, _vlog_reach()))} for k, v in brief.FORMATS.items()],
                 "look": (_direction() or {}).get("style", {}).get("look") or remembered.get("look") or "cozy",
                 "vibes": vibes.choices(), "vibe": remembered.get("vibe"),
                 "looks": looks.public(), "about": about}
@@ -1221,7 +1226,7 @@ def api_brief_auto(req: BriefAutoReq | None = None) -> dict:
         # the tempo the footage asks for (sarah, 2026-10-07), not a question
         feel = tempo.read(list(CLIPS.values()), cut.for_story(PLAN["plan"]))
         fmt = req.format or brief.suggest_format(_portrait_share(), marks["max"])
-        style = {"seconds": brief.length_for(fmt, marks), "captions": "describe", "pace": feel["pace"],
+        style = {"seconds": brief.length_for(fmt, marks, _vlog_reach()), "captions": "describe", "pace": feel["pace"],
                  "format": fmt, "look": req.look or "cozy", "vibe": req.vibe or None}
         pr.brief = {"message": about, "style": brief.clean_style(style) or {}, "tempo": feel["why"],
                     "said": f"{brief.FORMATS[fmt].split(' ·')[0]} · about {brief.say_length(style['seconds'])} · "
@@ -1314,6 +1319,9 @@ def api_make(req: BriefAutoReq | None = None) -> dict:
             made_turn = SESSION.add({"kind": "direct", "text": MAKE_TEXT, "ops": ops_,
                                      "reply": job.result["reply"] + (" " + said if said else "")},
                                     CATALOG["cat"], _make_proposals)
+            # the songs to swap between (songs.py), and what a remake on another one needs
+            _songs_set(mx, job.result.get("remake"), made_turn.id, style.get("look"), style.get("format", "tall"),
+                       extra=ops_[len(job.result["ops"]):])
             # "which do you like better?" (prefer.py): the versions the taste model weighed
             pick_ = job.result.get("taste_pick") or {}
             PREFER["deck"] = (prefer.Deck(job.result["deck"], pick_, made_turn.id, getattr(PROJECT["p"], "id", None),
@@ -1370,7 +1378,8 @@ def api_make(req: BriefAutoReq | None = None) -> dict:
                      style.get("look"), about, float(style.get("seconds") or 60.0), own, None, None, on_done,
                      want_music=want_music, register=register, vibe=vibe_fp, taste=taste,
                      bias=h_bias, found=found, phrasing=habits.phrases(),
-                     use_ai=use_ai, check=check_made if use_ai else None)
+                     use_ai=use_ai, check=check_made if use_ai else None,
+                     want_sfx=remembered.get("sfx", "on") != "off")
     return job.public()
 
 
@@ -1893,6 +1902,11 @@ def _usable_s() -> float:
     return brief.reachable_s(SESSION.board, CATALOG["cat"], _pool(), VISION_USED["value"])
 
 
+def _vlog_reach() -> float:
+    """How long a vlog Make can run on this footage (vlog.reach): what the setup may promise."""
+    return vlog.reach(_pool(), VISION_USED["value"]) if CLIPS else 0.0
+
+
 def _about() -> str:
     """What the creator said the video is, for the length marks."""
     text = (_direction() or {}).get("text") or ""
@@ -2237,6 +2251,7 @@ def _bed_start(force: bool = False) -> None:
             musiclib.use(t.id)
             SESSION.add({"kind": "direct", "text": BED_TEXT, "ops": job.result["ops"],
                          "reply": job.result["reply"]}, CATALOG["cat"], _make_proposals)
+            _songs_set(mx, None, None, SESSION.board.get("look") if SESSION.board else None, None)
         _save()
 
     BED["job"] = bed.start(board, CATALOG["cat"], pace, own, need_s, talking, on_done)
@@ -2966,6 +2981,274 @@ def api_music_audio(track_id: str) -> FileResponse:
     if not p:
         raise HTTPException(404)
     return FileResponse(p)
+
+
+# --------------------------------------------------------------------------
+# songs to swap between, transition sounds, a trending sound (songs.py,
+# sfx.py, trend.py; the user, 2026-10-24)
+# --------------------------------------------------------------------------
+
+SONGS: dict = {"list": [], "remake": None, "make_turn": None, "look": None, "fmt": None, "extra": [],
+               "project": None, "job": None, "why": None, "trend": None}
+SONG_TEXT = "Song: "
+
+
+def _songs_set(mx: dict | None, remake: dict | None, make_turn: int | None, look: str | None, fmt: str | None,
+               extra: list[dict] | None = None) -> None:
+    """Keep the ranked songs a Make or the bed found, best first."""
+    lst = ([mx] + list(mx.get("others") or [])) if mx else []
+    for x in lst:
+        if not any(t.id == x["track"].id for t in musiclib.STATE["tracks"]):
+            musiclib.STATE["tracks"].append(x["track"])     # so the panel can play it (/api/music/audio)
+    SONGS.update(list=lst, remake=remake, make_turn=make_turn, look=look, fmt=fmt, extra=list(extra or []),
+                 project=getattr(PROJECT["p"], "id", None), why=None)
+
+
+def _fmt_now() -> str:
+    pr = PROJECT["p"]
+    return (((pr.brief or {}).get("style") or {}).get("format") if pr else None) or SONGS.get("fmt") or "tall"
+
+
+def _made_untouched() -> bool:
+    """The video is as Make left it: since its turn only the app's own turns
+    (a profile's redress, the vlog's nudge, earlier song swaps)."""
+    mt = SONGS.get("make_turn")
+    if mt is None or not SESSION.board or SESSION.board.get("option") != "made":
+        return False
+    make_turn = next((t for t in SESSION.turns if t.id == mt), None)
+    if make_turn is None or make_turn.undone:
+        return False
+    return all(t.undone or not t.ops or t.text in REDRESS or t.text == "Smoother cuts" or t.text.startswith(SONG_TEXT)
+               for t in SESSION.turns if t.id > mt)
+
+
+def _vlog_board() -> bool:
+    """A made vlog: its cuts follow the action, so a new song only moves the music."""
+    b = SESSION.board or {}
+    fp = (SONGS.get("remake") or {}).get("fp") or {}
+    return b.get("option") == "made" and _fmt_now() != "short" and not fp.get("refs_used")
+
+
+def _rank_now() -> None:
+    """Rank songs for the board as it is (no Make or bed result to read from)."""
+    b = copy.deepcopy(SESSION.board)
+    pr = PROJECT["p"]
+    pace = ((pr.brief or {}).get("style") or {}).get("pace") if pr else None
+    own = musiclib.STATE["tracks"] if musiclib.STATE["status"] == "ready" else None
+    need_s = timeline.build(b, CLIPS, None)["total"]
+    cat, look = CATALOG["cat"], b.get("look")
+
+    def run() -> None:
+        try:
+            fp = bed.fingerprint(b, cat, pace)
+            pool, source = bed.candidates(fp["pace"], own)
+            mx = bed.pick(fp, pool, need_s, look)
+            with LOCK:
+                _songs_set(mx, SONGS.get("remake"), SONGS.get("make_turn"), look, SONGS.get("fmt"), SONGS.get("extra"))
+                SONGS["why"] = None if mx else f"None of the {len(pool)} songs fits this edit's length with a steady beat."
+        except Exception as e:  # noqa: BLE001 -- the panel says so
+            SONGS["why"] = f"Couldn't look for songs: {str(e)[:160]}"
+        finally:
+            SONGS["job"] = None
+
+    SONGS["job"] = "looking"
+    threading.Thread(target=run, daemon=True).start()
+
+
+@app.get("/api/music/options")
+def api_music_options() -> dict:
+    """The songs that fit this edit, best first, to listen to and swap; the
+    one under the video marked. Looked for in the background when there's
+    no list for this video yet."""
+    with LOCK:
+        if not SESSION.board:
+            return {"status": "none", "songs": []}
+        cur = ((SESSION.board.get("music") or {}).get("track"))
+        mine = SONGS.get("project") == getattr(PROJECT["p"], "id", None)
+        if (not SONGS["list"] or not mine) and SONGS.get("job") is None and SESSION.board.get("music") is not None:
+            SONGS["list"] = []
+            _rank_now()
+        taste = songs.load()
+        return {"status": "looking" if SONGS.get("job") else "ready" if SONGS["list"] else "none",
+                "songs": [songs.public(x, SONGS.get("look"), cur, taste) for x in SONGS["list"]] if mine or SONGS["list"] else [],
+                "why": SONGS.get("why"), "rebuilds": _made_untouched() and not _vlog_board(),
+                "sfx": len((SESSION.board.get("music") or {}).get("sfx") or []),
+                "sounds": sfxpack_public(), "trend": SONGS.get("trend"),
+                "can_link": bool(trend.ytdlp())}
+
+
+def sfxpack_public() -> list[dict]:
+    from cutgrammar import sfxpack
+    return sfxpack.public()
+
+
+def _swap_ops(mx: dict, guide: bool = False) -> tuple[list[dict], str]:
+    """The ops that put `mx` under the video, and what changed. Untouched
+    since Make and not a vlog: the video is made again on the new song's
+    beat (the same moments, the same changes the taste model kept). A made
+    vlog: only the music moves (its cuts follow the action). Otherwise: the
+    cuts move onto the new beat, as the Music switch does."""
+    b = SESSION.board
+    cur = dict(b.get("music") or {})
+    fmt = _fmt_now()
+    rk = SONGS.get("remake")
+    if rk and _made_untouched() and not _vlog_board() and mx.get("drop") is not None:
+        from . import tastepick
+        made = tastepick.build(rk.get("chosen") or [{"name": "today"}], rk["raw"], rk["clips"], rk["fp"], mx, fmt,
+                               rk["look"], rk["about"], rk["talking"], rk.get("lines"))
+        if made is not None:
+            plan, vmx, ops = made
+            if cur.get("sfx") and not guide:
+                make.with_sounds(ops, rk["clips"], vmx, fmt, rk["fp"])
+            if guide:
+                for op in ops:
+                    if op.get("op") == "set_music":
+                        op["guide"], op["sfx"] = True, []
+            return ops + copy.deepcopy(SONGS.get("extra") or []), "made again on its beat"
+    if _vlog_board():
+        op = {"op": "set_music", **{k: v for k, v in cur.items() if k in bd.MUSIC_KEYS}, "track": mx["track"].id,
+              "in": mx["in"]}
+        if guide:
+            op["guide"], op["sfx"] = True, []
+        else:
+            op.pop("guide", None)
+        return [op], "the cuts stay where they are"
+    talking = tempo.talking(list(CLIPS.values()), _pool())
+    ops, _rep = bed.ops(copy.deepcopy(b), CATALOG["cat"], mx, talking)
+    for op in ops:
+        if op.get("op") == "set_music":
+            for k in ("gain", "original", "level"):
+                if k in cur:
+                    op[k] = cur[k]
+            if guide:
+                op["guide"], op["sfx"] = True, []
+    if not guide and cur.get("sfx"):
+        trial = copy.deepcopy(b)
+        for op in ops:
+            trial, _ = bd.apply(trial, op, CATALOG["cat"], None, new_id=lambda: "trial")
+        m = next(op for op in ops if op.get("op") == "set_music")
+        m["sfx"] = sfx.place(trial, CLIPS, mx, False)
+    return ops, "the cuts moved onto its beat"
+
+
+class SwapReq(BaseModel):
+    track_id: str
+
+
+@app.post("/api/music/swap")
+def api_music_swap(req: SwapReq) -> dict:
+    """Put another of the suggested songs under the video, as one undoable
+    turn; the pick teaches the music taste (songs.remember)."""
+    with LOCK:
+        if not SESSION.board:
+            raise HTTPException(409, "Choose a story first.")
+        mx = next((x for x in SONGS["list"] if x["track"].id == req.track_id), None)
+        if mx is None:
+            raise HTTPException(404, "That song isn't one of the suggestions any more — look again.")
+        before = _track()
+        ops, how = _swap_ops(mx)
+        musiclib.use(mx["track"].id)
+        t = mx["track"]
+        SESSION.add({"kind": "direct", "text": SONG_TEXT + t.title, "ops": ops,
+                     "reply": f"Now playing {t.title} ({round(mx['bpm'])} BPM): {how}."
+                              + (f" Undo brings back {before.title}." if before else "")},
+                    CATALOG["cat"], _make_proposals)
+        if ops and ops[0].get("op") == "choose_option":
+            PREFER["deck"] = None          # the cards were cut on the old song
+        songs.remember(t, [x["track"] for x in SONGS["list"]])
+        if PROJECT["p"] is not None:
+            PROJECT["p"].events.append({"kind": "song_swap", "at": time.time(), "to": t.id,
+                                        "from": before.id if before else None, "rank": SONGS["list"].index(mx),
+                                        "of": len(SONGS["list"]), "remade": how.startswith("made")})
+        return _session()
+
+
+class SfxReq(BaseModel):
+    on: bool
+
+
+@app.post("/api/sfx")
+def api_sfx(req: SfxReq) -> dict:
+    """Transition sounds on or off (sfx.py), as one undoable turn; remembered
+    for the next video."""
+    with LOCK:
+        b = SESSION.board
+        if not b or not (b.get("music") or {}).get("track"):
+            raise HTTPException(409, "Transition sounds ride on the music — put a song under the video first.")
+        cur = dict(b["music"])
+        if cur.get("guide") and req.on:
+            raise HTTPException(409, "With a trending sound the file goes out without music, so there are no transition sounds.")
+        defaults.note(sfx="on" if req.on else "off")
+        mx = next((x for x in SONGS["list"] if x["track"].id == cur["track"]), None)
+        items = sfx.place(b, CLIPS, mx, _vlog_board()) if req.on else []
+        op = {"op": "set_music", **{k: v for k, v in cur.items() if k in bd.MUSIC_KEYS}, "sfx": items}
+        SESSION.add({"kind": "direct", "text": "Transition sounds" if req.on else "No transition sounds", "ops": [op],
+                     "reply": sfx.say(items) if req.on else "Transition sounds off. Undo puts them back."},
+                    CATALOG["cat"], _make_proposals)
+        return _session()
+
+
+class TrendReq(BaseModel):
+    source: str
+
+
+@app.post("/api/music/trend")
+def api_music_trend(req: TrendReq) -> dict:
+    """Cut to a trending sound (trend.py): read it, then fit the video to it
+    as one undoable turn. The sound plays in the preview to cut by; the
+    export goes out without it, saying which sound to add in the app."""
+    with LOCK:
+        if not SESSION.board:
+            raise HTTPException(409, "Choose a story first.")
+        need_s = timeline.build(SESSION.board, CLIPS, None)["total"]
+        pid = getattr(PROJECT["p"], "id", None)
+
+    def on_done(job: trend.Job) -> None:
+        with LOCK:
+            SONGS["trend"] = job.public()
+            if job.stage != "done" or job.track is None or getattr(PROJECT["p"], "id", None) != pid or not SESSION.board:
+                return
+            t = job.track
+            if not any(x.id == t.id for x in musiclib.STATE["tracks"]):
+                musiclib.STATE["tracks"].append(t)
+            items = SESSION.board.get("beats", [])
+            hook_s = next((float(e["end"]) - float(e["start"]) for bt in items for e in bt.get("shots", []) if not e.get("gap")), 2.0)
+            fp = bed.fingerprint(copy.deepcopy(SESSION.board), CATALOG["cat"], None)
+            fp = {**fp, "bpm": (float(t.bpm) * 0.8, float(t.bpm) * 1.25)}
+            got = remix.rank_from([t], fp, min(need_s, max(4.0, t.duration - 9.0)), hook_s, 1)
+            if got:
+                mx = got[0]
+            else:
+                bpm = float(t.bpm)
+                mx = {"track": t, "in": 0.0, "drop": None, "bpm": bpm, "period": 60.0 / bpm, "score": 0.0, "credit": None}
+            ops, how = _swap_ops(mx, guide=True)
+            musiclib.use(t.id)
+            short = t.duration < need_s - 1
+            SESSION.add({"kind": "direct", "text": SONG_TEXT + t.title, "ops": ops,
+                         "reply": f"Cut to {t.title} ({round(mx['bpm'])} BPM): {how}. It plays here so you can cut by ear; "
+                                  f"the export goes out without it — add it in TikTok or Instagram when you post, starting at "
+                                  f"{int(mx['in']) // 60}:{int(mx['in']) % 60:02d}."
+                                  + (f" The sound is {t.duration:.0f} s and the video {need_s:.0f} s." if short else "")},
+                        CATALOG["cat"], _make_proposals)
+            if PROJECT["p"] is not None:
+                PROJECT["p"].events.append({"kind": "trend_sound", "at": time.time(), "bpm": round(mx["bpm"]),
+                                            "source": "link" if trend.is_url(req.source) else "file"})
+        _save()
+
+    try:
+        job = trend.start(req.source, on_done)
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+    SONGS["trend"] = job.public()
+    return job.public()
+
+
+@app.get("/api/music/trend/{jid}")
+def api_music_trend_job(jid: str) -> dict:
+    job = trend.JOBS.get(jid)
+    if job is None:
+        raise HTTPException(404)
+    return {**job.public(), "session": _session() if job.stage in ("done", "error") else None}
 
 
 # --------------------------------------------------------------------------

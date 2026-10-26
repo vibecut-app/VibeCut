@@ -1,15 +1,19 @@
-"""The default video's words (2026-10-25).
+"""The default video's words and length (2026-10-25).
 
 A day on one campus was captioned "Columbia University, morning",
 "…, around noon", "…, night" -- seven lines, two identical: a geotag, not
-a caption. Each fixture differs from its control in one respect:
+a caption. And the setup promised "about 50 seconds" for a video Make cut
+to 29. Each fixture differs from its control in one respect:
 
 - one place all day vs a new place at every stop: the name is said once,
   above the line, where the day arrives there;
 - what the picture shows vs nothing labelled: the line says what's
   happening ("lunch"), else how the day moved on ("good morning");
 - the same thing twice: never the same line twice, a stop with nothing new
-  says nothing (and remix.captions doesn't fill it from its own table).
+  says nothing (and remix.captions doesn't fill it from its own table);
+- a thin shoot vs plenty: the vlog's holds stretch to the length asked
+  (vlog.fill) and the setup never promises more than Make can reach
+  (vlog.reach, brief.length_for), while plenty of footage is left alone.
 
     python tests/test_plain_lines.py
 """
@@ -49,7 +53,7 @@ def pick(sid, hour, gps=None, labels=None, dur=2.0, filmed=None, activity=10.0):
 
 
 def main() -> int:
-    from web.backend import make, places, remix, select as sel
+    from web.backend import brief, make, places, remix, select as sel, vlog
 
     found = {places.key(CAMPUS): {"area": "Columbia University", "city": "New York"},
              places.key(PARK): {"area": "Central Park", "city": "New York"}}
@@ -97,6 +101,42 @@ def main() -> int:
     check("one overlay carries the place as its sub line; none carries it in its words",
           subs == ["Columbia University"] and not any("Columbia" in o["text"] for o in parts), str([(o["text"], o.get("sub")) for o in parts]))
     check("no overlay repeats another's words", len({o["text"] for o in parts}) == len(parts), str([o["text"] for o in parts]))
+
+    print("a thin shoot vs plenty")
+    def thin_plan(n, held=1.0, filmed=6.0):
+        return sel.Plan(hook=[], sessions=[[pick(f"t{i}", 9 + i % 12, None, {}, dur=held, filmed=filmed, activity=5.0 + i)] for i in range(n)],
+                        titles=[""] * n)
+    clips: dict = {}
+    real_window = sel.window
+    sel.window = lambda clips_, shot, want: (0.0, round(min(want, shot.end - shot.start), 3), want > shot.end - shot.start + 1e-3)
+    try:
+        thin = thin_plan(6)
+        added = vlog.fill(thin, clips, 24.0)
+        check("thin: the holds stretch to the length asked", abs(thin.duration - 24.0) < 0.1 and added > 17, f"{thin.duration:.1f} s, +{added:.1f}")
+        check("…never past FILL_MAX_S or what was filmed",
+              all(p.duration <= min(vlog.FILL_MAX_S, p.shot.end - p.shot.start) + 1e-6 for p in thin.picks))
+        tight = thin_plan(6, filmed=1.5)
+        vlog.fill(tight, clips, 24.0)
+        check("…and a shoot filmed short can't be stretched past itself", abs(tight.duration - 9.0) < 0.1, f"{tight.duration:.1f} s")
+        plenty = thin_plan(30, held=1.0)
+        before = plenty.duration
+        check("control, plenty already at its length: nothing moves", vlog.fill(plenty, clips, 30.0) == 0.0 and plenty.duration == before)
+        talk = thin_plan(2)
+        check("talk keeps its sentence: a talking shot is never stretched",
+              vlog.fill(talk, clips, 20.0, talking={talk.picks[0].shot.id}) > 0 and talk.picks[0].duration == 1.0)
+    finally:
+        sel.window = real_window
+
+    print("the promise")
+    marks = {"seconds": 50, "marks": [{"key": "short", "seconds": 50}], "max": 50}
+    check("a vlog never promises more than Make can reach", brief.length_for("tall", marks, 38.4) == 38 and brief.length_for("wide", marks, 38.4) == 38)
+    check("control, footage to spare: the mark stands", brief.length_for("tall", marks, 120.0) == 50)
+    check("a short keeps its own mark", brief.length_for("short", marks, 10.0) == 50)
+    shots = [SimpleNamespace(start=0.0, end=e, score=1 - i / 10, vec=None, gps=None, when=None, clip_id=f"c{i}")
+             for i, e in enumerate([8.0, 3.0, 1.0, 12.0])]
+    r = vlog.reach(shots, vision=False)
+    check("reach: each pickable shot at most FILL_MAX_S, too-short ones not at all",
+          abs(r - (vlog.FILL_MAX_S + 3.0 + vlog.FILL_MAX_S)) < 1e-6, f"{r}")
 
     print()
     print("FAILED: " + ", ".join(failures) if failures else "all passed")

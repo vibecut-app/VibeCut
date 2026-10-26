@@ -88,16 +88,20 @@ def suggest_format(portrait_share: float, usable_s: float) -> str:
     return "short" if usable_s <= 2 * SHORT_MAX_S else "tall"
 
 
-def length_for(fmt: str | None, marks: dict) -> float:
+def length_for(fmt: str | None, marks: dict, reach: float | None = None) -> float:
     """The length a format asks for: a short is its Short mark, capped; a
     vlog (tall or wide) is the Medium mark when the footage has one, else the
-    suggestion -- so the three frames in the setup don't all read "about 1:00"."""
+    suggestion -- so the three frames in the setup don't all read "about 1:00".
+    `reach` (vlog.reach): how long a vlog Make can really run on this
+    footage; a vlog never promises more (2026-10-25: "about 50 seconds"
+    promised, 29 made)."""
     by = {m["key"]: m["seconds"] for m in marks["marks"]}
     if fmt == "short":
         return float(min(by.get("short", marks["seconds"]), SHORT_MAX_S))
-    if fmt in ("tall", "wide") and "medium" in by:
-        return float(by["medium"])
-    return float(marks["seconds"])
+    want = float(by["medium"]) if fmt in ("tall", "wide") and "medium" in by else float(marks["seconds"])
+    if fmt in ("tall", "wide") and reach:
+        want = max(MIN_LENGTH_S, min(want, round(reach)))
+    return want
 
 # Focus choices, each a storyboard theme (storyboard.THEMES).
 FOCUS = [("people", "Me and the people I was with"), ("food", "Food and drinks"),

@@ -45,7 +45,7 @@ OPS = LLM_OPS + ("split", "trim", "drop_range", "overlay_style", "apply_style", 
 # How the sound crosses a cut (audiomix.py): hard, carried out (L), carried in (J).
 JOIN_SOUNDS = ("cut", "carry_out", "carry_in", "default")
 # What set_music may record about the bed under the edit (export and preview mix it the same).
-MUSIC_KEYS = ("track", "in", "gain", "original", "level", "fade_out", "duck", "sfx")
+MUSIC_KEYS = ("track", "in", "gain", "original", "level", "fade_out", "duck", "sfx", "guide")
 # Words on screen (overlays.py): same log, same undo, but they never touch a shot.
 OVERLAY_OPS = ("add_overlay", "edit_overlay", "drop_overlay", "overlay_style")
 # A shot's own sound taken off onto its own strip under the picture (the
