@@ -321,6 +321,30 @@ The promise to a user is therefore *not* "this will be beautiful." It is
   table). On the face-free half of her shoot: "class time" (under Columbia
   University), "lunch", "study time", "heading out", "night time",
   "walking". `tests/test_plain_lines.py`. Priors.
+  **Her lines first** (`web/backend/captionmem.py`, 2026-10-25; the user:
+  "i dont want the caption to be ai generated … i fine tune it to make it
+  something i want"; research in `reports/Vlog formats captions and
+  graphics.md`: no tool learns a creator's caption words). Caption memory:
+  `/api/ops` records each hand retype / deletion / line written over a
+  placeholder of a caption, stop line or title with its moment (the stop's
+  first shots' labels, hour, weekday, place, position; `app._caption_ctx`),
+  in `$VIBECUT_CACHE/caption-memory.json`, never mirrored. Moves and
+  restyles record nothing. `make.plain_lines` offers, per stop, first her
+  own past line whose moment matches (`Memory.suggest`: labels 0.6, time of
+  day 0.2, place 0.15, position 0.05, ≥ `MIN_MATCH` 0.45; a line that named
+  the place / weekday / time of day is a template, "lunch at {place}";
+  never twice in a video, of equals the one used least; titles only for
+  titles), else the table line in her style (`Memory.shape`: her case, her
+  ending, nothing for the lines she deletes), else nothing. Rules need
+  `MIN_RULE` 3 edits at `RULE_SHARE` 0.7 (titles don't count toward case).
+  Profile page section 04 "Your caption voice": the rules with switches,
+  "My lines" to add / remove (`/api/captions/voice`, `/lines`, `/rules/{id}`),
+  and the edit-distance trend from what was offered to what she kept (the
+  PRELUDE measure). No model writes a word. Also fixed that day:
+  `remix.captions` skipped a silent stop without advancing its clock, so
+  every later line landed a stop early. `tests/test_caption_memory.py`.
+  Walked through on her face-free clips: three retypes on one video came
+  back at the same stops on the next. Priors.
 - **Posting** (2026-10-18): `POST /api/export/{jid}/photos` imports the
   file into Photos by AppleScript (Mac only, says so elsewhere); the
   export dialog has Save to Photos and "Copy caption + credit" (the title

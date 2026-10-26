@@ -359,3 +359,11 @@ export type SeqItemLike = {
   mirror?: boolean; punch?: number
 }
 export type PreferCard = { id: number; ask: string; at: number; of: number; sides: PreferSide[] }
+
+/** Her caption voice, learnt from her own edits (captionmem.py). */
+export interface CaptionVoice {
+  rules: { id: string; says: string; on: boolean; n: number; value: string | boolean; describes?: boolean }[]
+  lines: { text: string; mine: boolean }[]
+  edits: number
+  trend: { before: number; after: number; n: number } | null
+}

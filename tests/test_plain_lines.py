@@ -86,6 +86,9 @@ def main() -> int:
     scenes = [c["text"] for c in caps if c["kind"] == "scene"]
     check("an empty line stays empty on screen (remix.captions doesn't fill it from its table)",
           scenes == ["lunch", "work work work"], str(scenes))
+    starts = {c["text"]: c["start"] for c in caps if c["kind"] == "scene"}
+    check("…and a silent stop's seconds still pass: the next line starts at its own stop, not the silent one's",
+          starts.get("work work work") == 4.0, str(starts))
 
     print("the place rides above the line on the board")
     ops = make.ops(one, make.fingerprint("tall", "balanced", 30.0), None, "tall", "cozy", "A day in my life", set(), lines=lines)

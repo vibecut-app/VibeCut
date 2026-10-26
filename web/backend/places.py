@@ -114,5 +114,16 @@ def lookup(gps_list: list, ask=None) -> dict[str, dict]:
     return {k: cache[k] for k in keys if k in cache}
 
 
+def cached(gps_list: list) -> dict[str, dict]:
+    """What the geocoder already answered for these coordinates; never asks
+    (for a request that must not wait on the helper)."""
+    try:
+        cache = json.loads(_cache_file().read_text())
+    except (OSError, ValueError):
+        return {}
+    keys = {k for k in (key(g) for g in gps_list) if k}
+    return {k: cache[k] for k in keys if k in cache}
+
+
 def name_at(gps, found: dict[str, dict]) -> str | None:
     return short_name(found.get(key(gps) or ""))
