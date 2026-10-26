@@ -395,7 +395,8 @@ def ops(plan: sel.Plan, fp: dict, mx: dict | None, fmt: str, look: str | None, a
     ramp = ramp_hook(plan, mx, fmt)
     board = remix.board_of(plan, fp, name)
     board["option"] = "made"
-    board["structure"] = ("Made from your clips in the style of your references — " if fp.get("refs_used")
+    board["structure"] = (f"Made from your clips, cut like {fp['like']} — " if fp.get("like")
+                          else "Made from your clips in the style of your references — " if fp.get("refs_used")
                           else "Made from your clips — ") + remix.describe(fp)
     if chapters:
         board["structure"] = f"Told in {len(chapters)} chapters, each a setup, its steps and a payoff — " + remix.describe(fp)
@@ -436,7 +437,7 @@ def ops(plan: sel.Plan, fp: dict, mx: dict | None, fmt: str, look: str | None, a
             return out                      # a wordless reel makes a wordless video
         style_op: dict = {"op": "overlay_style", "source": "reference"}
         if text.get("band") in ("bottom", "middle"):
-            style_op["captions"] = text["band"]
+            style_op["captions"] = "center" if text["band"] == "middle" else "bottom"   # the two places captions go
         if text.get("upper"):
             style_op["template"] = "bold"
         if len(style_op) > 2:
@@ -527,8 +528,9 @@ def ramp_hook(plan: sel.Plan, mx: dict | None, fmt: str) -> tuple[str, float, st
 
 
 def say(plan: sel.Plan, fp: dict, mx: dict | None, source: str, judged: bool, ai: dict | None = None) -> str:
+    like = fp.get("like")         # a saved recipe names itself (recipes.py)
     parts = [f"Made your video: {len(plan.picks)} moments, {plan.duration:.0f} s"
-             + (", in the style of your references" if fp.get("refs_used") else "") + "."]
+             + (f", cut like {like}" if like else ", in the style of your references" if fp.get("refs_used") else "") + "."]
     if ai and ai.get("chapters"):
         parts.append(f"{ai['model']} planned it as {ai['chapters']} chapters (cost ${ai['cost']:.3f}).")
     elif ai and ai.get("error"):
@@ -536,8 +538,9 @@ def say(plan: sel.Plan, fp: dict, mx: dict | None, source: str, judged: bool, ai
                      + (f" That try cost ${ai['cost']:.3f}." if ai.get("cost") else ""))
     t = fp.get("text")
     if fp.get("refs_used") and t:
-        parts.append("No words, like the reel." if t["share"] < 0.05 else
-                     f"Words at the {t.get('band') or 'bottom'}, held about {t.get('hold_s') or 1.5:.1f} s, like the reel.")
+        src = "like your recipe" if like else "like the reel"
+        parts.append(f"No words, {src}." if t["share"] < 0.05 else
+                     f"Words at the {t.get('band') or 'bottom'}, held about {t.get('hold_s') or 1.5:.1f} s, {src}.")
     if mx:
         parts.append(f"Music: {mx['track'].title} ({mx['bpm']:.0f} BPM, from {source}); every cut sits on its beat, "
                      "the hook speeds into the drop, the picture pushes in on it and on every bar.")
@@ -604,7 +607,8 @@ def start(clips: dict[str, dict], cut, fmt: str, pace: str, look: str | None, ab
                 # references or a chosen vibe set the cut themselves
                 job.line = "Planning the story…"
                 try:
-                    plan, chapters, _title, usage = story.plan(clips, cut, fmt, fp["duration"], about)
+                    plan, chapters, _title, usage = story.plan(clips, cut, fmt, fp["duration"], about,
+                                                               taste=taste, phrasing=phrasing)
                     ai = {"model": usage.get("model"), "cost": usage.get("cost", 0.0), "chapters": len(chapters),
                           "tokens_in": usage.get("prompt_tokens"), "tokens_out": usage.get("completion_tokens")}
                 except Exception as e:  # noqa: BLE001 -- the rules make the edit instead, and say so

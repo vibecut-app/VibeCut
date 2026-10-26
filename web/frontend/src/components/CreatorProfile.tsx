@@ -1,8 +1,10 @@
-import type { CaptionVoice, Habit } from '../types'
+import type { CaptionVoice, Habit, ProfileStart, ResourceFolder } from '../types'
 import { api } from '../api'
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
-import { emptyProfile, FONTS, loadProfile, PACES, PLATFORMS, safeReference, saveProfile, VIBES, type CreatorProfile as Profile } from '../profile'
+import { EMAIL, emptyProfile, FONTS, loadProfile, PACE_WORDS, PLATFORMS, safeReference, saveProfile, VIBES, type CreatorProfile as Profile } from '../profile'
 import { Button, Confirm, Field, inputCls, Notice, Pills, Wordmark } from '../ui'
+import { StartChoices, type Picks } from './ProfileAsk'
+import { Resources } from './Resources'
 
 // Your profile: the things that stay the same across videos -- your name
 // and handle (for name tags and end cards), your caption font, colour and
@@ -11,7 +13,10 @@ import { Button, Confirm, Field, inputCls, Notice, Pills, Wordmark } from '../ui
 //
 // Honest about reach: today the editor reads the name, handle, font,
 // colour and caption placement. Pace, vibes and bookmarks are kept for
-// you but don't steer the edit yet.
+// you but don't steer the edit yet. My resources (what was saved with
+// "Save to My resources") is listed here too, to rename or delete. How your
+// videos start (asked after an export, ProfileAsk.tsx) is saved on each tap,
+// on the server beside the defaults, and does steer the next video.
 
 export function CreatorProfile({ onClose }: { onClose: () => void }) {
   const [initial] = useState(() => {
@@ -27,6 +32,30 @@ export function CreatorProfile({ onClose }: { onClose: () => void }) {
   const [referenceNote, setReferenceNote] = useState('')
   const [referenceError, setReferenceError] = useState('')
   const heading = useRef<HTMLHeadingElement>(null)
+  const [folder, setFolder] = useState<ResourceFolder | null>(null)
+  const [folderError, setFolderError] = useState<string | null>(null)
+  const loadFolder = () => { api.resources().then((f) => { setFolderError(null); setFolder(f) }).catch((e) => setFolderError((e as Error).message)) }
+  useEffect(loadFolder, [])
+  const [start, setStart] = useState<ProfileStart | null>(null)
+  const [startSaid, setStartSaid] = useState('')
+  useEffect(() => { api.profileStart().then(setStart).catch(() => setStart(null)) }, [])
+  const startPicks: Picks | null = start?.signed_in ? {
+    makes: start.makes ?? null, pace: start.pace ?? null, transition: start.transition ?? null,
+    captions: start.captions !== false, template: start.template ?? null,
+  } : null
+  const pickStart = async (patch: Partial<Picks>) => {
+    setStartSaid('Saving…')
+    try {
+      setStart(await api.profileStartSave(patch))
+      setStartSaid('Saved. Your next video starts this way.')
+      // the pace is the taste's pacing too: kept in step without touching other unsaved edits
+      if (patch.pace) {
+        const pace = PACE_WORDS[patch.pace]
+        try { setSaved(saveProfile(window.localStorage, { ...saved, pace })) } catch { /* the pick is saved on the server */ }
+        setProfile((p) => ({ ...p, pace }))
+      }
+    } catch (e) { setStartSaid((e as Error).message) }
+  }
   const dirty = JSON.stringify(profile) !== JSON.stringify(saved)
   const pendingReference = !!(url.trim() || referenceNote.trim())
   const unsaved = dirty || pendingReference
@@ -45,6 +74,10 @@ export function CreatorProfile({ onClose }: { onClose: () => void }) {
   const store = () => {
     if (pendingReference) {
       setReferenceError('Add your reference below, or clear its fields before saving.')
+      return
+    }
+    if (profile.email.trim() && !EMAIL.test(profile.email.trim())) {
+      setError('That doesn’t look like an email address yet.')
       return
     }
     try {
@@ -91,11 +124,25 @@ export function CreatorProfile({ onClose }: { onClose: () => void }) {
                 <Field label="Your name"><input value={profile.name} maxLength={80} autoComplete="given-name" placeholder="What should we call you?" onChange={e => update('name', e.target.value)} className={inputCls} /></Field>
                 <Field label="Handle"><input value={profile.handle} maxLength={80} placeholder="@yourname" autoCapitalize="none" onChange={e => update('handle', e.target.value)} className={inputCls} /></Field>
               </div>
+              <Field label="Your email"><input type="email" value={profile.email} maxLength={254} autoComplete="email" placeholder="you@example.com" onChange={e => update('email', e.target.value)} className={inputCls} /></Field>
               <Field label="What do you make?"><textarea value={profile.about} rows={2} maxLength={1000} placeholder="Little moments, weekend adventures, and places worth sharing…" onChange={e => update('about', e.target.value)} className={inputCls + ' resize-y'} /></Field>
               <Field label="Where you share"><Pills values={PLATFORMS} selected={profile.platforms} onPick={v => toggle('platforms', v)} /></Field>
             </Section>
 
-            <Section n="02" title="Captions" text="The default font, colour and placement for titles, captions and name tags. Each video can still change them.">
+            <Section n="02" title="How your videos start" text="Asked after your first export. Each tap is saved, and your next video starts this way.">
+              {startPicks ? <>
+                <StartChoices picks={startPicks} onPick={pickStart} />
+                {startSaid && <p className="font-serif text-[15px] text-zinc-300" role="status">{startSaid}</p>}
+              </> : <p className="font-serif text-[15px] text-zinc-300">{start ? 'Log in to keep how your videos start.' : 'Opening…'}</p>}
+            </Section>
+
+            <Section n="03" title="My resources" text="The caption looks, animations, transitions, effects, shot settings and songs you saved. Use them from My resources on the left of the edit screen.">
+              <div className="max-w-[560px]">
+                <Resources folder={folder} error={folderError} onRetry={loadFolder} onChange={(items) => setFolder((f) => (f ? { ...f, items } : f))} />
+              </div>
+            </Section>
+
+            <Section n="04" title="Captions" text="The default font, colour and placement for titles, captions and name tags. Each video can still change them.">
               <Field label="Font"><Pills values={FONTS} selected={[profile.font]} onPick={v => update('font', v as Profile['font'])} /></Field>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Accent colour">
@@ -108,19 +155,18 @@ export function CreatorProfile({ onClose }: { onClose: () => void }) {
               </div>
             </Section>
 
-            <Section n="03" title="Taste" text="Kept for you. Not yet read by the editor — say it in the brief for now.">
+            <Section n="05" title="Taste" text="Kept for you. Not yet read by the editor — say it in the brief for now.">
               <Field label="The feeling · pick a few"><Pills values={VIBES} selected={profile.vibes} onPick={v => toggle('vibes', v)} /></Field>
-              <Field label="Pacing"><Pills values={PACES} selected={[profile.pace]} onPick={v => update('pace', v as Profile['pace'])} /></Field>
               <Field label="Things to avoid"><textarea value={profile.avoid} rows={2} maxLength={1000} placeholder="No heavy filters. Keep natural sound. Go easy on zooms." onChange={e => update('avoid', e.target.value)} className={inputCls + ' resize-y'} /></Field>
             </Section>
 
-            <Section n="04" title="Your caption voice" text="Learnt from captions you retype, delete and write yourself. VibeCut offers your own lines first and never has a model write the words. Kept on this Mac.">
+            <Section n="06" title="Your caption voice" text="Learnt from captions you retype, delete and write yourself. VibeCut offers your own lines first and never has a model write the words. Kept on this Mac.">
               <CaptionVoiceCard />
             </Section>
-            <Section n="05" title="What VibeCut has learned about you" text="From what you cut, kept and switched off on more than one video. Each one is a small nudge, never a decision; switch any off here or with one tap on the video.">
+            <Section n="07" title="What VibeCut has learned about you" text="From what you cut, kept and switched off on more than one video. Each one is a small nudge, never a decision; switch any off here or with one tap on the video.">
               <Habits />
             </Section>
-            <Section n="06" title="Videos you look up to" text="Bookmarks with a note. To actually borrow a video's feel, use Reference inside a project.">
+            <Section n="08" title="Videos you look up to" text="Bookmarks with a note. To actually borrow a video's feel, use Reference inside a project.">
               {profile.references.length > 0 && (
                 <ul className="space-y-2">
                   {profile.references.map((r, i) => (
@@ -163,6 +209,7 @@ export function CreatorProfile({ onClose }: { onClose: () => void }) {
               <div className="flex justify-between"><dt className="text-muted">Words</dt><dd className="text-zinc-200">{profile.font} · {profile.captionPosition.toLowerCase()}</dd></div>
               <div className="flex justify-between"><dt className="text-muted">Pacing</dt><dd className="text-zinc-200">{profile.pace}</dd></div>
               <div className="flex justify-between"><dt className="text-muted">References</dt><dd className="text-zinc-200">{profile.references.length}</dd></div>
+              {folder?.signed_in && <div className="flex justify-between"><dt className="text-muted">My resources</dt><dd className="text-zinc-200">{folder.items.length} saved</dd></div>}
             </dl>
             <a href="#/welcome" className="mt-6 block text-[12px] text-muted underline underline-offset-2 hover:text-zinc-100">About VibeCut</a>
           </aside>

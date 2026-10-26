@@ -9,7 +9,7 @@
 // render any frame in any order.
 
 import { fontById } from './captionFonts.ts'
-import type { CaptionBackdrop, CaptionEnter, CaptionOutline, CaptionShadow, CaptionTemplate, HeadingLook, Motion, Overlay, OverlayKind, OverlayStyle } from './types'
+import type { CaptionBackdrop, CaptionEnter, CaptionOutline, CaptionShadow, CaptionTemplate, HeadingLook, LineRole, Motion, Overlay, OverlayKind, OverlayStyle } from './types'
 
 export type Part = { id: string; title: string; start: number; end: number }
 
@@ -155,7 +155,7 @@ const WEIGHT: Record<OverlayStyle['font'], { bold: number; regular: number }> = 
 export const fontCss = (style: OverlayStyle, px: number, bold: boolean) =>
   `${bold ? WEIGHT[style.font].bold : WEIGHT[style.font].regular} ${Math.round(px)}px ${FAMILY[style.font]}`
 const lineFont = (style: OverlayStyle, ln: Line, px = ln.px) =>
-  ln.family ? `${ln.weight ?? 700} ${Math.round(px)}px ${ln.family}` : fontCss(style, px, ln.bold)
+  ln.family ? `${ln.italic ? 'italic ' : ''}${ln.weight ?? 700} ${Math.round(px)}px ${ln.family}` : fontCss(style, px, ln.bold)
 
 /** Web fonts must be loaded before a canvas can draw them. */
 export async function ensureFonts(style: OverlayStyle): Promise<void> {
@@ -163,7 +163,7 @@ export async function ensureFonts(style: OverlayStyle): Promise<void> {
   const tpl = tplFor(style)
   const face = fontById(style.typeface)
   const fonts = [fontCss(style, 40, true), fontCss(style, 40, false), ...(tpl ? [`${tpl.weight} 40px ${tpl.family}`] : []),
-    ...Object.values(HEADINGS).map((h) => `${h.weight} 40px ${h.family}`),
+    ...Object.values(HEADINGS).flatMap((h) => [`${h.weight} 40px ${h.family}`, `${h.italic ? 'italic ' : ''}${h.sub.weight} 40px ${h.sub.family}`]),
     ...(face ? [`${face.weight} 40px ${face.family}`] : [])]
   await Promise.all(fonts.map((f) => document.fonts.load(f).catch(() => [])))
 }
@@ -275,27 +275,51 @@ export function dressOf(style: OverlayStyle): { outline: CaptionOutline; shadow:
   }
 }
 
-// A chapter title's own look (story.py; sarah's reference vlog: a script
-// "Morning Routine", a red wide-spaced "OOTD"), each over a plain line. Its
-// look is its own, not the captions' one style, so a video can carry a
-// designed title and plain words in the same frame. Bundled open fonts only.
-export const HEADINGS: Record<HeadingLook, Tpl> = {
-  script: { family: '"VC Pacifico", cursive', weight: 400, size: 0.088, color: '#ffffff', shadow: true },
-  spaced: { family: '"VC Montserrat", sans-serif', weight: 800, size: 0.07, color: '#ff3b47', case: 'upper', track: 0.32, shadow: true },
+// A chapter title's own look (story.py). Day vlogs title a chapter in thin,
+// white, widely spaced capitals with a small line under it in the same
+// family, often italic, the same way all through the video (sarah,
+// 2026-10-19: titles that are "cool and aesthetic"; a red spaced title ran
+// off her frame as "SCHOO"). Spaced is that look and the default; the
+// others stay for picking by hand. Its look is its own, not the captions'
+// one style, so a designed title and plain words can share a frame. A title
+// always fits the frame on one line: it gets smaller rather than wrap, run
+// off or lose letters (drawBlock, fitTitle). Bundled open fonts only.
+const MONT = '"VC Montserrat", "Helvetica Neue", Helvetica, Arial, sans-serif'
+const HEADING_SHADOW = { color: 'rgba(0,0,0,0.5)', blur: 0.4, dist: 0.05 }   // soft, like the quiet captions
+const QUIET_SUB: Tpl = { family: MONT, weight: 300, size: 0.032, color: '#ffffff', track: 0.03, shadow: true }
+type Heading = Tpl & { sub: Tpl; italic?: boolean }      // italic: the line under the title
+export const HEADINGS: Record<HeadingLook, Heading> = {
+  spaced: { family: MONT, weight: 300, size: 0.062, color: '#ffffff', case: 'upper', track: 0.42, shadow: HEADING_SHADOW,
+            sub: { ...QUIET_SUB, size: 0.03, shadow: HEADING_SHADOW }, italic: true },
+  script: { family: '"VC Pacifico", cursive', weight: 400, size: 0.088, color: '#ffffff', shadow: true, sub: QUIET_SUB, italic: true },
   bold: { family: '"VC Anton", Impact, sans-serif', weight: 400, size: 0.1, color: '#ffffff', case: 'upper',
-          stroke: { color: '#000000', w: 0.07 }, shadow: true },
-  serif: { family: '"VC Playfair Display", Georgia, serif', weight: 700, size: 0.08, color: '#fff8ec', shadow: true },
+          stroke: { color: '#000000', w: 0.07 }, shadow: true, sub: QUIET_SUB, italic: true },
+  serif: { family: '"VC Playfair Display", Georgia, serif', weight: 700, size: 0.08, color: '#fff8ec', shadow: true, sub: QUIET_SUB, italic: true },
 }
-const HEADING_SUB: Tpl = { family: SANS, weight: 500, size: 0.034, color: '#ffffff', shadow: true }
+export const HEADING_DEFAULT: HeadingLook = 'spaced'
 
 function headingLines(o: Overlay, u: number): Line[] {
   const s = SIZE[o.size]
-  const t = HEADINGS[o.look ?? 'bold'] ?? HEADINGS.bold
-  const line = (tpl: Tpl, text: string, px: number): Line =>
+  const t = HEADINGS[o.look ?? HEADING_DEFAULT] ?? HEADINGS[HEADING_DEFAULT]
+  const line = (tpl: Tpl, text: string, px: number, italic = false): Line =>
     ({ text: tpl.case === 'lower' ? text.toLowerCase() : text, px, bold: true, family: tpl.family, weight: tpl.weight,
-       color: tpl.color, track: tpl.track, upper: tpl.case === 'upper', tpl })
-  return [line(t, o.text, t.size * u * s), ...(o.sub ? [line(HEADING_SUB, o.sub, HEADING_SUB.size * u * s)] : [])]
+       color: tpl.color, track: tpl.track, upper: tpl.case === 'upper', tpl, italic, title: tpl === t })
+  return [line(t, o.text, t.size * u * s), ...(o.sub ? [line(t.sub, o.sub, t.sub.size * u * s, !!t.italic)] : [])]
 }
+
+// How much smaller a chapter title must be to sit on one line in `maxW`
+// (1 = as it is), never below `min`; tracking scales with the letters.
+const TITLE_MIN = 0.4
+export function fitTitle(measure: (text: string, px: number) => number, text: string, px: number, maxW: number,
+  min = TITLE_MIN): number {
+  for (let k = 1; k > min; k *= 0.94) {
+    if (measure(text, px * k) <= maxW) return k
+  }
+  return min
+}
+// The floor is 40% of the title's plain size: one sized up by hand can come
+// all the way back down to fit, rather than wrap or run off the frame.
+const titleFloor = (o: Overlay) => Math.min(TITLE_MIN, TITLE_MIN / ((o.place?.scale ?? 1) * SIZE[o.size]))
 
 const tplFor = (style: OverlayStyle): Tpl | null => style.template ? dress(TEMPLATES[style.template], style) : null
 
@@ -349,8 +373,15 @@ const ENTER: Record<CaptionEnter, { curve: Motion['curve']; in_s: (o: Overlay) =
   type: { curve: [0, 0, 1, 1], in_s: (o) => Math.min(1.6, 0.045 * o.text.length), stagger_s: 0 },
   word: { curve: [0, 0, 1, 1], in_s: (o) => Math.min(2.4, 0.3 * o.text.split(/\s+/).length), stagger_s: 0 },
 }
+// A chapter title moves its own way, whatever the video's look: it fades up
+// and settles straight, its line a beat behind -- no card tilt, no slam,
+// which would fight the thin spaced capitals.
+const HEADING_MOTION: Motion = { curve: [0.16, 1, 0.3, 1], in_s: 0.7, step_fps: 0, stagger_s: 0.18, enter: null,
+  case: 'sentence', track: 0, beat_lock: false }
+
 export function motionFor(o: Overlay, style: OverlayStyle): Motion | null {
   const m = style.motion ?? null
+  if (o.kind === 'heading') return HEADING_MOTION
   if (o.kind !== 'caption' || !style.enter) return m
   const e = ENTER[style.enter]
   return { case: m?.case ?? 'sentence', track: m?.track ?? 0, beat_lock: !!m?.beat_lock,
@@ -378,7 +409,8 @@ const SIZE = { S: 0.78, M: 1, L: 1.4 }
 // ---- layout ---------------------------------------------------------------
 
 type Line = { text: string; px: number; bold: boolean; color: string; track?: number; upper?: boolean
-  family?: string; weight?: number; tpl?: Tpl }
+  family?: string; weight?: number; tpl?: Tpl
+  italic?: boolean; title?: boolean }      // a chapter title's line under it; the title itself (one line, fitted)
 
 export function safe(W: number, H: number) {
   const portrait = H > W
@@ -407,8 +439,70 @@ export function wrap(measure: (s: string) => number, text: string, maxW: number,
   return lines
 }
 
+// The words the video writes for itself (a stop's line, the title, the
+// sign-off, a name) take the Captions panel's look too, the way CapCut's text
+// panel edits whatever text is picked (sarah, 2026-10-20: the colour, shadow
+// and font did nothing on a made video's "Columbia University, morning",
+// which is a part label). Until something is set they keep the look's own.
+const LABELS: Partial<Record<Overlay['kind'], number>> = { part: 0.058, title: 0.09, end: 0.07, name: 0.05 }
+
+function labelTpl(o: Overlay, style: OverlayStyle): Tpl | null {
+  const size = LABELS[o.kind]
+  if (!size || !(style.template || isDressed(style))) return null
+  // a template is sized for a caption: a label keeps its own size beside it
+  if (style.template) {
+    const t = tplFor(style)!
+    return { ...t, size: t.size * (size / LABELS.part!), side: undefined }
+  }
+  return dress({ family: FAMILY[style.font], weight: WEIGHT[style.font].bold, size, color: style.text_color || o.ink || style.color, shadow: true }, style)
+}
+
+// A title and the line under it (or a caption and its place name) are a
+// group: they move and time together, and each line can be tuned on its own
+// (sarah, 2026-10-20: "make them into a group of captions, and we can tune it
+// independently", like CapCut's grouped text). Which line is which: the place
+// name sits above a caption or a stop's line, the line under a title below.
+// which line of the group; tuned on its own; nudged (px)
+type Grouped = Line & { role?: LineRole; own?: boolean; dx?: number; dy?: number }
+export const subAbove = (o: Overlay) => o.kind === 'caption' || o.kind === 'part'
+/** What each line of a group is called in the panel: "Title" / "Line under", "Words" / "Place name". */
+export const lineLabel = (o: Pick<Overlay, 'kind'> | undefined, role: LineRole) =>
+  o && subAbove(o as Overlay) ? (role === 'main' ? 'Words' : 'Place name') : role === 'main' ? 'Title' : 'Line under'
+export const lineName = (o: Pick<Overlay, 'kind'> | undefined, role: LineRole) =>
+  o && subAbove(o as Overlay) ? (role === 'main' ? 'the words' : 'the place name') : role === 'main' ? 'the title' : 'the line under the title'
+function roles(o: Overlay, lines: Line[]): Grouped[] {
+  if (!o.sub) return lines.map((ln): Grouped => ({ ...ln, role: 'main' }))
+  const sub = subAbove(o) ? 0 : lines.length > 1 ? lines.length - 1 : -1
+  return lines.map((ln, i): Grouped => ({ ...ln, role: i === sub ? 'sub' : 'main' }))
+}
+
+// One line's own look over the group's: the panel's font, colour, outline,
+// shadow, background and boldness, its size, and where it sits.
+function tuned(o: Overlay, style: OverlayStyle, lines: Grouped[], u: number): Grouped[] {
+  if (!o.lines) return lines
+  return lines.map((ln0) => {
+    const L = o.lines?.[ln0.role ?? 'main']
+    if (!L) return ln0
+    let ln: Grouped = { ...ln0, family: ln0.family ?? FAMILY[style.font], weight: ln0.weight ?? (ln0.bold ? WEIGHT[style.font].bold : WEIGHT[style.font].regular) }
+    const face = fontById(L.typeface)
+    if (face) ln = { ...ln, family: face.family, weight: face.weight, px: ln.px * face.size }
+    if (L.scale) ln = { ...ln, px: ln.px * L.scale }
+    if (L.text_color) ln = { ...ln, color: L.text_color }
+    if (L.text_color || DRESS_KEYS.some((k) => L[k] != null)) {
+      const base: Tpl = ln.tpl ?? { family: ln.family!, weight: ln.weight!, size: 0, color: ln.color, track: ln.track, shadow: true }
+      const tpl = dress({ ...base, family: ln.family!, weight: ln.weight! }, L as OverlayStyle)
+      ln = { ...ln, tpl, color: L.text_color ?? (tpl.box ? tpl.box.ink : ln.color), own: true }
+    }
+    return { ...ln, dx: (L.dx ?? 0) * u, dy: (L.dy ?? 0) * u }
+  })
+}
+
 function linesFor(o: Overlay, style: OverlayStyle, u: number, chars: number): Line[] {
-  const face = o.kind === 'caption' ? fontById(style.typeface) : null
+  return tuned(o, style, roles(o, groupLines(o, style, u, chars)), u)
+}
+
+function groupLines(o: Overlay, style: OverlayStyle, u: number, chars: number): Line[] {
+  const face = o.kind === 'caption' || LABELS[o.kind] ? fontById(style.typeface) : null
   // a picked font letters every caption line; the template keeps its edge,
   // backing and case, the look its colour and motion
   const lettered = (lines: Line[]) => !face ? lines
@@ -420,6 +514,8 @@ function linesFor(o: Overlay, style: OverlayStyle, u: number, chars: number): Li
   if (o.kind === 'caption') {
     return lettered(templateLines(o, dress(softTpl(o, style), style), u, chars))
   }
+  const label = labelTpl(o, style)
+  if (label) return lettered(templateLines(o, label, u, chars))
   const lines = baseLines(o, style, u, chars)
   const m = style.motion
   if (!m || o.kind === 'date') return lettered(lines)
@@ -435,7 +531,7 @@ function linesFor(o: Overlay, style: OverlayStyle, u: number, chars: number): Li
 function baseLines(o: Overlay, style: OverlayStyle, u: number, chars: number): Line[] {
   const s = SIZE[o.size]
   const text = chars < o.text.length ? o.text.slice(0, chars) : o.text
-  const ink = (o.kind === 'caption' && style.text_color) || o.ink || style.color
+  const ink = ((o.kind === 'caption' || LABELS[o.kind]) && style.text_color) || o.ink || style.color
   style = o.ink2 ? { ...style, accent: o.ink2 } : style
   switch (o.kind) {
     case 'title':
@@ -476,6 +572,24 @@ function anchorFor(pos: Overlay['pos'], W: number, H: number): Anchor {
 }
 
 // ---- typing on the picture --------------------------------------------------
+
+// A chapter title typed on the picture is as small as the canvas draws it,
+// so the box shows what the frame will (the frame's size in CSS pixels).
+let measurer: CanvasRenderingContext2D | null = null
+function fitTyped(lines: Line[], o: Overlay, style: OverlayStyle, frame: { W: number; H: number } | undefined): Line[] {
+  const t = lines[0]
+  if (!t?.title || !frame || typeof document === 'undefined') return lines
+  measurer ??= document.createElement('canvas').getContext('2d')
+  const ctx = measurer
+  if (!ctx) return lines
+  const { W, H } = frame
+  const k = fitTitle((s, px) => {
+    ctx.font = lineFont(style, t, px)
+    setTracking(ctx, t.track ? t.track * px : 0)
+    return ctx.measureText(t.upper ? s.toUpperCase() : s).width
+  }, t.text, t.px, roomFor(o, W, H) - extra(t), titleFloor(o))
+  return k === 1 ? lines : [{ ...t, px: t.px * k }, ...lines.slice(1)]
+}
 //
 // How a caption's lines look, as CSS, for the box it's typed into on the
 // preview (sarah, 2026-10-18: keep the caption's own font while editing the
@@ -485,10 +599,10 @@ export type TypeLine = { font: string; color: string; track: number; upper: bool
   stroke?: { color: string; w: number }; band?: { fill: string; radius: number; padX: number }; shadow: string }
 export type TypeLook = { lead: TypeLine | null; main: TypeLine; trail: TypeLine | null; backing: string | null; align: 'left' | 'center' }
 
-export function typeLook(o: Overlay, style: OverlayStyle, u: number): TypeLook {
+export function typeLook(o: Overlay, style: OverlayStyle, u: number, frame?: { W: number; H: number }): TypeLook {
   const su = u * (o.place?.scale ?? 1)
   const probe = { ...o, sub: o.sub || ' ', text: o.text || ' ' }
-  const lines = linesFor(probe, style, su, Infinity)
+  const lines = fitTyped(linesFor(probe, style, su, Infinity), o, style, frame)
   const tpl = lines[0]?.tpl
   const shadow = tpl && !tpl.shadow ? 'none'
     : tpl && !o.halo ? `0 ${0.003 * u}px ${0.02 * u}px rgba(0,0,0,0.7)`
@@ -503,7 +617,7 @@ export function typeLook(o: Overlay, style: OverlayStyle, u: number): TypeLook {
           const o = (px * t.extrude!.depth * (i + 1)) / (t.extrude!.solid ? 1 : 6)
           return `${o}px ${o}px 0 ${t.extrude!.color}`
         }).join(', ')
-      : t && typeof t.shadow === 'object' ? `${t.shadow.dist * px * 0.7071}px ${t.shadow.dist * px * 0.7071}px ${t.shadow.blur * px}px ${t.shadow.color}`
+      : t && typeof t.shadow === 'object' && !haloWins(o) ? `${t.shadow.dist * px * 0.7071}px ${t.shadow.dist * px * 0.7071}px ${t.shadow.blur * px}px ${t.shadow.color}`
       : null
     const sw = (t?.stroke?.w ?? 0) + (t?.thick ?? 0)
     return {
@@ -533,7 +647,9 @@ export function typeLook(o: Overlay, style: OverlayStyle, u: number): TypeLook {
 
 // Where each block landed on this frame, in canvas pixels (for picking and
 // dragging words on the preview).
-export type OverlayBox = { id: string; x: number; y: number; w: number; h: number }
+/** Where an overlay was drawn, and each line of it (the group's lines, picked one at a time). */
+export type OverlayBox = { id: string; x: number; y: number; w: number; h: number; rows?: RowBox[] }
+export type RowBox = { role: LineRole; x: number; y: number; w: number; h: number }
 
 export function drawOverlays(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, W: number, H: number,
   items: Overlay[], style: OverlayStyle, parts: Part[], t: number, boxes?: OverlayBox[],
@@ -558,13 +674,21 @@ export function drawOverlays(ctx: CanvasRenderingContext2D | OffscreenCanvasRend
   }
 }
 
+// How wide a block may be: the safe width when centred, less from a side.
+const fullRoom = (W: number, H: number) => { const m = safe(W, H); return W - m.l - m.r }
+const roomFor = (o: Overlay, W: number, H: number) =>
+  o.place || anchorFor(o.pos, W, H).align === 'center' ? fullRoom(W, H) : fullRoom(W, H) * 0.72
+// A chapter title's soft shadow is only its default: where ink.py found no
+// colour that reads over the frame, the halo it asked for comes first.
+const haloWins = (o: Overlay) => o.kind === 'heading' && !!o.halo
+
 // room a line needs beyond its letters: a backing's padding, 3D sides
 const extra = (ln: Line) => (ln.tpl?.box || ln.tpl?.marker ? ln.px * 0.9 : 0) + (ln.tpl?.extrude ? ln.px * ln.tpl.extrude.depth : 0)
 
 function drawBlock(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, W: number, H: number, u: number,
   lines: Line[], o: Overlay, style: OverlayStyle, a: Anchor, at: (group: number) => Pose, boxes?: OverlayBox[]) {
   const m = safe(W, H)
-  const maxW = (a.align === 'center' ? W - m.l - m.r : (W - m.l - m.r) * 0.72)
+  const maxW = a.align === 'center' ? fullRoom(W, H) : fullRoom(W, H) * 0.72
   // measure and wrap
   type Row = { text: string; line: Line; w: number; h: number }
   const rows: Row[] = []
@@ -574,6 +698,22 @@ function drawBlock(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingConte
     // Words the creator wrote are never cut off: a line that won't fit
     // gets smaller first (down to 60%); only then is the end dropped.
     let ln = ln0, out: string[] = []
+    if (ln0.title) {
+      // a chapter title stays one line and inside the frame: smaller, never cut
+      const room = maxW - extra(ln0)
+      const k = fitTitle((t, px) => {
+        ctx.font = lineFont(style, ln0, px)
+        setTracking(ctx, ln0.track ? ln0.track * px : 0)
+        return ctx.measureText(t).width
+      }, text, ln0.px, room, titleFloor(o))
+      ln = k === 1 ? ln0 : { ...ln0, px: ln0.px * k }
+      ctx.font = lineFont(style, ln)
+      setTracking(ctx, ln.track ? ln.track * ln.px : 0)
+      out = ctx.measureText(text).width <= room ? [text] : wrap((t) => ctx.measureText(t).width, text, room, 2)
+      const lh = ln.tpl?.stroke ? 1.3 : 1.18
+      for (const r of out) rows.push({ text: r, line: ln, w: ctx.measureText(r).width + extra(ln), h: ln.px * lh })
+      continue
+    }
     for (let k = 1; ; k *= 0.9) {
       ln = k === 1 ? ln0 : { ...ln0, px: ln0.px * k }
       ctx.font = lineFont(style, ln)
@@ -619,8 +759,11 @@ function drawBlock(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingConte
 
   ctx.save()
   const pl0 = place(p0)
+  const rowBoxes: RowBox[] = []
+  // a nudged line can sit outside the block: the box takes it in
   boxes?.push({ id: o.id, x: cx + pl0.ox - (blockW * pl0.sc) / 2, y: cy + pl0.oy - (blockH * pl0.sc) / 2,
-                w: blockW * pl0.sc, h: blockH * pl0.sc })
+                w: blockW * pl0.sc, h: blockH * pl0.sc, rows: rowBoxes })
+  const toCanvas = (X: number, Y: number) => [(X - cx) * pl0.sc + cx + pl0.ox, (Y - cy) * pl0.sc + cy + pl0.oy]
   ctx.translate(cx + pl0.ox, cy + pl0.oy)
   ctx.rotate(p0.rot)
   ctx.scale(pl0.sc, pl0.sc)
@@ -654,7 +797,7 @@ function drawBlock(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingConte
   if (tpl && !tpl.shadow) {
     ctx.shadowColor = 'rgba(0,0,0,0)'
     ctx.shadowBlur = 0
-  } else if (tpl && typeof tpl.shadow === 'object') {
+  } else if (tpl && typeof tpl.shadow === 'object' && !haloWins(o)) {
     // set by hand: a drop down and to the right, sized from the main line
     const px = lines[lines.length - 1].px, d = tpl.shadow.dist * px * 0.7071
     ctx.shadowColor = tpl.shadow.color
@@ -689,10 +832,33 @@ function drawBlock(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingConte
     ctx.globalAlpha = group ? at(group).alpha : p0.alpha
     // letter-spacing adds trailing space; shift so tracked text stays aligned
     const shift = r.line.track && a.align !== 'left' ? (r.line.track * r.line.px) / (a.align === 'center' ? 2 : 1) : 0
-    const ty = y + (r.h - r.line.px) / 2
+    const gl = r.line as Grouped
+    const ddx = gl.dx ?? 0, ddy = gl.dy ?? 0
+    const ty = y + ddy + (r.h - r.line.px) / 2
+    if (gl.role) {
+      const left = (a.align === 'left' ? x : a.align === 'right' ? x - r.w : x - r.w / 2) + ddx
+      const [bx, by] = toCanvas(left, y + ddy)
+      const last = rowBoxes[rowBoxes.length - 1]
+      // a line that wrapped is one line to pick
+      if (last && last.role === gl.role && prev === r.line) {
+        const x0 = Math.min(last.x, bx), x1 = Math.max(last.x + last.w, bx + r.w * pl0.sc)
+        Object.assign(last, { x: x0, w: x1 - x0, h: by + r.h * pl0.sc - last.y })
+      } else rowBoxes.push({ role: gl.role, x: bx, y: by, w: r.w * pl0.sc, h: r.h * pl0.sc })
+    }
     if (r.line.tpl) {
       ctx.globalAlpha = group ? at(group).alpha : p0.alpha
-      drawTemplateRow(ctx, r.text, r.w, r.line, r.line.tpl, x + shift, y, r.h, a.align)
+      const t = r.line.tpl
+      if (gl.own) {
+        // a line tuned on its own carries its own shadow, not the group's
+        ctx.save()
+        const d = typeof t.shadow === 'object' ? t.shadow.dist * r.line.px * 0.7071 : 0.003 * u
+        ctx.shadowColor = !t.shadow ? 'rgba(0,0,0,0)' : typeof t.shadow === 'object' ? t.shadow.color : 'rgba(0,0,0,0.7)'
+        ctx.shadowBlur = !t.shadow ? 0 : typeof t.shadow === 'object' ? t.shadow.blur * r.line.px : 0.02 * u
+        ctx.shadowOffsetX = typeof t.shadow === 'object' ? d : 0
+        ctx.shadowOffsetY = t.shadow ? d : 0
+      }
+      drawTemplateRow(ctx, r.text, r.w, r.line, t, x + shift + ddx, y + ddy, r.h, a.align)
+      if (gl.own) ctx.restore()
       y += r.h
       prev = r.line
       continue
@@ -702,10 +868,10 @@ function drawBlock(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingConte
       // parts of a split frame; the soft glow set above adds the rest
       const soft = ctx.shadowBlur
       ctx.shadowBlur = 0.005 * u
-      ctx.fillText(r.text, x + shift, ty)
+      ctx.fillText(r.text, x + shift + ddx, ty)
       ctx.shadowBlur = soft
     }
-    ctx.fillText(r.text, x + shift, ty)
+    ctx.fillText(r.text, x + shift + ddx, ty)
     y += r.h
     prev = r.line
   }
@@ -841,6 +1007,10 @@ function setTracking(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingCon
 
 export type ScheduleEntry = { frame: number | null; start: number; end: number }
 
+/** A layer drawn under the words in the same frames (the graphic
+ *  animations, graphicDraw.ts): which frames it's on, a key that changes
+ *  when its pixels do, and how to draw it at t onto a cleared canvas. */
+export type UnderLayer = { frames: number[]; key: (t: number) => string; draw: (ctx: OffscreenCanvasRenderingContext2D, t: number) => void }
 // ---- off faces -----------------------------------------------------------
 
 /** Where faces sit in an export's frame, shot by shot (backend
@@ -900,6 +1070,7 @@ export function faceShifts(ctx: CanvasRenderingContext2D | OffscreenCanvasRender
  *  frame; frames nothing is on are left out (transparent). */
 export async function renderSchedule(opts: {
   items: Overlay[]; style: OverlayStyle; parts: Part[]; fps: number; total: number; w: number; h: number
+  under?: UnderLayer
   // faces in this frame (a version in the other frame): captions are moved off them
   faces?: FaceArea[]
   onMoved?: (n: number) => void
@@ -907,11 +1078,12 @@ export async function renderSchedule(opts: {
   onProgress?: (done: number, of: number) => void
   cancelled?: () => boolean
 }): Promise<ScheduleEntry[]> {
-  const { items, style, parts, fps, total, w, h } = opts
+  const { items, style, parts, fps, total, w, h, under } = opts
   await ensureFonts(style)
-  const frames = busyFrames(items, fps, total)
+  const frames = under ? [...new Set([...busyFrames(items, fps, total), ...under.frames])].sort((a, b) => a - b) : busyFrames(items, fps, total)
   const canvas = new OffscreenCanvas(w, h)
   const ctx = canvas.getContext('2d')!
+  const below = under ? new OffscreenCanvas(w, h) : null
   const shifts = opts.faces?.length ? faceShifts(ctx, w, h, items, style, parts, opts.faces) : {}
   opts.onMoved?.(Object.keys(shifts).length)
   const schedule: ScheduleEntry[] = []
@@ -924,7 +1096,9 @@ export async function renderSchedule(opts: {
     if (opts.cancelled?.()) throw new Error('cancelled')
     const f = frames[i]
     const t = f / fps
-    const key = frameKey(items, parts, t, style.motion, style)
+    const words = frameKey(items, parts, t, style.motion, style)
+    const art = under ? under.key(t) : ''
+    const key = art ? `${words}#${art}` : words
     if (!key) { prevF = f; prevKey = ''; continue }
     if (key === prevKey && f === prevF + 1) {
       schedule[schedule.length - 1].end = (f + 1) / fps
@@ -934,6 +1108,15 @@ export async function renderSchedule(opts: {
         id = n++
         seen.set(key, id)
         drawOverlays(ctx, w, h, items, style, parts, t, undefined, shifts)
+        if (below && art) {
+          // the layer goes under the words: drawn on its own, then slid beneath
+          const bctx = below.getContext('2d')!
+          bctx.clearRect(0, 0, w, h)
+          under!.draw(bctx, t)
+          ctx.globalCompositeOperation = 'destination-over'
+          ctx.drawImage(below, 0, 0)
+          ctx.globalCompositeOperation = 'source-over'
+        }
         const blob = await canvas.convertToBlob({ type: 'image/png' })
         const p: Promise<void> = opts.upload(id, blob).finally(() => pending.delete(p))
         pending.add(p)

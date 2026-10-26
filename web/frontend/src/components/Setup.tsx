@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { api, type AIEstimate, type AIState, type VibeJob } from '../api'
-import { Button, Dialog } from '../ui'
+import { Button, Dialog, inputCls } from '../ui'
 import { AISwitch } from './AISwitch'
 
 // The two picks before anything is cut (plan of 2026-10-10, step 2): the
@@ -10,8 +10,10 @@ export type SetupData = {
   format: string; suggested?: string; portrait_share: number
   remembered?: { format?: string; look?: string; music?: string; vibe?: string }   // what was picked last time (defaults.py)
   music?: boolean
-  // "Cut it like": the library's vibes and your own learnt reels (vibes.py)
-  vibes?: { id: string; name: string; line: string; kind: 'library' | 'reference' }[]
+  // "Cut it like": your saved recipes (recipes.py), the library's vibes and your own learnt reels (vibes.py);
+  // a recipe also brings the frame, look and music switch it was saved with
+  vibes?: { id: string; name: string; line: string; kind: 'library' | 'reference' | 'recipe'
+            dress?: { format: string | null; look: string | null; music: boolean } }[]
   vibe?: string | null
   formats: { key: string; label: string; seconds: number }[]
   look: string; looks: { id: string; name: string; line: string; font: string; palette: string[]; status: string }[]
@@ -33,7 +35,6 @@ export function Setup({ data, busy, progress, onDone, onCancel, ai, estimate, on
   const [format, setFormat] = useState<string | null>(null)
   const [look, setLook] = useState<string | null>(null)
   const [music, setMusic] = useState<boolean | null>(null)
-  const withMusic = music ?? data?.music ?? true
   const [vibe, setVibe] = useState<string | null | undefined>(undefined)   // undefined = not touched
   const chosenVibe = vibe === undefined ? (data?.vibe ?? null) : vibe
   // learn a vibe from reels, right here (vibes.py as a job)
@@ -57,8 +58,30 @@ export function Setup({ data, busy, progress, onDone, onCancel, ai, estimate, on
   }
   const last = data?.remembered
   const first = useRef<HTMLButtonElement>(null)
-  const fmt = format ?? data?.format ?? 'tall'
-  const lk = look ?? data?.look ?? 'cozy'
+  // a saved recipe brings its own frame, look and music switch; a pick made here still wins
+  const recipe = data?.vibes?.find((v) => v.id === chosenVibe && v.kind === 'recipe')
+  const fromRecipe = (k: 'format' | 'look') => {
+    const v = recipe?.dress?.[k]
+    return v && (k === 'format' ? data?.formats.some((f) => f.key === v) : data?.looks.some((l) => l.id === v)) ? v : null
+  }
+  const fmt = format ?? fromRecipe('format') ?? data?.format ?? 'tall'
+  const lk = look ?? fromRecipe('look') ?? data?.look ?? 'cozy'
+  const withMusic = music ?? recipe?.dress?.music ?? data?.music ?? true
+  // rename or delete the picked recipe, right where it's picked
+  const [editing, setEditing] = useState<{ mode: 'rename' | 'delete'; name: string; error: string | null } | null>(null)
+  useEffect(() => { setEditing(null) }, [chosenVibe])
+  const renameRecipe = async () => {
+    if (!recipe || !editing?.name.trim()) return
+    try { await api.renameRecipe(recipe.id, editing.name.trim()); await onReload?.(); setEditing(null) }
+    catch (e) { setEditing((x) => x && { ...x, error: (e as Error).message }) }
+  }
+  const deleteRecipe = async () => {
+    if (!recipe) return
+    try { await api.deleteRecipe(recipe.id); setVibe(null); await onReload?.(); setEditing(null) }
+    catch (e) { setEditing((x) => x && { ...x, error: (e as Error).message }) }
+  }
+  const asWhat = (k: 'format' | 'look', touched: boolean) =>
+    touched ? null : fromRecipe(k) ? 'from your recipe' : last?.[k] ? 'as last time' : null
   useEffect(() => { first.current?.focus() }, [data])
   // a chosen vibe sets the cut itself, so the AI doesn't plan it (and nothing is spent)
   const aiOn = !!ai?.available && !!ai?.on && !chosenVibe
@@ -96,7 +119,7 @@ export function Setup({ data, busy, progress, onDone, onCancel, ai, estimate, on
         )}
         <div>
           <div className="mb-1.5 flex items-baseline gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted">Which frame?
-            {last?.format && format === null && <span className="font-normal normal-case tracking-normal">as last time{data?.suggested && data.suggested !== last.format ? ` · the footage suggests ${data.suggested}` : ''}</span>}
+            {asWhat('format', format !== null) && <span className="font-normal normal-case tracking-normal">{asWhat('format', false)}{data?.suggested && data.suggested !== fmt ? ` · the footage suggests ${data.suggested}` : ''}</span>}
           </div>
           <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Frame">
             {(data?.formats ?? []).map((f, i) => (
@@ -115,7 +138,7 @@ export function Setup({ data, busy, progress, onDone, onCancel, ai, estimate, on
         </div>
         <div>
           <div className="mb-1.5 flex items-baseline gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted">Which look?
-            {last?.look && look === null && <span className="font-normal normal-case tracking-normal">as last time</span>}
+            {asWhat('look', look !== null) && <span className="font-normal normal-case tracking-normal">{asWhat('look', false)}</span>}
           </div>
           <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Look">
             {(data?.looks ?? []).map((l) => (
@@ -142,11 +165,33 @@ export function Setup({ data, busy, progress, onDone, onCancel, ai, estimate, on
               {data.vibes!.map((v) => (
                 <button key={v.id} type="button" role="radio" aria-checked={chosenVibe === v.id} onClick={() => setVibe(v.id)} title={v.line}
                         className={`rounded-full border px-2.5 py-1 text-[12px] ${chosenVibe === v.id ? 'border-accent bg-raised text-zinc-100' : 'border-line text-zinc-400 hover:text-zinc-200'}`}>
-                  {v.kind === 'library' ? '✦ ' : ''}{v.name}
+                  {v.kind === 'library' ? '✦ ' : v.kind === 'recipe' ? '♥ ' : ''}{v.name}
                 </button>
               ))}
             </div>
             <p className="mt-1 font-serif text-[13px] text-zinc-300">{data.vibes!.find((v) => v.id === chosenVibe)?.line ?? 'Shot length, hook and words set by the frame you picked.'}</p>
+            {recipe && (!editing ? (
+              <p className="mt-1 flex gap-3 font-serif text-[13px]">
+                <button type="button" className="text-accent hover:underline" onClick={() => setEditing({ mode: 'rename', name: recipe.name, error: null })}>Rename</button>
+                <button type="button" className="text-rose-300 hover:underline" onClick={() => setEditing({ mode: 'delete', name: recipe.name, error: null })}>Delete</button>
+              </p>
+            ) : editing.mode === 'rename' ? (
+              <div className="mt-1.5 flex items-center gap-2">
+                <input autoFocus value={editing.name} maxLength={40} aria-label="Recipe name"
+                       onChange={(e) => setEditing({ ...editing, name: e.target.value, error: null })}
+                       onKeyDown={(e) => { if (e.key === 'Enter') renameRecipe(); if (e.key === 'Escape') setEditing(null) }}
+                       className={`max-w-[16rem] py-1 font-serif text-[14px] ${inputCls}`} />
+                <Button size="sm" variant="primary" onClick={renameRecipe} disabled={!editing.name.trim()}>Rename</Button>
+                <Button size="sm" variant="ghost" onClick={() => setEditing(null)}>Cancel</Button>
+              </div>
+            ) : (
+              <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                <span className="font-serif text-[14px] text-zinc-200">Delete “{recipe.name}”? It can't be brought back.</span>
+                <Button size="sm" variant="danger" onClick={deleteRecipe}>Delete</Button>
+                <Button size="sm" variant="ghost" onClick={() => setEditing(null)}>Keep it</Button>
+              </div>
+            ))}
+            {editing?.error && <p className="mt-1 font-serif text-[13px] text-rose-300">{editing.error}</p>}
           </div>
         )}
         {data && (
@@ -178,7 +223,8 @@ export function Setup({ data, busy, progress, onDone, onCancel, ai, estimate, on
         )}
         <label className="flex items-center gap-2 text-[12px] text-zinc-300">
           <input type="checkbox" checked={withMusic} onChange={(e) => setMusic(e.target.checked)} />
-          Music under it{last?.music && music === null ? <span className="text-muted"> · as last time</span> : null}
+          Music under it{music === null && recipe?.dress ? <span className="text-muted"> · from your recipe</span>
+            : last?.music && music === null ? <span className="text-muted"> · as last time</span> : null}
         </label>
       </div>
     </Dialog>

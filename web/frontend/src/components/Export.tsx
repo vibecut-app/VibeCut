@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../api'
 import { bytes, dur } from '../format'
-import { renderSchedule, type Part } from '../overlayDraw'
-import type { BoardStyle, ExportJob, ExportRecord, Overlays, TimelineData } from '../types'
+import { renderSchedule, type Part, type UnderLayer } from '../overlayDraw'
+import { drawGraphics, ensureGraphicFonts, graphicFrames, graphicsKey } from '../graphicDraw'
+import type { BoardStyle, ExportJob, ExportRecord, Graphic, Overlays, TimelineData } from '../types'
 import { ago } from '../ui'
 import { SharePanel } from './SharePanel'
 
@@ -13,19 +14,24 @@ type Phase = { kind: 'ready' } | { kind: 'drawing'; done: number; of: number } |
 // words are drawn here, by the same code as the preview, then composited
 // by the server -- so the file shows exactly what the player showed.
 // Past exports of this project are listed underneath (they're on the project).
-export function Export({ tl, overlays, parts, music, credit, style, history = [], onClose }: {
+export function Export({ tl, overlays, graphics = [], parts, music, credit, style, history = [], onClose, onFinished }: {
   tl: TimelineData
   overlays: Overlays
+  /** the graphic animations, drawn under the captions by the same code as the preview */
+  graphics?: Graphic[]
   parts: Part[]
   music: string | null
   credit?: string | null     // the track's licence line, copied with the caption
   style?: BoardStyle | null
   history?: ExportRecord[]
   onClose: () => void
+  /** a video came out (App asks for the profile once it's closed) */
+  onFinished?: () => void
 }) {
   const [phase, setPhase] = useState<Phase>({ kind: 'ready' })
   const [withMusic, setWithMusic] = useState(!!music)
   const [withWords, setWithWords] = useState(overlays.items.length > 0)
+  const [withArt, setWithArt] = useState(graphics.length > 0)
   const cancelled = useRef(false)
   const jobId = useRef<string | null>(null)
   const frame = tl.frame ?? { w: 1920, h: 1080 }
@@ -52,12 +58,20 @@ export function Export({ tl, overlays, parts, music, credit, style, history = []
       jobId.current = job.id
       let schedule: { frame: number | null; start: number; end: number }[] = []
       let moved = 0
-      if (withWords && overlays.items.length) {
+      const words = withWords ? overlays.items : []
+      const art = withArt ? graphics : []
+      if (words.length || art.length) {
         setPhase({ kind: 'drawing', done: 0, of: 1 })
+        if (art.length) await ensureGraphicFonts()
+        const under: UnderLayer | undefined = art.length ? {
+          frames: graphicFrames(art, tl.fps, job.total),
+          key: (t) => graphicsKey(art, t, tl.fps),
+          draw: (ctx, t) => drawGraphics(ctx, job.size.w, job.size.h, art, t),
+        } : undefined
         // a version in the other frame lays its captions out again: off the faces in it
-        const faces = job.alt ? (await api.exportFaces(job.id).catch(() => ({ faces: [] }))).faces : []
+        const faces = job.alt && words.length ? (await api.exportFaces(job.id).catch(() => ({ faces: [] }))).faces : []
         schedule = await renderSchedule({
-          items: overlays.items, style: overlays.style, parts, fps: tl.fps, total: job.total, w: job.size.w, h: job.size.h,
+          items: words, style: overlays.style, parts, fps: tl.fps, total: job.total, w: job.size.w, h: job.size.h, under,
           faces, onMoved: (n) => { moved = n },
           upload: async (n, png) => { await api.exportFrame(job.id, n, png) },
           onProgress: (done, of) => setPhase({ kind: 'drawing', done, of }),
@@ -71,7 +85,7 @@ export function Export({ tl, overlays, parts, music, credit, style, history = []
         s = await api.exportStatus(job.id)
         setPhase({ kind: 'rendering', job: s })
       }
-      if (s.stage === 'done') setPhase({ kind: 'done', job: s })
+      if (s.stage === 'done') { setPhase({ kind: 'done', job: s }); onFinished?.() }
       else if (s.stage === 'error') setPhase({ kind: 'error', message: s.error ?? 'The export failed.' })
       else setPhase({ kind: 'ready' })
     } catch (e) {
@@ -92,7 +106,8 @@ export function Export({ tl, overlays, parts, music, credit, style, history = []
   const caption = [title, credit && phase.kind === 'done' && phase.job.music ? `Music: ${credit}` : ''].filter(Boolean).join('\n')
   const pct = phase.kind === 'drawing' ? phase.done / Math.max(1, phase.of)
     : phase.kind === 'rendering' ? phase.job.progress : phase.kind === 'done' ? 1 : 0
-  const status = phase.kind === 'drawing' ? `Drawing the captions… ${phase.done}/${phase.of} frames`
+  const drawing = [withWords && overlays.items.length && 'captions', withArt && graphics.length && 'animations'].filter(Boolean).join(' and ')
+  const status = phase.kind === 'drawing' ? `Drawing the ${drawing}… ${phase.done}/${phase.of} frames`
     : phase.kind === 'rendering' ? ({
       waiting: 'Starting…', shots: `Rendering shots… ${phase.job.done} of ${phase.job.of}`, joining: 'Joining the shots…',
       finishing: `Adding ${phase.job.overlays ? 'words' : ''}${phase.job.overlays && phase.job.music ? ' and ' : ''}${phase.job.music ? 'music' : ''}${!phase.job.overlays && !phase.job.music ? 'sound' : ''}… ${Math.round(phase.job.progress * 100)}%`,
@@ -114,6 +129,7 @@ export function Export({ tl, overlays, parts, music, credit, style, history = []
         <div className="mt-4 space-y-2 text-[12px]">
           <Toggle on={withWords} disabled={!overlays.items.length || busy} onChange={setWithWords}
                   label={overlays.items.length ? `Captions (${overlays.items.length})` : 'Captions — none yet'} />
+          {graphics.length > 0 && <Toggle on={withArt} disabled={busy} onChange={setWithArt} label={`Graphic animations (${graphics.length})`} />}
           <Toggle on={withMusic} disabled={!music || busy} onChange={setWithMusic}
                   label={music ? `Music: ${music}` : 'Music — none chosen under the edit'} />
           {style && (style.look || style.transitions || style.letterbox) && (

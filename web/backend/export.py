@@ -524,6 +524,8 @@ def _room(it: dict, clips: dict[str, dict], side: str, n: int) -> bool:
     c = clips.get(it.get("clip_id") or "")
     if not c or float(it.get("speed") or 1) != 1:
         return False   # a sped-up or slowed shot has no handle at the edit's speed: it cuts
+    if it.get("reverse") or it.get("freeze"):
+        return False   # backwards or held, the footage past the edge isn't next to what plays
     need = n / FPS
     if side == "head":
         return it["src_start"] - need >= 0
@@ -546,6 +548,20 @@ def _shot(job: Job, it: dict, out: Path, tr: dict | None = None) -> None:
     info = _display(c["path"])
     speed = float(it.get("speed") or 1.0)
     src = ["-ss", f"{it['src_start'] - tr['head'] / FPS:.4f}", "-t", f"{d * speed + 0.5:.4f}", "-i", c["path"]]
+    # Freeze frame: the one frame at src_start, held (tpad below) for the
+    # whole span. Reverse: the span played backwards, made once by
+    # reverse.py at the export's size (the preview plays a small one from
+    # the same function). Neither has handles (_room); the sound is the mix's.
+    head = ""
+    if it.get("freeze"):
+        src = ["-ss", f"{it['src_start']:.4f}", "-t", "1", "-i", c["path"]]
+        head, speed = "trim=end_frame=1,setpts=PTS-STARTPTS,", 1.0
+    elif it.get("reverse"):
+        from . import reverse
+        rev = reverse.reversed_span(c["path"], float(it["src_start"]), float(it["src_end"]),
+                                    max(size["w"], size["h"]))
+        src = ["-ss", "0", "-t", f"{d * speed + 0.5:.4f}", "-i", str(rev)]
+        info = {**info, "audio": False}
     # the shot menu's fixes: a quarter turn, then its speed (frames retimed;
     # its sound comes from the mix, stretched there)
     turn = ("hflip," if it.get("mirror") else "") + \
@@ -580,10 +596,10 @@ def _shot(job: Job, it: dict, out: Path, tr: dict | None = None) -> None:
     # A span that runs to the very end of its file can decode a frame or two
     # short; hold the last frame so every shot is exactly its frame count.
     args = [*src, "-map", "0:v:0", *amap, "-vf",
-            turn + retime + _fit(size, job.style, vfade, bool(it.get("fill")), it.get("aim"))
+            head + turn + retime + _fit(size, job.style, vfade, bool(it.get("fill")), it.get("aim"))
             + effects.chain(it.get("effect"), float(it.get("effect_amount") or 1.0), size, tr["head"] / FPS, it["frames"], FPS)
             + punch
-            + ",tpad=stop_mode=clone:stop_duration=1", *common]
+            + f",tpad=stop_mode=clone:stop_duration={d + 1 if it.get('freeze') else 1:.4f}", *common]
     hw = ["-hwaccel", "videotoolbox"] if sys.platform == "darwin" else []
     try:
         _ff(hw + args, job)
@@ -718,7 +734,8 @@ def music_spec(path: str | None, mix: dict | None) -> dict | None:
     if not path:
         return None
     m = mix or {}
-    return {"path": path, "in": float(m.get("in") or 0.0), "gain": float(m.get("gain", MUSIC_GAIN)),
+    return {"path": path, "in": float(m.get("in") or 0.0),
+            "gain": float(m.get("gain", MUSIC_GAIN)) * float(m.get("volume", 1.0)),
             "original": float(m["original"]) if m.get("original") is not None else 1.0,
             "fade_out": float(m.get("fade_out", 2.0)), "duck": m.get("duck") or [],
             "sfx": m.get("sfx") or [], "level": bool(m.get("level"))}

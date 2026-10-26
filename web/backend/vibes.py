@@ -30,7 +30,7 @@ import sys
 import time
 from pathlib import Path
 
-from . import cloud, reference, remix, recipe, deep_learn
+from . import cloud, recipes, reference, remix, recipe, deep_learn
 from .indexer import CACHE
 
 DIR = CACHE / "vibes"
@@ -130,19 +130,25 @@ def get(vid: str | None) -> dict | None:
 
 
 def choices() -> list[dict]:
-    """What the Setup dialog offers under "Cut it like": the library's vibes,
-    then the creator's own learnt reels, each as a one-reel vibe."""
-    out = [{"id": v["id"], "name": v["name"], "line": f"{v['n']} reels · " + v["words"][0][:60], "kind": "library"}
-           for v in list_all()]
+    """What the Setup dialog offers under "Cut it like": the creator's own
+    recipes (recipes.py, edits they saved), the library's vibes, then their
+    learnt reels, each as a one-reel vibe."""
+    out = [recipes.public(r) for r in recipes.list_all()]
+    out += [{"id": v["id"], "name": v["name"], "line": f"{v['n']} reels · " + v["words"][0][:60], "kind": "library"}
+            for v in list_all()]
     for r in reference.library():
         out.append({"id": "ref:" + r["rid"], "name": r["title"][:40], "line": "your reel · " + ", ".join(r["summary"][:1])[:60], "kind": "reference"})
     return out
 
 
 def fingerprint_for(choice: str | None) -> dict | None:
-    """The fingerprint behind a Setup choice: a library vibe's, or one reel's."""
+    """The fingerprint behind a Setup choice: a recipe's, a library vibe's,
+    or one reel's."""
     if not choice:
         return None
+    if choice.startswith(recipes.PREFIX):
+        r = recipes.get(choice)
+        return recipes.fingerprint(r) if r else None
     if choice.startswith("ref:"):
         r = reference.load(choice[4:])
         return remix.fingerprint([r["style"]]) if r else None

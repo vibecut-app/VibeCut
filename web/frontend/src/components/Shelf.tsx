@@ -10,8 +10,8 @@ type Tab = 'all' | 'kept' | 'out'
 // Media on the edit screen: every clip as a grid, with All / Kept / Left out
 // tabs (sarah, 2026-10-16: the layout of her reference picture; before that
 // two piles, 2026-10-13). Kept means in the video and wears a tick; Left out
-// is the dark red of Footage. Clicking a clip plays it and offers the move,
-// and only then says why a clip was left out. A move changes the video as
+// is the dark red of Footage. Clicking a clip plays it and offers the move
+// (no note on why it is out; sarah, 2026-10-20). A move changes the video as
 // one undoable turn. A clip can also be dragged onto the timeline.
 export function Shelf({ clips, inEdit, onPreview, onMove, onPick, busy }: {
   clips: Clip[]
@@ -114,7 +114,6 @@ export function Shelf({ clips, inEdit, onPreview, onMove, onPick, busy }: {
               <span className={cx('shrink-0 font-serif text-[15px]', inEdit.has(pick.id) ? 'text-accent' : 'text-rose-200')}>
                 {inEdit.has(pick.id) ? 'In the video' : 'Left out'}</span>
             </div>
-            {!inEdit.has(pick.id) && <p className="font-serif text-[15px] leading-snug text-rose-200">{why(pick)}</p>}
             <Button variant="primary" disabled={moving}
                     onClick={async () => {
                       setMoving(true)
@@ -129,10 +128,4 @@ export function Shelf({ clips, inEdit, onPreview, onMove, onPick, busy }: {
       </>}
     </section>
   )
-}
-
-/** Why a clip isn't in the video, in the creator's words where it was their call. */
-function why(c: Clip): string {
-  if (c.cut?.rejected) return c.cut.override === 'reject' ? 'You left it out.' : `Left out: ${c.cut.en}`
-  return 'The story didn’t use it. It can go in.'
 }
