@@ -4,7 +4,7 @@
 // it 60 times a second re-renders only what shows it (timeline, readout)
 // instead of the whole app.
 import { useSyncExternalStore } from 'react'
-import { locate, toSource, type SeqItem } from './sequence'
+import { fromMedia, locate, mediaEnd, mediaUrl, toMedia, toSource, type SeqItem } from './sequence'
 import type { Target } from './snap'
 import { hideStill, settleStill, swapSource } from './hold'
 import { blendLook, dissolveAfter, mixAt, preloadAt, veilAt, type Pic, type TransMap } from './joinView'
@@ -53,7 +53,7 @@ export class Transport {
   veil: HTMLDivElement | null = null
   trans: TransMap = new Map()
   fps = 30
-  private pre: { k: number; clip: string; t: number; ready: boolean } | null = null
+  private pre: { k: number; url: string; t: number; ready: boolean } | null = null
   private leaving: { el: HTMLVideoElement; from: number; to: number; blend: string } | null = null
   items: SeqItem[] = []
   total = 0
@@ -67,6 +67,8 @@ export class Transport {
 
   /** The player's two pictures and its veil (Player.tsx). */
   attach(primary: HTMLVideoElement | null, back: HTMLVideoElement | null, veil: HTMLDivElement | null) {
+    // a new player (Watch to the editor): the old pictures are gone, stop on them first
+    if (primary && this.primary && primary !== this.primary && transportStore.get().playing) this.stop()
     if (!transportStore.get().playing) this.video = primary
     this.primary = primary
     this.back = back
@@ -115,10 +117,11 @@ export class Transport {
   private sampleAt: (clipId: string, srcT: number) => string | null = () => null
   setSamples(fn: (clipId: string, srcT: number) => string | null) { this.sampleAt = fn }
 
-  private async ensureClip(clipId: string, srcT?: number) {
+  /** Load the item's file (the clip, or its span made backwards). */
+  private async ensureClip(it: SeqItem, srcT?: number) {
     const v = this.video
     if (!v) return
-    const url = `/api/video/${clipId}`
+    const url = mediaUrl(it), clipId = it.clip_id!
     if (v.getAttribute('src') === url && v.readyState >= 2) return
     // Wait for a decodable frame, not just the metadata: Safari paints black
     // for a seek made before any frame data has arrived (the first jump on
@@ -156,9 +159,9 @@ export class Transport {
         if (!it || this.lent) break
         if (it.kind === 'gap') { this.state({ gap: true }); continue }
         this.state({ gap: false })
-        await this.ensureClip(it.clip_id!, toSource(it, at))
+        await this.ensureClip(it, toSource(it, at))
         if (this.lent) break
-        if (this.video) this.video.currentTime = Math.min(toSource(it, at), it.src_end - EPS)
+        if (this.video) this.video.currentTime = Math.min(toMedia(it, at), mediaEnd(it) - EPS)
         dress(this.video, it)
         this.paint(at)
       }
@@ -272,11 +275,11 @@ export class Transport {
     if (!target || (it && nx && seamless(it, nx))) {
       return   // nothing next, or the other half of a cut: the front keeps playing
     }
-    if (this.pre && this.pre.k === k + 1 && this.pre.clip === target.clip && Math.abs(this.pre.t - target.t) < 1e-3) return
-    const pre = { k: k + 1, clip: target.clip, t: target.t, ready: false }
+    if (this.pre && this.pre.k === k + 1 && this.pre.url === target.url && Math.abs(this.pre.t - target.t) < 1e-3) return
+    const pre = { k: k + 1, url: target.url, t: target.t, ready: false }
     this.pre = pre
     b.pause()
-    const url = `/api/video/${target.clip}`
+    const url = target.url
     const park = () => {
       if (this.pre !== pre) return
       b.addEventListener('seeked', () => { if (this.pre === pre) pre.ready = true }, { once: true })
@@ -310,10 +313,11 @@ export class Transport {
     const v = this.video!
     if (it.kind === 'gap') { v.pause(); this.state({ gap: true }); return }
     this.state({ gap: false })
-    await this.ensureClip(it.clip_id!)
-    v.currentTime = toSource(it, t)
-    v.playbackRate = rate * (it.speed ?? 1)
+    await this.ensureClip(it)
+    v.currentTime = toMedia(it, t)
     dress(v, it)
+    if (it.freeze) { v.pause(); return }   // a held frame: the clock moves, the picture doesn't
+    v.playbackRate = rate * (it.speed ?? 1)
     await v.play().catch(() => {})
   }
 
@@ -361,13 +365,13 @@ export class Transport {
         const it = this.items[this.cur]
         let pos: number
         let done: boolean
-        if (it.kind === 'gap') {
+        if (it.kind === 'gap' || it.freeze) {
           pos = phStore.get() + dt * rate
           done = pos >= it.seq_end
         } else {
           const ct = this.video!.currentTime
-          pos = it.seq_start + (ct - it.src_start) / (it.speed ?? 1)
-          done = ct >= it.src_end - EPS || this.video!.ended
+          pos = fromMedia(it, ct)
+          done = ct >= mediaEnd(it) - EPS || this.video!.ended
         }
         this.preload(this.cur)
         // a dissolve starts the next shot early, under the end of this one
@@ -397,7 +401,8 @@ export class Transport {
             this.pre = null
             this.state({ gap: false })
             this.video.playbackRate = rate * (nx.speed ?? 1)
-            if (this.video.paused) {
+            if (nx.freeze) this.video.pause()
+            else if (this.video.paused) {
               this.video.play().catch(() => {})
             }
             if (d && d.to > d.cut && it.kind === 'shot') this.leaving = { el: out, from: d.from, to: d.to, blend: d.blend }
@@ -443,6 +448,7 @@ export const transport = new Transport()
 /** The other half of a cut, straight after: the same file runs on, no seek. */
 function seamless(it: SeqItem, nx: SeqItem): boolean {
   return it.kind === 'shot' && nx.kind === 'shot' && nx.clip_id === it.clip_id
+    && !it.reverse && !nx.reverse && !it.freeze && !nx.freeze
     && Math.abs(nx.src_start - it.src_end) < 0.02 && (nx.speed ?? 1) === (it.speed ?? 1)
     && (nx.rotate ?? 0) === (it.rotate ?? 0) && !!nx.fill === !!it.fill
 }

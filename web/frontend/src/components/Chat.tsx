@@ -9,7 +9,7 @@ import { Remember, Rules, type ClassifyReq } from './Remember'
 const EXAMPLE = 'three days in Tokyo, lean into the food'
 // Things the chat can do (board ops), for the whole video or for the shot
 // it's about. A tap puts one in the box, so its cost is on Send first.
-const IDEAS = ['Make it shorter', 'Open on the best moment', 'Less of my face', 'Make the opening punchier']
+const IDEAS = ['Make it shorter', 'Open on the best moment', 'Less of my face', 'Make the opening punchier', 'Make the captions easier to read']
 const SHOT_IDEAS = ['Cut this shot', 'Make this shot shorter', 'Swap it for a better one', 'Open the video with it']
 
 export type ChatItem = { type: 'local'; msg: Msg } | { type: 'turn'; turn: Turn }

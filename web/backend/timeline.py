@@ -42,6 +42,7 @@ def layout(board: dict | None) -> list[dict]:
                 "beat_id": b["id"], "beat_title": b["title"], "n": None if gap else n,
                 # the shot fixes (board.set_shot), only where set
                 **{f: e[f] for f in bd.SHOT_FX if f in e},
+                **({"freeze": True} if bd.is_freeze(e) else {}),
             })
             t += d
     return items
@@ -135,6 +136,8 @@ def build(board: dict | None, clips: dict[str, dict], track: music.Track | None)
         cid, idx = it["shot_id"].rsplit(":", 1)
         sh = next((x for x in (clips.get(cid) or {}).get("shots", []) if str(x["index"]) == idx), None)
         it["src_min"], it["src_max"] = (sh["start"], sh["end"]) if sh else (it["src_start"], it["src_end"])
+        if it.get("freeze"):   # a held frame's ends only set how long it holds
+            it["src_min"], it["src_max"] = it["src_start"] - bd.FREEZE_MAX, it["src_start"] + bd.FREEZE_MAX
     total = items[-1]["seq_end"] if items else 0.0
     music_in = float(((board or {}).get("music") or {}).get("in") or 0.0)
     return {"fps": FPS, "total": round(total, 4), "items": items,

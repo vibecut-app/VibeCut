@@ -3,23 +3,26 @@ import { CAPTION_FONTS, type CaptionFont } from '../captionFonts'
 import type { SeqItem } from '../sequence'
 import { dressOf, isDressed, KIND_META } from '../overlayDraw'
 import { multiline, typable, wordsOf, wordsPatch } from '../captionWords'
-import type { HeadingLook, JoinInfo, LookInfo, Overlay, OverlayPlace, OverlayStyle, SoundStrip } from '../types'
+import type { HeadingLook, JoinInfo, LookInfo, Overlay, OverlayPlace, OverlayStyle, ResourceKind, SoundStrip } from '../types'
 import { Button, cx } from '../ui'
 import { Icon, type IconName } from './icons'
 import { CaptionAnimations, CaptionStyles, Transitions } from './StyleBars'
 import { EffectTiles } from './Effects'
 import { effectName } from '../effectView'
+import { lineLabel, lineName } from '../overlayDraw'
+import type { LineLook, LineRole } from '../types'
 
 // The right-hand inspector of the edit screen (sarah, 2026-10-16: the layout
-// of her reference picture). Five tabs: Edit (the clicked shot: trim, speed,
+// of her reference picture). Six tabs: Edit (the clicked shot: trim, speed,
 // turn, fit or fill; with nothing clicked, the whole video), Captions (the
 // clicked caption's words, then one style and entrance for every caption),
 // Effects (the clicked shot's effect, else every shot's; the transition at a cut),
-// Audio (the shot's or a sound strip's volume and fades, and the music) and
-// Adjust (the look). Clicking something on the timeline opens its tab.
+// Audio (the shot's or a sound strip's volume and fades, and the music),
+// Adjust (the look) and Graphic animations (graphics.py: pieces drawn over
+// the video, Graphics.tsx). Clicking something on the timeline opens its tab.
 // Every change is one undoable turn, sent when a slider is let go.
 
-export type InspectorTab = 'edit' | 'captions' | 'effects' | 'audio' | 'adjust'
+export type InspectorTab = 'edit' | 'captions' | 'effects' | 'audio' | 'adjust' | 'graphics'
 type Patch = Record<string, unknown>
 
 const TABS: { id: InspectorTab; icon: IconName; label: string }[] = [
@@ -28,6 +31,8 @@ const TABS: { id: InspectorTab; icon: IconName; label: string }[] = [
   { id: 'effects', icon: 'spark', label: 'Effects' },
   { id: 'audio', icon: 'music', label: 'Audio' },
   { id: 'adjust', icon: 'adjust', label: 'Adjust' },
+  // sarah, 2026-10-19: "an extra tool on the right called graphic animations"
+  { id: 'graphics', icon: 'shapes', label: 'Graphic animations' },
 ]
 
 export type JoinPick = { join: JoinInfo; before: number | null; after: number | null; from: string | null; to: string | null }
@@ -60,9 +65,17 @@ export function Inspector(p: {
   music: ReactNode
   /** Length, tempo, frame, smoother cuts: the whole video's own controls */
   video: ReactNode
+  /** the Graphic animations tab (Graphics.tsx) */
+  graphics?: ReactNode
   onFix: (patch: Patch, label: string) => void
   onTrim: (edge: 'in' | 'out', to: number) => void
   onSplit: () => void
+  /** the clip tools next to Split: the shot again right after itself, the frame under the playhead held */
+  onDuplicate: () => void
+  onFreeze: () => void
+  /** the clicked shot's speed, turn, look, effect and sound settings, kept to put on another shot */
+  onCopyFx: () => void
+  onPasteFx: (() => void) | null
   onSwap: () => void
   onDelete: () => void
   onCloseGap: () => void
@@ -71,20 +84,41 @@ export function Inspector(p: {
   onStripDelete: () => void
   onCaptions: () => void
   onCaptionStyle: (patch: CaptionStylePatch, label: string) => void
+  /** one line of the picked group (a title and the line under it), null = the whole group */
+  line: LineRole | null
+  onLine: (role: LineRole | null) => void
+  onLineLook: (role: LineRole, look: LineLook | null, label: string) => void
   onJoin: (op: { kind: string; dur?: number; all?: boolean }, label: string) => void
   /** every shot's effect when they all share one (with no shot clicked), and a thumbnail to show effects on */
   allEffect: { effect: string | null; amount: number; thumb: string | null }
   onEffect: (patch: { effect?: string | null; effect_amount?: number }, all: boolean, label: string) => void
   onLook: (id: string, name: string) => void
+  /** "Save to My resources": what's on the video now, kept in the folder (signed out: the sign-in card) */
+  onSave: (kind: ResourceKind, why: string | null) => void
+  /** what can be saved right now: null = ready, else what to do first (App works it out, for the folder too) */
+  saveWhy: Record<ResourceKind, string | null>
 }) {
   const it = p.item
+  // A title with a line under it (or a caption with its place name) is a
+  // group: each line can be picked and tuned on its own. A chapter title
+  // has its own look, so it has no "every caption" to fall back to.
+  const cap = p.caption
+  const grouped = !!cap && (!!cap.sub || cap.kind === 'heading')
+  const ownLook = cap?.kind === 'heading'
+  const role: LineRole | null = cap && grouped ? p.line ?? (ownLook ? 'main' : null) : null
   const shot = it && it.kind === 'shot' ? it : null
+  // at the top of what it saves, so it's seen without scrolling past the tiles
+  const save = (kind: ResourceKind, what: string) => (
+    <div><SaveChip what={what} ready={!p.saveWhy[kind]} onClick={() => p.onSave(kind, p.saveWhy[kind])} /></div>
+  )
   return (
     <aside className="flex min-h-0 min-w-0 flex-1 flex-col">
       <nav className="flex shrink-0 gap-0.5 border-b border-line px-2 pt-2" role="tablist">
         {TABS.filter((t) => t.id !== 'adjust' || p.looks?.all.length).map((t) => (
           <button key={t.id} type="button" role="tab" aria-selected={p.tab === t.id} onClick={() => p.onTab(t.id)}
-                  className={cx('-mb-px flex min-w-0 flex-1 flex-col items-center gap-1 rounded-t-lg border-b-2 px-1 pb-2 pt-2 font-serif text-[15px]',
+                  // a two-word name (Graphic animations) goes on two tighter lines
+                  className={cx('-mb-px flex min-w-0 flex-1 flex-col items-center gap-1 rounded-t-lg border-b-2 px-1 pb-2 pt-2 text-center font-serif',
+                    t.label.includes(' ') ? 'text-[13.5px] leading-[1.1]' : 'text-[15px]',
                     p.tab === t.id ? 'border-accent bg-accent/8 text-accent' : 'border-transparent text-zinc-300 hover:text-zinc-100')}>
             <Icon name={t.icon} size={22} />
             {t.label}
@@ -107,8 +141,17 @@ export function Inspector(p: {
               <Button size="sm" onClick={p.onSwap} title="Put a different shot in its place">Replace</Button>
             </div>
           </Section>
-          <Section title="Trim"><TrimBar item={shot} thumb={p.itemThumb} onTrim={p.onTrim} /></Section>
-          <SpeedLine speed={shot.speed ?? 1} onFix={(x) => p.onFix({ speed: x }, x === 1 ? `You put shot ${shot.n} back to normal speed` : `You set shot ${shot.n} to ${x}×`)} />
+          {shot.freeze ? (
+            <Slider label="Hold for" value={Math.round((shot.seq_end - shot.seq_start) * 10) / 10} min={0.5} max={10} step={0.1} unit=" s"
+                    onCommit={(v) => p.onTrim('out', shot.src_start + v)} />
+          ) : <>
+            <Section title="Trim"><TrimBar item={shot} thumb={p.itemThumb} onTrim={p.onTrim} /></Section>
+            <SpeedLine speed={shot.speed ?? 1} onFix={(x) => p.onFix({ speed: x }, x === 1 ? `You put shot ${shot.n} back to normal speed` : `You set shot ${shot.n} to ${x}×`)} />
+            <Line label="Reverse">
+              <Segmented options={[['off', 'Forwards'], ['on', 'Backwards']]} value={shot.reverse ? 'on' : 'off'}
+                         onPick={(v) => (v === 'on') !== !!shot.reverse && p.onFix({ reverse: v === 'on' }, v === 'on' ? `Shot ${shot.n} plays backwards` : `Shot ${shot.n} plays forwards again`)} />
+            </Line>
+          </>}
           <Line label="Rotate">
             <IconChip label="Turn left" icon="turnL" onClick={() => p.onFix({ rotate: ((shot.rotate ?? 0) + 270) % 360 }, `You turned shot ${shot.n} left`)} />
             <IconChip label="Turn right" icon="turnR" onClick={() => p.onFix({ rotate: ((shot.rotate ?? 0) + 90) % 360 }, `You turned shot ${shot.n} right`)} />
@@ -125,6 +168,11 @@ export function Inspector(p: {
           </Line>
           <div className="flex flex-wrap gap-2 pt-1">
             <Chip onClick={p.onSplit}><Icon name="split" size={17} /> Split at the playhead</Chip>
+            <Chip onClick={p.onDuplicate} title="The same shot again, right after this one (⌘D)"><Icon name="copy" size={17} /> Duplicate</Chip>
+            {!shot.freeze && <Chip onClick={p.onFreeze} title="Hold the frame under the playhead for 3 seconds"><Icon name="freeze" size={17} /> Freeze frame</Chip>}
+            <Chip onClick={p.onCopyFx} title="Keep this shot's speed, turn, crop, effect and sound settings (⌥⌘C)"><Icon name="adjust" size={17} /> Copy settings</Chip>
+            <Chip onClick={() => p.onPasteFx?.()} disabled={!p.onPasteFx} title="Give this shot the settings you copied (⌥⌘V)"><Icon name="paste" size={17} /> Paste settings</Chip>
+            <SaveChip what="settings" ready={!p.saveWhy.shot} onClick={() => p.onSave('shot', p.saveWhy.shot)} />
             <Chip danger onClick={p.onDelete}><Icon name="trash" size={17} /> Delete</Chip>
             {!!(shot.rotate || shot.fill || shot.mirror) && <Chip onClick={() => p.onFix({ rotate: 0, fill: false, mirror: false }, `You put shot ${shot.n} back as filmed`)}>Back to as filmed</Chip>}
           </div>
@@ -147,7 +195,16 @@ export function Inspector(p: {
             </Line>
             <Button onClick={p.onCaptionAdd}>+ Add a caption at the playhead</Button>
           </>}
+          {cap && grouped && (
+            <Line label="Change">
+              <Segmented options={[...(ownLook ? [] : [['all', 'Every caption'] as [string, string]]),
+                                   ...(['main', 'sub'] as LineRole[]).filter((r) => r === 'main' || cap.sub).map((r) => [r, lineLabel(cap, r)] as [string, string])]}
+                         value={role ?? 'all'} onPick={(v) => p.onLine(v === 'all' ? null : v as LineRole)} />
+            </Line>
+          )}
+          {cap && role ? <LineLookPanel key={cap.id + role} o={cap} role={role} style={p.style} onLook={(look, label) => p.onLineLook(role, look, label)} /> : <>
           {p.captionsOn ? <>
+            {save('caption', 'caption look')}
             <Section title={p.caption ? 'Font of every caption' : 'Font'}>
               <CaptionFonts value={p.style.typeface ?? null}
                             onPick={(f) => p.onCaptionStyle({ typeface: f?.id ?? null }, f ? `The captions are in ${f.name}` : 'The captions are back to their own font')} />
@@ -158,14 +215,19 @@ export function Inspector(p: {
             </Section>
             <CaptionDress style={p.style} onPick={p.onCaptionStyle} />
             <Section title="Word art"><CaptionStyles style={p.style} thumb={p.captionThumb} onPick={p.onCaptionStyle} /></Section>
-            <Section title={p.caption ? 'Animation of every caption' : 'Animation'}><CaptionAnimations style={p.style} thumb={p.captionThumb} sample={p.captionSample} onPick={p.onCaptionStyle} /></Section>
+            <Section title={p.caption ? 'Animation of every caption' : 'Animation'}>
+              {save('animation', 'animation')}
+              <CaptionAnimations style={p.style} thumb={p.captionThumb} sample={p.captionSample} onPick={p.onCaptionStyle} />
+            </Section>
             {!p.caption && <Hint>One style for every caption. Click a caption on the picture or the timeline to change its words.</Hint>}
           </> : <Hint>Turn captions on to put the time and place of each moment on the video.</Hint>}
+          </>}
         </>}
 
         {p.tab === 'effects' && <>
           {!p.joinPicked && (shot ? (
             <Section title={`Effect on shot ${shot.n}`}>
+              {save('effect', 'effect')}
               <EffectTiles n={shot.n} effect={shot.effect ?? null} amount={shot.effect_amount ?? 1} thumb={p.itemThumb}
                            onPick={(patch, label) => p.onEffect(patch, false, label)}
                            onAll={() => p.onEffect({ effect: shot.effect ?? null, effect_amount: shot.effect_amount ?? 1 }, true,
@@ -174,6 +236,7 @@ export function Inspector(p: {
           ) : (
             <Section title="Effect on every shot">
               <Hint>Or click a shot on the timeline to give just that shot an effect.</Hint>
+              {save('effect', 'effect')}
               <EffectTiles n={null} effect={p.allEffect.effect} amount={p.allEffect.amount} thumb={p.allEffect.thumb}
                            onPick={(patch, label) => p.onEffect(patch, true, label)} onAll={() => {}} />
             </Section>
@@ -181,6 +244,7 @@ export function Inspector(p: {
           {p.join ? (
             <Section title={p.joinPicked ? `The cut from shot ${p.join.before} to shot ${p.join.after}` : 'Transition at every cut'}>
               {!p.joinPicked && <Hint>Or click the dot between two shots on the timeline to change just that cut.</Hint>}
+              {save('transition', 'transition')}
               <Transitions {...p.join} before={p.joinPicked ? p.join.before : null} after={p.joinPicked ? p.join.after : null} onPick={p.onJoin} />
             </Section>
           ) : <Hint>Transitions go between two shots. Your edit has no cuts yet.</Hint>}
@@ -203,7 +267,9 @@ export function Inspector(p: {
                 <div className="pt-1"><Chip onClick={p.onExtract}>Take the sound off</Chip></div>
               </>}
           </Section>
-        ) : <Section title="Music">{p.music}<Hint>Click a shot on the timeline to change its own sound.</Hint></Section>)}
+        ) : <Section title="Music">{p.music}{!p.saveWhy.song && save('song', 'song')}<Hint>Click a shot on the timeline to change its own sound.</Hint></Section>)}
+
+        {p.tab === 'graphics' && p.graphics}
 
         {p.tab === 'adjust' && p.looks && (
           <Section title="Look">
@@ -256,7 +322,7 @@ function CaptionWords({ o, onEdit, onDelete, onWatch, onDone, onPlace }: {
       {o.kind === 'heading' && (
         // a chapter title has its own look; the line under it stays plain
         <Line label="Title look">
-          <Segmented options={HEADING_LOOKS} value={o.look ?? 'bold'}
+          <Segmented options={HEADING_LOOKS} value={o.look ?? 'spaced'}
                      onPick={(v) => v !== o.look && onEdit({ look: v as HeadingLook }, 'You changed the chapter title\'s look')} />
         </Line>
       )}
@@ -278,7 +344,7 @@ function CaptionWords({ o, onEdit, onDelete, onWatch, onDone, onPlace }: {
   )
 }
 
-const HEADING_LOOKS: [string, string][] = [['script', 'Script'], ['spaced', 'Spaced'], ['bold', 'Bold'], ['serif', 'Serif']]
+const HEADING_LOOKS: [string, string][] = [['spaced', 'Spaced'], ['script', 'Script'], ['serif', 'Serif'], ['bold', 'Bold']]
 
 // The captions' colour. Automatic reads the footage behind each caption and
 // picks what stands out; a picked colour is kept, with an edge or glow so it
@@ -584,13 +650,60 @@ function TrimBar({ item, thumb, onTrim }: { item: SeqItem; thumb: string | null;
   )
 }
 
-export function Chip({ children, onClick, on, danger }: { children: ReactNode; onClick: () => void; on?: boolean; danger?: boolean }) {
+// "Save to My resources", where the thing was made (CapCut's "Save as preset").
+// Always there; with nothing to keep yet it's quieter, and a click says what to do first.
+export function SaveChip({ what, ready, onClick }: { what: string; ready: boolean; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick}
-            className={cx('inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-3 py-1.5 font-serif text-[15px]',
+    <button type="button" onClick={onClick} title={`Keep this ${what} in My resources, to use on any video`}
+            className={cx('inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-dashed px-3 py-1.5 font-serif text-[15px] hover:bg-raised',
+              ready ? 'border-accent/60 text-accent' : 'border-line text-zinc-300')}>
+      <Icon name="resources" size={17} /> Save {what} to My resources
+    </button>
+  )
+}
+
+export function Chip({ children, onClick, on, danger, disabled, title }: {
+  children: ReactNode; onClick: () => void; on?: boolean; danger?: boolean; disabled?: boolean; title?: string
+}) {
+  return (
+    <button type="button" onClick={onClick} disabled={disabled} title={title}
+            className={cx('inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-3 py-1.5 font-serif text-[15px] disabled:opacity-40 disabled:pointer-events-none',
               on ? 'border-accent bg-accent text-accent-ink' : danger ? 'border-rose-200/40 text-rose-200 hover:bg-rose-500/10'
                 : 'border-line bg-panel text-zinc-100 hover:bg-raised')}>
       {children}
     </button>
   )
+}
+
+// One line of a group, tuned on its own (sarah, 2026-10-20: "make them into a
+// group of captions, and we can tune it independently"): the same controls
+// as every caption's, for this line only, plus its size. Dragging the line on
+// the picture moves it away from the rest of the group.
+function LineLookPanel({ o, role, style, onLook }: {
+  o: Overlay; role: LineRole; style: OverlayStyle; onLook: (look: LineLook | null, label: string) => void
+}) {
+  const L: LineLook = o.lines?.[role] ?? {}
+  const name = lineName(o, role)
+  const Name = name[0].toUpperCase() + name.slice(1)
+  // what the sliders start from: this line's own settings over a plain line
+  const own: OverlayStyle = { ...style, template: null, text_color: L.text_color ?? null, typeface: L.typeface ?? null,
+    outline: L.outline ?? null, shadow: L.shadow ?? null, backdrop: L.backdrop ?? null, thick: L.thick ?? null }
+  const say = (label: string) => label.replace(/^The captions/, Name).replace(/the captions'?/g, name)
+  const scale = L.scale ?? 1
+  return <>
+    <Hint>Only {name} changes. The rest stays as it is and moves with it.</Hint>
+    <Section title="Font">
+      <CaptionFonts value={L.typeface ?? null} onPick={(f) => onLook({ typeface: f?.id ?? null }, f ? `${Name} is in ${f.name}` : `${Name} is back to its own font`)} />
+    </Section>
+    <Section title="Colour">
+      <CaptionColours value={L.text_color ?? null} onPick={(c) => onLook({ text_color: c }, c ? `You changed the colour of ${name}` : `${Name} is back to its own colour`)} />
+    </Section>
+    <Slider label="Size" value={Math.round(scale * 100)} min={40} max={300} step={10} unit="%"
+            onCommit={(v) => onLook({ scale: v === 100 ? null : v / 100 }, `You made ${name} ${v > scale * 100 ? 'bigger' : 'smaller'}`)} />
+    <CaptionDress style={own} onPick={(patch, label) => onLook(patch as LineLook, say(label))} />
+    <div className="flex flex-wrap gap-2">
+      {!!(L.dx || L.dy) && <Chip onClick={() => onLook({ dx: null, dy: null }, `You put ${name} back in its place`)}>Put it back in its place</Chip>}
+      {Object.keys(L).length > 0 && <Chip onClick={() => onLook(null, `${Name} is back to how it was`)}>Back to how it was</Chip>}
+    </div>
+  </>
 }

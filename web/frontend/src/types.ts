@@ -156,7 +156,13 @@ export type Overlay = {
   // dragged on the picture by hand: block centre (0..1 of the frame) and size multiplier
   place?: OverlayPlace | null
   look?: HeadingLook
+  /** one line of the group tuned on its own (main = the title or words, sub = the line under or the place name above) */
+  lines?: Partial<Record<LineRole, LineLook>>
 }
+export type LineRole = 'main' | 'sub'
+/** the Captions panel's fields for one line, plus its size and a nudge (shares of the frame's short side) */
+export type LineLook = Pick<OverlayStyle, 'text_color' | 'typeface' | 'outline' | 'shadow' | 'backdrop' | 'thick'>
+  & { scale?: number | null; dx?: number | null; dy?: number | null }
 export type OverlayPlace = { x: number; y: number; scale: number }
 export type OverlayStyle = { font: 'Clean' | 'Editorial' | 'Rounded' | 'Mono' | 'Condensed'; color: string; accent: string; captions: 'bottom' | 'center'; backing: 'shadow' | 'box' | 'none'
   look?: string; motion?: Motion | null
@@ -183,7 +189,46 @@ export type LookInfo = { id: string; name: string; line: string; font: OverlaySt
 export type OverlayFinding = { overlay: string; rule: string; value: number; verdict: 'ok' | 'warn' | 'bad' | 'pending'; basis: string; message: string }
 export type Overlays = { items: Overlay[]; style: OverlayStyle; findings: OverlayFinding[]
   look?: { id: string | null; overrides: string[]; all: LookInfo[] } }
-export type MusicTrack = { id: string; title: string; duration: number; bpm: number | null; audio: string; credit?: string | null }
+// Graphic animations (backend graphics.py, drawn by graphicDraw.ts): pieces
+// drawn over the footage, anchored like captions. What a piece shows is read
+// from the edit per request: the beat, the camcorder's clock as filmed, the
+// clock's time, the route's stops.
+export type GraphicPiece = 'title' | 'chapter' | 'route' | 'pin' | 'camcorder' | 'clock' | 'stickers' | 'sparkles' | 'circle' | 'progress'
+export type StickerKind = 'heart' | 'star' | 'smile' | 'sun' | 'flower' | 'bolt' | 'note' | 'sparkle'
+export type Graphic = {
+  id: string; piece: GraphicPiece; text: string; sub: string; tint: string
+  dur: number | null; anchor: { to: 'edit' | 'end' | 'beat' | 'shot'; id?: string }; at: number
+  start: number; end: number; shown_end: number
+  place?: OverlayPlace | null
+  /** how big, 1 = as it comes (dragging a corner on the picture, or the Size slider) */
+  size?: number
+  sticker?: StickerKind
+  /** stickers: the music's beat in edit time; null = a steady pulse */
+  beat?: { bpm: number; phase: number } | null
+  /** camcorder: [start, end, seconds of the day at start, speed] per shot, as filmed */
+  times?: [number, number, number, number][]
+  /** clock: minutes since midnight when the moment was filmed */
+  clock?: number | null
+  /** route: the day's stops on a little map (0..1), the one it's at, the map's width / height */
+  stops?: { x: number; y: number; name: string | null }[]; here?: number; aspect?: number
+}
+export type Graphics = { items: Graphic[]; can: Record<GraphicPiece, string | null> }
+export type MusicTrack = { id: string; title: string; duration: number; bpm: number | null; audio: string; credit?: string | null
+  volume?: number }   // the Volume slider: 1 = as placed, up to 2
+// My resources: a caption look, animation, transition, effect, shot settings
+// or song the creator saved off a video to use again (web/backend/resources.py)
+/** Your profile's start (backend /api/profile/start): asked once after an export,
+ *  where every next video starts. Logged out, only `signed_in`, `ask`, `made`. */
+export type ProfileStart = {
+  signed_in: boolean; ask: boolean; made: boolean
+  makes?: 'vlog' | 'lesson' | null; pace?: 'fast' | 'balanced' | 'calm' | null
+  transition?: string | null; captions?: boolean; template?: CaptionTemplate | null
+}
+export type StartPicks = Partial<Pick<ProfileStart, 'makes' | 'pace' | 'transition' | 'captions' | 'template'>>
+export type ResourceKind = 'caption' | 'animation' | 'transition' | 'effect' | 'shot' | 'song' | 'graphic'
+export type Resource = { id: string; kind: ResourceKind; name: string; value: Record<string, unknown>; at: number }
+export type ResourceFolder = { signed_in: boolean; as?: string; signin_url: string | null; signup_url?: string | null
+  kinds: { id: ResourceKind; title: string }[]; items: Resource[] }
 export type Habit = { id: string; kind: 'avoid' | 'prefer' | 'music_off'; label: string | null; weight: number; n: number; evidence: string[]; text: string; used: number; off: boolean }
 
 export type CutSummary = { clips: number; kept: number; rejected: number; raw: number; cut: number; ratio: number | null; line_en: string }
@@ -220,6 +265,7 @@ export type Session = {
   preferences: Preferences
   voiceover: { source: string; timing: 'estimated' | 'text_only'; lines: number; total: number } | null
   overlays: Overlays
+  graphics?: Graphics
   project: ProjectMeta | null
   brief: Brief | null
   exports: ExportRecord[]

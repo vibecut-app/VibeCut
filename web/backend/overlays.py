@@ -31,6 +31,7 @@ carries the number it is based on and a verdict, like cutgrammar's rules.
 
 from __future__ import annotations
 
+import re
 from datetime import datetime
 
 FRAME = 1 / 30
@@ -102,7 +103,16 @@ STYLE_FIELDS = ("font", "color", "accent", "captions", "backing", "template", "e
 PICKED = ("template", "enter", "text_color", "typeface", "outline", "shadow", "backdrop", "thick")   # never come from a look, so need no marking
 
 TEXT_MAX = 140
-EDITABLE = ("text", "sub", "pos", "size", "anim", "dur", "place", "look")
+EDITABLE = ("text", "sub", "pos", "size", "anim", "dur", "place", "look", "lines")
+# One line of a group tuned on its own (sarah, 2026-10-20: a chapter title and
+# the line under it are "a group of captions" she tunes independently, like
+# CapCut's grouped text). "main" is the title or the words, "sub" the line
+# under a title or the place name above a caption. Each takes the Captions
+# panel's own fields, plus a size and a nudge from where the group puts it
+# (shares of the frame's short side). Unset = the group's look.
+LINE_ROLES = ("main", "sub")
+LINE_LOOK = ("text_color", "typeface", "outline", "shadow", "backdrop", "thick")
+LINE_NUMS = {"scale": (0.4, 3.0), "dx": (-1.0, 1.0), "dy": (-1.0, 1.0)}
 # Dragged on the picture by hand: block centre as a fraction of the frame and
 # a size multiplier. Overrides pos/size (and, for captions, the caption line).
 SCALE_MIN, SCALE_MAX = 0.4, 3.0
@@ -180,6 +190,28 @@ def clean_style(patch: dict) -> dict:
     return out
 
 
+def clean_lines(v) -> dict:
+    """{role: look or None}; None (or an empty look) puts that line back to the group's."""
+    if not isinstance(v, dict) or not v or set(v) - set(LINE_ROLES):
+        raise OverlayError(f"lines are {' and '.join(LINE_ROLES)}")
+    out: dict = {}
+    for role, look in v.items():
+        if look is None:
+            out[role] = None
+            continue
+        if not isinstance(look, dict) or set(look) - set(LINE_LOOK) - set(LINE_NUMS):
+            raise OverlayError(f"a line's look takes {', '.join(LINE_LOOK + tuple(LINE_NUMS))}")
+        d = clean_style({k: look[k] for k in LINE_LOOK if k in look})
+        for n, (lo, hi) in LINE_NUMS.items():
+            if n in look:
+                x = look[n]
+                if x is not None and (not isinstance(x, (int, float)) or isinstance(x, bool) or not lo <= x <= hi):
+                    raise OverlayError(f"a line's {n} must be between {lo} and {hi}")
+                d[n] = None if x is None else round(float(x), 4)
+        out[role] = d
+    return out
+
+
 def clean_fields(patch: dict, kind: str) -> dict:
     """Validate the editable fields of one overlay."""
     out = {}
@@ -227,6 +259,8 @@ def clean_fields(patch: dict, kind: str) -> dict:
         if kind != "heading" or patch["look"] not in HEADING_LOOKS:
             raise OverlayError(f"a chapter title's look is one of {', '.join(HEADING_LOOKS)}")
         out["look"] = patch["look"]
+    if "lines" in patch:
+        out["lines"] = clean_lines(patch["lines"])
     if kind != "chapters" and "text" in out and not out["text"]:
         raise OverlayError("an overlay needs some text")
     return out
@@ -300,13 +334,14 @@ def anchor_at(board: dict, t: float, prefer: dict | None = None) -> tuple[dict, 
     raise OverlayError(f"nothing in the edit at {t:.2f}s")
 
 
-def resolve(board: dict | None) -> list[dict]:
-    """Every overlay with its sequence start and end, in time order."""
+def resolve(board: dict | None, items: list[dict] | None = None) -> list[dict]:
+    """Every overlay (or `items` anchored the same way: graphics.py) with its
+    sequence start and end, in time order."""
     if not board:
         return []
     beats, shots, total = _spans(board)
     out = []
-    for o in board.get("overlays", []):
+    for o in board.get("overlays", []) if items is None else items:
         span = anchor_span(board, o["anchor"])
         if span is None:
             continue
@@ -363,7 +398,7 @@ def add(b: dict, op: dict, new_id) -> None:
     if kind == "caption":
         o["pos"] = "bottom"     # captions follow the one caption position
     if kind == "heading":
-        o.setdefault("look", "bold")
+        o.setdefault("look", "spaced")    # thin, white, spaced capitals: the day-vlog chapter title
     if kind != "chapters" and not o["text"]:
         raise OverlayError("an overlay needs some text")
     b.setdefault("overlays", []).append(o)
@@ -373,6 +408,11 @@ def _find(b: dict, oid: str | None) -> dict:
     for o in b.get("overlays", []):
         if o["id"] == oid:
             return o
+    if oid in ("all_captions", "all_titles"):   # the chat's every-caption edit
+        kind, what = ("caption", "captions") if oid == "all_captions" else ("heading", "chapter titles")
+        if any(o["kind"] == kind for o in b.get("overlays", [])):
+            raise OverlayError(f"every one of the {what} at once can only be moved, sized or removed")
+        raise OverlayError(f"there are no {what} in this edit")
     raise OverlayError(f"no overlay {oid}")
 
 
@@ -390,6 +430,19 @@ def edit(b: dict, op: dict) -> None:
         fields.pop("pos", None)
     if not fields and "anchor" not in op:
         raise OverlayError("nothing to change")
+    if "lines" in fields:
+        # one line's look merges into what it had; a field set to None goes
+        lines = dict(o.get("lines") or {})
+        for role, look in fields.pop("lines").items():
+            merged = {k: x for k, x in {**(lines.get(role) or {}), **(look or {})}.items() if x is not None} if look else {}
+            if merged:
+                lines[role] = merged
+            else:
+                lines.pop(role, None)
+        if lines:
+            o["lines"] = lines
+        else:
+            o.pop("lines", None)
     o.update(fields)
 
 
@@ -412,7 +465,9 @@ def set_style(b: dict, op: dict) -> None:
 
 
 def prune(b: dict) -> None:
-    """Overlays go with what they hang off."""
+    """Overlays go with what they hang off, and so do graphics."""
+    from . import graphics
+    graphics.prune(b)
     if b.get("overlays"):
         b["overlays"] = [o for o in b["overlays"] if exists(b, o["anchor"])]
         if not b["overlays"]:
@@ -465,10 +520,16 @@ def describe(a: dict | None, b: dict | None) -> list[dict]:
             what.append("timing")
         if old["dur"] != o["dur"]:
             what.append("length")
-        if (old["pos"], old["size"], old.get("place")) != (o["pos"], o["size"], o.get("place")):
+        if old.get("look") != o.get("look"):
+            what.append("style")
+        if (old["pos"], old.get("place")) != (o["pos"], o.get("place")):
             what.append("place")
+        if old["size"] != o["size"]:
+            what.append("size")
         if old["anim"] != o["anim"]:
             what.append("animation")
+        if old.get("lines") != o.get("lines"):
+            what.append("look")
         if what:
             lines.append({"kind": "retitled", "text": f"Changed the {what_list(what)} of the {_name(o)}"})
     sa, sb_ = (a or {}).get("overlay_style"), (b or {}).get("overlay_style")
@@ -492,7 +553,28 @@ def describe(a: dict | None, b: dict | None) -> list[dict]:
         if changed:
             lines.append({"kind": "retitled", "text": "Text style: " + ", ".join(
                 f"{k} {style_of(b)[k]}" for k in changed)})
-    return lines
+    return _fold(lines)
+
+
+def _fold(lines: list[dict]) -> list[dict]:
+    """The same change to many overlays (every caption moved at once) reads as
+    one line, not one per caption."""
+    groups: dict[str, list[tuple[int, str]]] = {}
+    for i, l in enumerate(lines):
+        m = re.match(r"Changed the (.+) of the (.+?) “", l["text"]) if l["kind"] == "retitled" else None
+        if m:
+            groups.setdefault(m.group(1), []).append((i, m.group(2)))
+    drop, put = set(), {}
+    for what, ix in groups.items():
+        if len(ix) > 3:
+            counts: dict[str, int] = {}
+            for _, label in ix:
+                counts[label] = counts.get(label, 0) + 1
+            many = [f"{n} {label}s" if n > 1 else ("an " if label[0] in "aeiou" else "a ") + label
+                    for label, n in counts.items()]
+            put[ix[0][0]] = {"kind": "retitled", "text": f"Changed the {what} of {what_list(many)}"}
+            drop |= {i for i, _ in ix[1:]}
+    return [put.get(i, l) for i, l in enumerate(lines) if i not in drop]
 
 
 def what_list(xs: list[str]) -> str:

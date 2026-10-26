@@ -27,7 +27,7 @@ test('a dissolve window straddles the cut exactly as the export overlaps it', ()
 test('a plain cut has no dissolve, and the next shot waits at its first frame', () => {
   const plain = byKey([])
   assert.equal(dissolveAfter(items, 0, plain, FPS), null)
-  assert.deepEqual(preloadAt(items, 0, plain, FPS), { clip: 'b', t: 4 })
+  assert.deepEqual(preloadAt(items, 0, plain, FPS), { clip: 'b', url: '/api/video/b', t: 4 })
   assert.ok(Math.abs(preloadAt(items, 0, tr, FPS)!.t - (4 - 10 / 30)) < 1e-9)
 })
 

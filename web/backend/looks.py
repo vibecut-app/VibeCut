@@ -127,7 +127,9 @@ def overrides(b: dict | None) -> list[str]:
 
 def describe(a: dict | None, b: dict | None) -> list[dict]:
     la, lb = (a or {}).get("look"), (b or {}).get("look")
-    if la == lb and ((a or {}).get("style_set") or []) == ((b or {}).get("style_set") or []):
+    # A field set by hand (style_set grew) is said by the overlay lines; only
+    # fields handed back to the look mean the words follow it again.
+    if la == lb and not set((a or {}).get("style_set") or []) - set((b or {}).get("style_set") or []):
         return []
     if lb and la != lb:
         kept = overrides(b)

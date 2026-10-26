@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { wordsOf, wordsPatch } from './captionWords.ts'
+import { asTyped, wordsOf, wordsPatch } from './captionWords.ts'
 
 const cap = { kind: 'caption' as const, text: '7:40 am · coffee run', sub: 'Butler Library' }
 
@@ -18,4 +18,10 @@ test('typing changes only what changed', () => {
 test('a date keeps one line and an emptied box changes nothing', () => {
   assert.deepEqual(wordsPatch({ kind: 'date', text: 'Sep 22', sub: '' }, 'Sep\n23'), { text: 'Sep 23' })
   assert.equal(wordsPatch(cap, '  \n '), null)
+})
+
+test('while typing, the box sizes itself on what is typed, not what was saved', () => {
+  const h = { kind: 'heading' as const, text: 'Lunch', sub: 'so good', id: 'h' }
+  assert.deepEqual(asTyped(h, 'My Way To School\nso good'), { ...h, text: 'My Way To School' })
+  assert.deepEqual(asTyped(h, ''), h, 'an emptied box keeps the saved words to measure')
 })

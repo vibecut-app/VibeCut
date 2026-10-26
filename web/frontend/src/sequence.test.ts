@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { beatAt, clock, locate, parseTimecode, readout, smpte, type SeqItem } from './sequence.ts'
+import { beatAt, clock, fromMedia, locate, mediaEnd, mediaUrl, parseTimecode, readout, smpte, toMedia, toSource, type SeqItem } from './sequence.ts'
 
 test('typed timecodes: seconds, m:ss, h:mm:ss and SMPTE frames', () => {
   assert.equal(parseTimecode('21.3', 30), 21.3)
@@ -37,4 +37,23 @@ test('readout says what is at the playhead', () => {
   assert.equal(readout(items, null, 21.3), 'Shot 3 · 2.1s in · 0:21.30')
   assert.equal(readout(items, { bpm: 120, phase: 0 }, 21.3), 'Shot 3 · 2.1s in · 0:21.30 · beat 3 of 4')
   assert.deepEqual(beatAt({ bpm: 120, phase: 0.25 }, 0.1), null)
+})
+
+test('a reversed shot: the file is its span backwards, tools still get source time', () => {
+  // 4 s of source (101–105) at 2x: 2 s in the edit, starting at 10
+  const r: SeqItem = { ...item(9, 10, 12), src_start: 101, src_end: 105, speed: 2, reverse: true }
+  assert.equal(mediaUrl(r), '/api/reversed/c?a=101&b=105')
+  assert.equal(toSource(r, 10), 105)      // plays its last source frame first
+  assert.equal(toSource(r, 11.5), 102)
+  assert.equal(toMedia(r, 11.5), 3)       // 3 s into the reversed file
+  assert.equal(fromMedia(r, 3), 11.5)
+  assert.equal(mediaEnd(r), 4)
+})
+
+test('a held frame shows its one frame the whole time', () => {
+  const f: SeqItem = { ...item(8, 5, 8), src_start: 42, src_end: 45, freeze: true }
+  assert.equal(mediaUrl(f), '/api/video/c')
+  assert.equal(toMedia(f, 5), 42)
+  assert.equal(toMedia(f, 7.9), 42)
+  assert.equal(toSource(f, 6.5), 43.5)    // a cut at the playhead still splits its length
 })

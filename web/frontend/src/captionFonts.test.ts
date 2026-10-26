@@ -65,9 +65,11 @@ test('the box a caption is typed into uses the picked font', () => {
   assert.ok(look.main.font.includes('"VC Pacifico"') && look.lead!.font.includes('"VC Pacifico"'), look.main.font)
 })
 
-test('only captions take the font', () => {
-  const t = draw({ ...BASE, typeface: 'anton' }, ov('title', 'Sep 22'))
-  assert.ok(!t[0].font.includes('VC Anton'))
+// the panel edits any words the video writes (a title, a stop's line), as
+// CapCut's text panel does; a date stamp keeps its own lettering
+test('captions and labels take the font, a date keeps its own', () => {
+  assert.ok(draw({ ...BASE, typeface: 'anton' }, ov('title', 'Sep 22'))[0].font.includes('VC Anton'))
+  assert.ok(!draw({ ...BASE, typeface: 'anton' }, ov('date', 'Sep 22'))[0].font.includes('VC Anton'))
 })
 
 test('a template keeps its edge around the picked font', () => {
@@ -94,8 +96,9 @@ test('every font ships with the app and the backend knows it', () => {
   for (const f of CAPTION_FONTS) {
     const faces = [...css.matchAll(/@font-face \{([^}]*)\}/g)].map((m) => m[1]).filter((b) => b.includes(`'VC ${f.name}'`))
     assert.ok(faces.length >= 1, `${f.name}: no @font-face`)
+    // a family may ship other weights too (Montserrat Light letters the chapter titles)
+    assert.ok(faces.some((b) => b.includes(`font-weight: ${f.weight};`)), `${f.name}: weight ${f.weight} not shipped`)
     for (const b of faces) {
-      assert.ok(b.includes(`font-weight: ${f.weight};`), `${f.name}: weight ${f.weight} not shipped`)
       const file = /url\(\/fonts\/([^)]+)\)/.exec(b)![1]
       assert.ok(existsSync(new URL(`../public/fonts/${file}`, import.meta.url)), `${file} missing`)
     }
