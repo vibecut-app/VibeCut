@@ -30,6 +30,8 @@ import { Inspector, type InspectorTab, type JoinPick } from './components/Inspec
 import { PreviewBar, type FrameChoice } from './components/PreviewBar'
 import { Handle, useLayout } from './components/Split'
 import { Icon, type IconName } from './components/icons'
+import { lineName } from './overlayDraw'
+import type { LineRole } from './types'
 import { Footage, type Importing } from './components/Footage'
 import { fromDataTransfer, fromInput, takeHandoff, takeRefs, type Picked } from './drop'
 import { bytes, cents, uid } from './format'
@@ -105,6 +107,9 @@ export default function App({ id, view }: { id: string; view: 'story' | 'frames'
   const [alt, setAlt] = useState(false)
   const [help, setHelp] = useState(false)
   const [selOverlay, setSelOverlay] = useState<string | null>(null)
+  // one line of the picked group (a title and the line under it), tuned on its own; null = the whole group
+  const [selLine, setSelLine] = useState<LineRole | null>(null)
+  useEffect(() => { setSelLine(null) }, [selOverlay])
   // Frames: the panel beside the rail on the left (closed by clicking its item again)
   const [side, setSide] = useState<'media' | 'text' | 'music' | 'chat' | null>(() => (window.innerWidth < 1100 ? null : 'media'))
   const [layout, setSize] = useLayout()
@@ -970,6 +975,9 @@ export default function App({ id, view }: { id: string; view: 'story' | 'frames'
       const o = ovData.items.find((x) => x.id === id)
       run([{ op: 'edit_overlay', overlay: id, ...patch }], `You changed the words of the ${o ? KIND_META[o.kind].label.toLowerCase() : 'caption'}`)
     },
+    line: selLine,
+    onLine: setSelLine,
+    onNudge: (id, role, look) => run([{ op: 'edit_overlay', overlay: id, lines: { [role]: look } }], `You moved ${lineName(ovData.items.find((x) => x.id === id), role)}`),
   } : undefined
   const overlaysPanel = session?.board ? (
     <Overlays data={ovData} items={tl.items} level={level} selected={selOverlay} busy={!!pending}
@@ -1162,6 +1170,8 @@ export default function App({ id, view }: { id: string; view: 'story' | 'frames'
                onCaptionWatch={() => ovSel && watchOverlay(ovSel)}
                onCaptionDone={() => setSelOverlay(null)}
                onCaptionPlace={(place, label) => ovSel && run([{ op: 'edit_overlay', overlay: ovSel.id, place }], label)}
+               line={selLine} onLine={setSelLine}
+               onLineLook={(role, look, label) => ovSel && run([{ op: 'edit_overlay', overlay: ovSel.id, lines: { [role]: look } }], label)}
                looks={ovData.look ? { id: ovData.look.id, all: ovData.look.all } : null}
                music={musicNode}
                video={session?.board ? (

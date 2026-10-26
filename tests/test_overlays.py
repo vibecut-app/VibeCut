@@ -207,6 +207,32 @@ def main() -> int:
         bad = True
     check("drag: off the picture is refused", bad, "")
 
+    # A title and the line under it are a group, each line tuned on its own
+    # (sarah, 2026-10-20): one line's look changes that line only, merges
+    # with what it had, undoes, and None puts it back to the group's.
+    s, cat = session()
+    add(s, cat, kind="title", text="heading in", sub="8:35 am · heading to class", beat="t1")
+    oid = s.board["overlays"][0]["id"]
+    one_line = lambda: next(o for o in s.board["overlays"] if o["id"] == oid).get("lines")  # noqa: E731
+    t = s.add({"kind": "direct", "text": "line", "ops": [{"op": "edit_overlay", "overlay": oid,
+               "lines": {"sub": {"text_color": "#ff3366", "scale": 1.4}}}]}, cat, mk)
+    s.add({"kind": "direct", "text": "line", "ops": [{"op": "edit_overlay", "overlay": oid,
+           "lines": {"sub": {"typeface": "anton", "dy": 0.05}}}]}, cat, mk)
+    got = one_line()
+    check("group: one line's look, merged, the other line untouched",
+          got == {"sub": {"text_color": "#ff3366", "scale": 1.4, "typeface": "anton", "dy": 0.05}},
+          str(got))
+    check("group: the diff says the look changed", any("look" in l["text"] for l in t.lines), str([l["text"] for l in t.lines]))
+    s.add({"kind": "direct", "text": "line", "ops": [{"op": "edit_overlay", "overlay": oid, "lines": {"sub": None}}]}, cat, mk)
+    check("group: None puts the line back to the group's", one_line() is None, str(one_line()))
+    for bad_lines in ({"under": {}}, {"sub": {"scale": 9}}, {"sub": {"text_color": "red"}}, {"sub": {"template": "bold"}}):
+        try:
+            ov.clean_fields({"lines": bad_lines}, "title")
+            ok = False
+        except ov.OverlayError:
+            ok = True
+        check(f"group: refused {bad_lines}", ok, "")
+
     print()
     if failures:
         print(f"{len(failures)} failed: {', '.join(failures)}")

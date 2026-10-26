@@ -156,7 +156,13 @@ export type Overlay = {
   // dragged on the picture by hand: block centre (0..1 of the frame) and size multiplier
   place?: OverlayPlace | null
   look?: HeadingLook
+  /** one line of the group tuned on its own (main = the title or words, sub = the line under or the place name above) */
+  lines?: Partial<Record<LineRole, LineLook>>
 }
+export type LineRole = 'main' | 'sub'
+/** the Captions panel's fields for one line, plus its size and a nudge (shares of the frame's short side) */
+export type LineLook = Pick<OverlayStyle, 'text_color' | 'typeface' | 'outline' | 'shadow' | 'backdrop' | 'thick'>
+  & { scale?: number | null; dx?: number | null; dy?: number | null }
 export type OverlayPlace = { x: number; y: number; scale: number }
 export type OverlayStyle = { font: 'Clean' | 'Editorial' | 'Rounded' | 'Mono' | 'Condensed'; color: string; accent: string; captions: 'bottom' | 'center'; backing: 'shadow' | 'box' | 'none'
   look?: string; motion?: Motion | null

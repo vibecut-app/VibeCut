@@ -9,6 +9,8 @@ import { Icon, type IconName } from './icons'
 import { CaptionAnimations, CaptionStyles, Transitions } from './StyleBars'
 import { EffectTiles } from './Effects'
 import { effectName } from '../effectView'
+import { lineLabel, lineName } from '../overlayDraw'
+import type { LineLook, LineRole } from '../types'
 
 // The right-hand inspector of the edit screen (sarah, 2026-10-16: the layout
 // of her reference picture). Five tabs: Edit (the clicked shot: trim, speed,
@@ -71,6 +73,10 @@ export function Inspector(p: {
   onStripDelete: () => void
   onCaptions: () => void
   onCaptionStyle: (patch: CaptionStylePatch, label: string) => void
+  /** one line of the picked group (a title and the line under it), null = the whole group */
+  line: LineRole | null
+  onLine: (role: LineRole | null) => void
+  onLineLook: (role: LineRole, look: LineLook | null, label: string) => void
   onJoin: (op: { kind: string; dur?: number; all?: boolean }, label: string) => void
   /** every shot's effect when they all share one (with no shot clicked), and a thumbnail to show effects on */
   allEffect: { effect: string | null; amount: number; thumb: string | null }
@@ -78,6 +84,13 @@ export function Inspector(p: {
   onLook: (id: string, name: string) => void
 }) {
   const it = p.item
+  // A title with a line under it (or a caption with its place name) is a
+  // group: each line can be picked and tuned on its own. A chapter title
+  // has its own look, so it has no "every caption" to fall back to.
+  const cap = p.caption
+  const grouped = !!cap && (!!cap.sub || cap.kind === 'heading')
+  const ownLook = cap?.kind === 'heading'
+  const role: LineRole | null = cap && grouped ? p.line ?? (ownLook ? 'main' : null) : null
   const shot = it && it.kind === 'shot' ? it : null
   return (
     <aside className="flex min-h-0 min-w-0 flex-1 flex-col">
@@ -147,6 +160,14 @@ export function Inspector(p: {
             </Line>
             <Button onClick={p.onCaptionAdd}>+ Add a caption at the playhead</Button>
           </>}
+          {cap && grouped && (
+            <Line label="Change">
+              <Segmented options={[...(ownLook ? [] : [['all', 'Every caption'] as [string, string]]),
+                                   ...(['main', 'sub'] as LineRole[]).filter((r) => r === 'main' || cap.sub).map((r) => [r, lineLabel(cap, r)] as [string, string])]}
+                         value={role ?? 'all'} onPick={(v) => p.onLine(v === 'all' ? null : v as LineRole)} />
+            </Line>
+          )}
+          {cap && role ? <LineLookPanel key={cap.id + role} o={cap} role={role} style={p.style} onLook={(look, label) => p.onLineLook(role, look, label)} /> : <>
           {p.captionsOn ? <>
             <Section title={p.caption ? 'Font of every caption' : 'Font'}>
               <CaptionFonts value={p.style.typeface ?? null}
@@ -161,6 +182,7 @@ export function Inspector(p: {
             <Section title={p.caption ? 'Animation of every caption' : 'Animation'}><CaptionAnimations style={p.style} thumb={p.captionThumb} sample={p.captionSample} onPick={p.onCaptionStyle} /></Section>
             {!p.caption && <Hint>One style for every caption. Click a caption on the picture or the timeline to change its words.</Hint>}
           </> : <Hint>Turn captions on to put the time and place of each moment on the video.</Hint>}
+          </>}
         </>}
 
         {p.tab === 'effects' && <>
@@ -593,4 +615,37 @@ export function Chip({ children, onClick, on, danger }: { children: ReactNode; o
       {children}
     </button>
   )
+}
+
+// One line of a group, tuned on its own (sarah, 2026-10-20: "make them into a
+// group of captions, and we can tune it independently"): the same controls
+// as every caption's, for this line only, plus its size. Dragging the line on
+// the picture moves it away from the rest of the group.
+function LineLookPanel({ o, role, style, onLook }: {
+  o: Overlay; role: LineRole; style: OverlayStyle; onLook: (look: LineLook | null, label: string) => void
+}) {
+  const L: LineLook = o.lines?.[role] ?? {}
+  const name = lineName(o, role)
+  const Name = name[0].toUpperCase() + name.slice(1)
+  // what the sliders start from: this line's own settings over a plain line
+  const own: OverlayStyle = { ...style, template: null, text_color: L.text_color ?? null, typeface: L.typeface ?? null,
+    outline: L.outline ?? null, shadow: L.shadow ?? null, backdrop: L.backdrop ?? null, thick: L.thick ?? null }
+  const say = (label: string) => label.replace(/^The captions/, Name).replace(/the captions'?/g, name)
+  const scale = L.scale ?? 1
+  return <>
+    <Hint>Only {name} changes. The rest stays as it is and moves with it.</Hint>
+    <Section title="Font">
+      <CaptionFonts value={L.typeface ?? null} onPick={(f) => onLook({ typeface: f?.id ?? null }, f ? `${Name} is in ${f.name}` : `${Name} is back to its own font`)} />
+    </Section>
+    <Section title="Colour">
+      <CaptionColours value={L.text_color ?? null} onPick={(c) => onLook({ text_color: c }, c ? `You changed the colour of ${name}` : `${Name} is back to its own colour`)} />
+    </Section>
+    <Slider label="Size" value={Math.round(scale * 100)} min={40} max={300} step={10} unit="%"
+            onCommit={(v) => onLook({ scale: v === 100 ? null : v / 100 }, `You made ${name} ${v > scale * 100 ? 'bigger' : 'smaller'}`)} />
+    <CaptionDress style={own} onPick={(patch, label) => onLook(patch as LineLook, say(label))} />
+    <div className="flex flex-wrap gap-2">
+      {!!(L.dx || L.dy) && <Chip onClick={() => onLook({ dx: null, dy: null }, `You put ${name} back in its place`)}>Put it back in its place</Chip>}
+      {Object.keys(L).length > 0 && <Chip onClick={() => onLook(null, `${Name} is back to how it was`)}>Back to how it was</Chip>}
+    </div>
+  </>
 }

@@ -9,7 +9,7 @@
 // render any frame in any order.
 
 import { fontById } from './captionFonts.ts'
-import type { CaptionBackdrop, CaptionEnter, CaptionOutline, CaptionShadow, CaptionTemplate, HeadingLook, Motion, Overlay, OverlayKind, OverlayStyle } from './types'
+import type { CaptionBackdrop, CaptionEnter, CaptionOutline, CaptionShadow, CaptionTemplate, HeadingLook, LineRole, Motion, Overlay, OverlayKind, OverlayStyle } from './types'
 
 export type Part = { id: string; title: string; start: number; end: number }
 
@@ -407,8 +407,70 @@ export function wrap(measure: (s: string) => number, text: string, maxW: number,
   return lines
 }
 
+// The words the video writes for itself (a stop's line, the title, the
+// sign-off, a name) take the Captions panel's look too, the way CapCut's text
+// panel edits whatever text is picked (sarah, 2026-10-20: the colour, shadow
+// and font did nothing on a made video's "Columbia University, morning",
+// which is a part label). Until something is set they keep the look's own.
+const LABELS: Partial<Record<Overlay['kind'], number>> = { part: 0.058, title: 0.09, end: 0.07, name: 0.05 }
+
+function labelTpl(o: Overlay, style: OverlayStyle): Tpl | null {
+  const size = LABELS[o.kind]
+  if (!size || !(style.template || isDressed(style))) return null
+  // a template is sized for a caption: a label keeps its own size beside it
+  if (style.template) {
+    const t = tplFor(style)!
+    return { ...t, size: t.size * (size / LABELS.part!), side: undefined }
+  }
+  return dress({ family: FAMILY[style.font], weight: WEIGHT[style.font].bold, size, color: style.text_color || o.ink || style.color, shadow: true }, style)
+}
+
+// A title and the line under it (or a caption and its place name) are a
+// group: they move and time together, and each line can be tuned on its own
+// (sarah, 2026-10-20: "make them into a group of captions, and we can tune it
+// independently", like CapCut's grouped text). Which line is which: the place
+// name sits above a caption or a stop's line, the line under a title below.
+// which line of the group; tuned on its own; nudged (px)
+type Grouped = Line & { role?: LineRole; own?: boolean; dx?: number; dy?: number }
+export const subAbove = (o: Overlay) => o.kind === 'caption' || o.kind === 'part'
+/** What each line of a group is called in the panel: "Title" / "Line under", "Words" / "Place name". */
+export const lineLabel = (o: Pick<Overlay, 'kind'> | undefined, role: LineRole) =>
+  o && subAbove(o as Overlay) ? (role === 'main' ? 'Words' : 'Place name') : role === 'main' ? 'Title' : 'Line under'
+export const lineName = (o: Pick<Overlay, 'kind'> | undefined, role: LineRole) =>
+  o && subAbove(o as Overlay) ? (role === 'main' ? 'the words' : 'the place name') : role === 'main' ? 'the title' : 'the line under the title'
+function roles(o: Overlay, lines: Line[]): Grouped[] {
+  if (!o.sub) return lines.map((ln): Grouped => ({ ...ln, role: 'main' }))
+  const sub = subAbove(o) ? 0 : lines.length > 1 ? lines.length - 1 : -1
+  return lines.map((ln, i): Grouped => ({ ...ln, role: i === sub ? 'sub' : 'main' }))
+}
+
+// One line's own look over the group's: the panel's font, colour, outline,
+// shadow, background and boldness, its size, and where it sits.
+function tuned(o: Overlay, style: OverlayStyle, lines: Grouped[], u: number): Grouped[] {
+  if (!o.lines) return lines
+  return lines.map((ln0) => {
+    const L = o.lines?.[ln0.role ?? 'main']
+    if (!L) return ln0
+    let ln: Grouped = { ...ln0, family: ln0.family ?? FAMILY[style.font], weight: ln0.weight ?? (ln0.bold ? WEIGHT[style.font].bold : WEIGHT[style.font].regular) }
+    const face = fontById(L.typeface)
+    if (face) ln = { ...ln, family: face.family, weight: face.weight, px: ln.px * face.size }
+    if (L.scale) ln = { ...ln, px: ln.px * L.scale }
+    if (L.text_color) ln = { ...ln, color: L.text_color }
+    if (L.text_color || DRESS_KEYS.some((k) => L[k] != null)) {
+      const base: Tpl = ln.tpl ?? { family: ln.family!, weight: ln.weight!, size: 0, color: ln.color, track: ln.track, shadow: true }
+      const tpl = dress({ ...base, family: ln.family!, weight: ln.weight! }, L as OverlayStyle)
+      ln = { ...ln, tpl, color: L.text_color ?? (tpl.box ? tpl.box.ink : ln.color), own: true }
+    }
+    return { ...ln, dx: (L.dx ?? 0) * u, dy: (L.dy ?? 0) * u }
+  })
+}
+
 function linesFor(o: Overlay, style: OverlayStyle, u: number, chars: number): Line[] {
-  const face = o.kind === 'caption' ? fontById(style.typeface) : null
+  return tuned(o, style, roles(o, groupLines(o, style, u, chars)), u)
+}
+
+function groupLines(o: Overlay, style: OverlayStyle, u: number, chars: number): Line[] {
+  const face = o.kind === 'caption' || LABELS[o.kind] ? fontById(style.typeface) : null
   // a picked font letters every caption line; the template keeps its edge,
   // backing and case, the look its colour and motion
   const lettered = (lines: Line[]) => !face ? lines
@@ -420,6 +482,8 @@ function linesFor(o: Overlay, style: OverlayStyle, u: number, chars: number): Li
   if (o.kind === 'caption') {
     return lettered(templateLines(o, dress(softTpl(o, style), style), u, chars))
   }
+  const label = labelTpl(o, style)
+  if (label) return lettered(templateLines(o, label, u, chars))
   const lines = baseLines(o, style, u, chars)
   const m = style.motion
   if (!m || o.kind === 'date') return lettered(lines)
@@ -435,7 +499,7 @@ function linesFor(o: Overlay, style: OverlayStyle, u: number, chars: number): Li
 function baseLines(o: Overlay, style: OverlayStyle, u: number, chars: number): Line[] {
   const s = SIZE[o.size]
   const text = chars < o.text.length ? o.text.slice(0, chars) : o.text
-  const ink = (o.kind === 'caption' && style.text_color) || o.ink || style.color
+  const ink = ((o.kind === 'caption' || LABELS[o.kind]) && style.text_color) || o.ink || style.color
   style = o.ink2 ? { ...style, accent: o.ink2 } : style
   switch (o.kind) {
     case 'title':
@@ -533,7 +597,9 @@ export function typeLook(o: Overlay, style: OverlayStyle, u: number): TypeLook {
 
 // Where each block landed on this frame, in canvas pixels (for picking and
 // dragging words on the preview).
-export type OverlayBox = { id: string; x: number; y: number; w: number; h: number }
+/** Where an overlay was drawn, and each line of it (the group's lines, picked one at a time). */
+export type OverlayBox = { id: string; x: number; y: number; w: number; h: number; rows?: RowBox[] }
+export type RowBox = { role: LineRole; x: number; y: number; w: number; h: number }
 
 export function drawOverlays(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, W: number, H: number,
   items: Overlay[], style: OverlayStyle, parts: Part[], t: number, boxes?: OverlayBox[],
@@ -619,8 +685,11 @@ function drawBlock(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingConte
 
   ctx.save()
   const pl0 = place(p0)
+  const rowBoxes: RowBox[] = []
+  // a nudged line can sit outside the block: the box takes it in
   boxes?.push({ id: o.id, x: cx + pl0.ox - (blockW * pl0.sc) / 2, y: cy + pl0.oy - (blockH * pl0.sc) / 2,
-                w: blockW * pl0.sc, h: blockH * pl0.sc })
+                w: blockW * pl0.sc, h: blockH * pl0.sc, rows: rowBoxes })
+  const toCanvas = (X: number, Y: number) => [(X - cx) * pl0.sc + cx + pl0.ox, (Y - cy) * pl0.sc + cy + pl0.oy]
   ctx.translate(cx + pl0.ox, cy + pl0.oy)
   ctx.rotate(p0.rot)
   ctx.scale(pl0.sc, pl0.sc)
@@ -689,10 +758,33 @@ function drawBlock(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingConte
     ctx.globalAlpha = group ? at(group).alpha : p0.alpha
     // letter-spacing adds trailing space; shift so tracked text stays aligned
     const shift = r.line.track && a.align !== 'left' ? (r.line.track * r.line.px) / (a.align === 'center' ? 2 : 1) : 0
-    const ty = y + (r.h - r.line.px) / 2
+    const gl = r.line as Grouped
+    const ddx = gl.dx ?? 0, ddy = gl.dy ?? 0
+    const ty = y + ddy + (r.h - r.line.px) / 2
+    if (gl.role) {
+      const left = (a.align === 'left' ? x : a.align === 'right' ? x - r.w : x - r.w / 2) + ddx
+      const [bx, by] = toCanvas(left, y + ddy)
+      const last = rowBoxes[rowBoxes.length - 1]
+      // a line that wrapped is one line to pick
+      if (last && last.role === gl.role && prev === r.line) {
+        const x0 = Math.min(last.x, bx), x1 = Math.max(last.x + last.w, bx + r.w * pl0.sc)
+        Object.assign(last, { x: x0, w: x1 - x0, h: by + r.h * pl0.sc - last.y })
+      } else rowBoxes.push({ role: gl.role, x: bx, y: by, w: r.w * pl0.sc, h: r.h * pl0.sc })
+    }
     if (r.line.tpl) {
       ctx.globalAlpha = group ? at(group).alpha : p0.alpha
-      drawTemplateRow(ctx, r.text, r.w, r.line, r.line.tpl, x + shift, y, r.h, a.align)
+      const t = r.line.tpl
+      if (gl.own) {
+        // a line tuned on its own carries its own shadow, not the group's
+        ctx.save()
+        const d = typeof t.shadow === 'object' ? t.shadow.dist * r.line.px * 0.7071 : 0.003 * u
+        ctx.shadowColor = !t.shadow ? 'rgba(0,0,0,0)' : typeof t.shadow === 'object' ? t.shadow.color : 'rgba(0,0,0,0.7)'
+        ctx.shadowBlur = !t.shadow ? 0 : typeof t.shadow === 'object' ? t.shadow.blur * r.line.px : 0.02 * u
+        ctx.shadowOffsetX = typeof t.shadow === 'object' ? d : 0
+        ctx.shadowOffsetY = t.shadow ? d : 0
+      }
+      drawTemplateRow(ctx, r.text, r.w, r.line, t, x + shift + ddx, y + ddy, r.h, a.align)
+      if (gl.own) ctx.restore()
       y += r.h
       prev = r.line
       continue
@@ -702,10 +794,10 @@ function drawBlock(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingConte
       // parts of a split frame; the soft glow set above adds the rest
       const soft = ctx.shadowBlur
       ctx.shadowBlur = 0.005 * u
-      ctx.fillText(r.text, x + shift, ty)
+      ctx.fillText(r.text, x + shift + ddx, ty)
       ctx.shadowBlur = soft
     }
-    ctx.fillText(r.text, x + shift, ty)
+    ctx.fillText(r.text, x + shift + ddx, ty)
     y += r.h
     prev = r.line
   }

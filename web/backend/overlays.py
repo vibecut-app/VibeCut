@@ -102,7 +102,16 @@ STYLE_FIELDS = ("font", "color", "accent", "captions", "backing", "template", "e
 PICKED = ("template", "enter", "text_color", "typeface", "outline", "shadow", "backdrop", "thick")   # never come from a look, so need no marking
 
 TEXT_MAX = 140
-EDITABLE = ("text", "sub", "pos", "size", "anim", "dur", "place", "look")
+EDITABLE = ("text", "sub", "pos", "size", "anim", "dur", "place", "look", "lines")
+# One line of a group tuned on its own (sarah, 2026-10-20: a chapter title and
+# the line under it are "a group of captions" she tunes independently, like
+# CapCut's grouped text). "main" is the title or the words, "sub" the line
+# under a title or the place name above a caption. Each takes the Captions
+# panel's own fields, plus a size and a nudge from where the group puts it
+# (shares of the frame's short side). Unset = the group's look.
+LINE_ROLES = ("main", "sub")
+LINE_LOOK = ("text_color", "typeface", "outline", "shadow", "backdrop", "thick")
+LINE_NUMS = {"scale": (0.4, 3.0), "dx": (-1.0, 1.0), "dy": (-1.0, 1.0)}
 # Dragged on the picture by hand: block centre as a fraction of the frame and
 # a size multiplier. Overrides pos/size (and, for captions, the caption line).
 SCALE_MIN, SCALE_MAX = 0.4, 3.0
@@ -180,6 +189,28 @@ def clean_style(patch: dict) -> dict:
     return out
 
 
+def clean_lines(v) -> dict:
+    """{role: look or None}; None (or an empty look) puts that line back to the group's."""
+    if not isinstance(v, dict) or not v or set(v) - set(LINE_ROLES):
+        raise OverlayError(f"lines are {' and '.join(LINE_ROLES)}")
+    out: dict = {}
+    for role, look in v.items():
+        if look is None:
+            out[role] = None
+            continue
+        if not isinstance(look, dict) or set(look) - set(LINE_LOOK) - set(LINE_NUMS):
+            raise OverlayError(f"a line's look takes {', '.join(LINE_LOOK + tuple(LINE_NUMS))}")
+        d = clean_style({k: look[k] for k in LINE_LOOK if k in look})
+        for n, (lo, hi) in LINE_NUMS.items():
+            if n in look:
+                x = look[n]
+                if x is not None and (not isinstance(x, (int, float)) or isinstance(x, bool) or not lo <= x <= hi):
+                    raise OverlayError(f"a line's {n} must be between {lo} and {hi}")
+                d[n] = None if x is None else round(float(x), 4)
+        out[role] = d
+    return out
+
+
 def clean_fields(patch: dict, kind: str) -> dict:
     """Validate the editable fields of one overlay."""
     out = {}
@@ -227,6 +258,8 @@ def clean_fields(patch: dict, kind: str) -> dict:
         if kind != "heading" or patch["look"] not in HEADING_LOOKS:
             raise OverlayError(f"a chapter title's look is one of {', '.join(HEADING_LOOKS)}")
         out["look"] = patch["look"]
+    if "lines" in patch:
+        out["lines"] = clean_lines(patch["lines"])
     if kind != "chapters" and "text" in out and not out["text"]:
         raise OverlayError("an overlay needs some text")
     return out
@@ -390,6 +423,19 @@ def edit(b: dict, op: dict) -> None:
         fields.pop("pos", None)
     if not fields and "anchor" not in op:
         raise OverlayError("nothing to change")
+    if "lines" in fields:
+        # one line's look merges into what it had; a field set to None goes
+        lines = dict(o.get("lines") or {})
+        for role, look in fields.pop("lines").items():
+            merged = {k: x for k, x in {**(lines.get(role) or {}), **(look or {})}.items() if x is not None} if look else {}
+            if merged:
+                lines[role] = merged
+            else:
+                lines.pop(role, None)
+        if lines:
+            o["lines"] = lines
+        else:
+            o.pop("lines", None)
     o.update(fields)
 
 
@@ -469,6 +515,8 @@ def describe(a: dict | None, b: dict | None) -> list[dict]:
             what.append("place")
         if old["anim"] != o["anim"]:
             what.append("animation")
+        if old.get("lines") != o.get("lines"):
+            what.append("look")
         if what:
             lines.append({"kind": "retitled", "text": f"Changed the {what_list(what)} of the {_name(o)}"})
     sa, sb_ = (a or {}).get("overlay_style"), (b or {}).get("overlay_style")

@@ -17,10 +17,17 @@ export type OverlayEdit = {
   onPlaceAll: (place: OverlayPlace) => void
   onOpen: (id: string) => void
   onWords: (id: string, patch: { text?: string; sub?: string }) => void
+  /** one line of a group picked on its own (a title and the line under it): null = the whole group */
+  line: LineRole | null
+  onLine: (role: LineRole | null) => void
+  /** a picked line dragged away from its group: its nudge, one undoable edit */
+  onNudge: (id: string, role: LineRole, look: LineLook) => void
 }
 
 const SNAP = 0.02   // pulls onto the centre lines within 2% of the frame
-type Drag = { id: string; mode: 'move' | 'scale'; x0: number; y0: number; start: OverlayPlace; d0: number; moved: boolean; again: boolean }
+type LineRole = import('../types').LineRole
+type LineLook = import('../types').LineLook
+type Drag = { id: string; mode: 'move' | 'scale' | 'line'; role?: LineRole; nudge0?: { dx: number; dy: number }; x0: number; y0: number; start: OverlayPlace; d0: number; moved: boolean; again: boolean }
 // the box being typed into: where the caption was drawn when typing began
 type Typing = { id: string; box: OverlayBox; value: string }
 type Guides = { v: boolean; h: boolean } | null
@@ -33,6 +40,7 @@ export function OverlayCanvas({ view, width, height, edit }: { view: OverlayView
   const boxes = useRef<OverlayBox[]>([])
   const [drag, setDrag] = useState<Drag | null>(null)
   const [live, setLive] = useState<{ id: string; place: OverlayPlace } | null>(null)
+  const [liveLine, setLiveLine] = useState<{ id: string; role: LineRole; dx: number; dy: number } | null>(null)
   const [guides, setGuides] = useState<Guides>(null)
   const [selBox, setSelBox] = useState<OverlayBox | null>(null)
   const [typing, setTyping] = useState<Typing | null>(null)
@@ -44,8 +52,11 @@ export function OverlayCanvas({ view, width, height, edit }: { view: OverlayView
     : view
   // the words being typed stand in for the drawn ones until they're saved
   const shown: OverlayView = typing ? { ...placed, items: placed.items.filter((o) => o.id !== typing.id) } : placed
-  const viewRef = useRef(shown)
-  viewRef.current = shown
+  // a line of a group being dragged away from the rest
+  const drawn: OverlayView = liveLine ? { ...shown, items: shown.items.map((o) => o.id !== liveLine.id ? o
+    : { ...o, lines: { ...o.lines, [liveLine.role]: { ...o.lines?.[liveLine.role], dx: liveLine.dx, dy: liveLine.dy } } }) } : shown
+  const viewRef = useRef(drawn)
+  viewRef.current = drawn
   const selRef = useRef(edit?.selected ?? null)
   selRef.current = edit?.selected ?? null
 
@@ -63,10 +74,13 @@ export function OverlayCanvas({ view, width, height, edit }: { view: OverlayView
         const v = viewRef.current
         const out: OverlayBox[] = []
         drawOverlays(ctx, c.width, c.height, v.items, v.style, v.parts, phStore.get(), out)
-        boxes.current = out.map((b) => ({ id: b.id, x: b.x / dpr, y: b.y / dpr, w: b.w / dpr, h: b.h / dpr }))
+        const css = <T extends { x: number; y: number; w: number; h: number }>(b: T): T => ({ ...b, x: b.x / dpr, y: b.y / dpr, w: b.w / dpr, h: b.h / dpr })
+        boxes.current = out.map((b) => ({ ...css(b), rows: b.rows?.map(css) }))
         const s = boxes.current.find((b) => b.id === selRef.current) ?? null
-        setSelBox((old) => (old && s && Math.abs(old.x - s.x) + Math.abs(old.y - s.y) + Math.abs(old.w - s.w) + Math.abs(old.h - s.h) < 0.5
-          && old.id === s.id ? old : s))
+        const near = (a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }) =>
+          Math.abs(a.x - b.x) + Math.abs(a.y - b.y) + Math.abs(a.w - b.w) + Math.abs(a.h - b.h) < 0.5
+        setSelBox((old) => (old && s && old.id === s.id && near(old, s) && (old.rows ?? []).length === (s.rows ?? []).length
+          && (old.rows ?? []).every((r, i) => near(r, s.rows![i])) ? old : s))
       })
     }
     draw()
@@ -74,14 +88,14 @@ export function OverlayCanvas({ view, width, height, edit }: { view: OverlayView
     ensureFonts(shown.style).then(() => { if (alive) draw() })
     const off = phStore.subscribe(draw)
     return () => { alive = false; off(); cancelAnimationFrame(raf) }
-  }, [width, height, shown, edit?.selected]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [width, height, drawn, edit?.selected]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // A fresh edit from the server (the music being picked polls the session
   // every 1.5 s) must not snap a caption back from under the pointer, nor
   // lose the drop: only a finished drag lets the server's place take over.
   const dragging = useRef(false)
   const lastPlace = useRef<OverlayPlace | null>(null)
-  useEffect(() => { if (!dragging.current) setLive(null) }, [view])
+  useEffect(() => { if (!dragging.current) { setLive(null); setLiveLine(null) } }, [view])
 
   const placeOf = (id: string): OverlayPlace => {
     const o = view.items.find((x) => x.id === id)
@@ -108,6 +122,7 @@ export function OverlayCanvas({ view, width, height, edit }: { view: OverlayView
 
   if (!edit) return <canvas ref={ref} className="pointer-events-none absolute inset-0 z-[5] size-full" aria-hidden="true" />
 
+  const pickedRow = edit.line && selBox ? selBox.rows?.find((r) => r.role === edit.line) ?? null : null
   const startTyping = (id: string) => {
     const o = view.items.find((x) => x.id === id)
     const b = boxes.current.find((x) => x.id === id)
@@ -124,13 +139,34 @@ export function OverlayCanvas({ view, width, height, edit }: { view: OverlayView
     if (patch) edit.onWords(t.id, patch)
   }
 
+  // the line of a group under the pointer, when the group is the one picked
+  const rowAt = (b: OverlayBox, x: number, y: number) => {
+    const rows = b.rows ?? []
+    if (new Set(rows.map((r) => r.role)).size < 2) return null
+    return rows.find((r) => x >= r.x - 4 && x <= r.x + r.w + 4 && y >= r.y - 3 && y <= r.y + r.h + 3) ?? null
+  }
   const down = (e: React.PointerEvent) => {
     const p = local(e)
-    const scaling = onCorner(p.x, p.y)
+    const scaling = !edit.line && onCorner(p.x, p.y)
     const b = scaling ? selBox : hit(p.x, p.y)
     if (!b) { if (edit.selected) { edit.onSelect(null); e.stopPropagation() } return }
     e.stopPropagation()
-    edit.onSelect(b.id)
+    // A group picked already: a click on one of its lines picks that line
+    // (CapCut's grouped text), a click on the picked line types into it, and
+    // dragging a picked line moves it away from the rest of the group.
+    const row = !scaling && edit.selected === b.id ? rowAt(b, p.x, p.y) : null
+    if (row) {
+      const o = view.items.find((x) => x.id === b.id)
+      const L = o?.lines?.[row.role]
+      if (edit.line !== row.role) edit.onLine(row.role)
+      ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+      dragging.current = true
+      setDrag({ id: b.id, mode: 'line', role: row.role, nudge0: { dx: L?.dx ?? 0, dy: L?.dy ?? 0 }, x0: p.x, y0: p.y,
+        start: placeOf(b.id), d0: 1, moved: false, again: edit.line === row.role && typing?.id !== b.id })
+      return
+    }
+    if (edit.selected !== b.id) edit.onSelect(b.id)
+    else if (edit.line) edit.onLine(null)
     const start = placeOf(b.id)
     const cx = start.x * width, cy = start.y * height
     ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
@@ -148,6 +184,14 @@ export function OverlayCanvas({ view, width, height, edit }: { view: OverlayView
       return
     }
     const p = local(e)
+    if (drag.mode === 'line') {
+      // in shares of the frame's short side, at the group's own size
+      const u = Math.min(width, height) * (drag.start.scale || 1)
+      const dx = drag.nudge0!.dx + (p.x - drag.x0) / u, dy = drag.nudge0!.dy + (p.y - drag.y0) / u
+      if (!drag.moved && Math.hypot(p.x - drag.x0, p.y - drag.y0) > 3) setDrag({ ...drag, moved: true })
+      setLiveLine({ id: drag.id, role: drag.role!, dx: Math.max(-1, Math.min(1, dx)), dy: Math.max(-1, Math.min(1, dy)) })
+      return
+    }
     let place: OverlayPlace
     if (drag.mode === 'move') {
       let x = drag.start.x + (p.x - drag.x0) / width
@@ -170,6 +214,13 @@ export function OverlayCanvas({ view, width, height, edit }: { view: OverlayView
   }
   const up = () => {
     dragging.current = false
+    if (drag?.mode === 'line') {
+      if (drag.moved && liveLine) edit.onNudge(drag.id, drag.role!, { dx: Math.round(liveLine.dx * 1e4) / 1e4, dy: Math.round(liveLine.dy * 1e4) / 1e4 })
+      else setLiveLine(null)
+      setDrag(null)
+      if (!drag.moved && drag.again) startTyping(drag.id)
+      return
+    }
     if (drag?.moved && lastPlace.current) edit.onPlace(drag.id, lastPlace.current)
     setDrag(null)
     setGuides(null)
@@ -187,10 +238,15 @@ export function OverlayCanvas({ view, width, height, edit }: { view: OverlayView
            onClick={(e) => { if (drag || selBox) e.stopPropagation() }}>
         {guides?.v && <div className="pointer-events-none absolute inset-y-0 left-1/2 w-px bg-accent/80" />}
         {guides?.h && <div className="pointer-events-none absolute inset-x-0 top-1/2 h-px bg-accent/80" />}
+        {selBox && pickedRow && (
+          // the line picked inside its group: solid; the group around it dashed
+          <div className="pointer-events-none absolute rounded-sm outline outline-2 outline-accent"
+               style={{ left: pickedRow.x - 3, top: pickedRow.y - 2, width: pickedRow.w + 6, height: pickedRow.h + 4 }} />
+        )}
         {selBox && (
-          <div className="pointer-events-none absolute rounded-sm outline outline-1 outline-accent"
+          <div className={`pointer-events-none absolute rounded-sm outline outline-1 outline-accent ${pickedRow ? 'outline-dashed opacity-70' : ''}`}
                style={{ left: selBox.x - 4, top: selBox.y - 4, width: selBox.w + 8, height: selBox.h + 8 }}>
-            {(['-left-1.5 -top-1.5', '-right-1.5 -top-1.5', '-left-1.5 -bottom-1.5', '-right-1.5 -bottom-1.5'] as const).map((c) => (
+            {!pickedRow && (['-left-1.5 -top-1.5', '-right-1.5 -top-1.5', '-left-1.5 -bottom-1.5', '-right-1.5 -bottom-1.5'] as const).map((c) => (
               <i key={c} className={`absolute block size-2.5 rounded-sm border border-accent bg-zinc-900 ${c}`} />
             ))}
           </div>
