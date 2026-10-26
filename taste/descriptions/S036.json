@@ -1,0 +1,486 @@
+{
+ "v": 1,
+ "id": "S036",
+ "source": "reference",
+ "group": "short",
+ "vertical": true,
+ "duration": 40.661,
+ "cutoff": false,
+ "have": [
+  "motion",
+  "faces",
+  "sound",
+  "words",
+  "labels",
+  "roles",
+  "music"
+ ],
+ "shots": [
+  {
+   "t": 0.0,
+   "d": 3.17,
+   "motion": 0.91,
+   "motion_in": 0.994,
+   "motion_out": 0.777,
+   "face": 1.0,
+   "facing": 1.0,
+   "people": 2,
+   "voice": 0.921,
+   "music": 0.383,
+   "laugh": 0.062,
+   "labels": [
+    "adult",
+    "people",
+    "plant"
+   ],
+   "aesthetic": 0.486,
+   "same": false,
+   "speed": 1.0,
+   "role": "hook",
+   "chapter": null
+  },
+  {
+   "t": 3.17,
+   "d": 2.035,
+   "motion": 0.98,
+   "motion_in": 1.148,
+   "motion_out": 1.361,
+   "face": 1.0,
+   "facing": 1.0,
+   "people": 2,
+   "voice": 0.937,
+   "music": 0.421,
+   "laugh": 0.047,
+   "labels": [
+    "adult",
+    "people",
+    "plant"
+   ],
+   "aesthetic": 0.511,
+   "same": true,
+   "speed": 1.0,
+   "role": "hook",
+   "chapter": null
+  },
+  {
+   "t": 5.205,
+   "d": 4.004,
+   "motion": 2.143,
+   "motion_in": 1.458,
+   "motion_out": 1.668,
+   "face": 0.948,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.926,
+   "music": 0.596,
+   "laugh": 0.062,
+   "labels": [
+    "people",
+    "adult",
+    "clothing"
+   ],
+   "aesthetic": 0.447,
+   "same": false,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 0
+  },
+  {
+   "t": 9.209,
+   "d": 3.537,
+   "motion": 0.432,
+   "motion_in": 0.444,
+   "motion_out": 0.279,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.927,
+   "music": 0.556,
+   "laugh": 0.061,
+   "labels": [
+    "outdoor",
+    "sky",
+    "blue_sky"
+   ],
+   "aesthetic": 0.488,
+   "same": false,
+   "speed": 1.0,
+   "role": "setup",
+   "chapter": 0
+  },
+  {
+   "t": 12.746,
+   "d": 2.102,
+   "motion": 0.598,
+   "motion_in": 0.621,
+   "motion_out": 0.589,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.868,
+   "music": 0.601,
+   "laugh": 0.073,
+   "labels": [
+    "structure",
+    "furniture",
+    "table"
+   ],
+   "aesthetic": 0.366,
+   "same": false,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 0
+  },
+  {
+   "t": 14.848,
+   "d": 0.901,
+   "motion": 3.258,
+   "motion_in": 3.234,
+   "motion_out": 2.856,
+   "face": 0.416,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.925,
+   "music": 0.553,
+   "laugh": 0.083,
+   "labels": [
+    "outdoor",
+    "sky",
+    "blue_sky"
+   ],
+   "aesthetic": 0.399,
+   "same": false,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 0
+  },
+  {
+   "t": 15.749,
+   "d": 2.569,
+   "motion": 0.316,
+   "motion_in": 0.453,
+   "motion_out": 0.15,
+   "face": 0.111,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.952,
+   "music": 0.613,
+   "laugh": 0.084,
+   "labels": [
+    "outdoor",
+    "sky",
+    "blue_sky"
+   ],
+   "aesthetic": 0.431,
+   "same": false,
+   "speed": 1.0,
+   "role": "title",
+   "chapter": 0
+  },
+  {
+   "t": 18.318,
+   "d": 13.314,
+   "motion": 2.343,
+   "motion_in": 3.123,
+   "motion_out": 2.595,
+   "face": 0.951,
+   "facing": 1.0,
+   "people": 2,
+   "voice": 0.928,
+   "music": 0.481,
+   "laugh": 0.058,
+   "labels": [
+    "people",
+    "adult",
+    "structure"
+   ],
+   "aesthetic": 0.266,
+   "same": false,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 1
+  },
+  {
+   "t": 31.632,
+   "d": 2.636,
+   "motion": 1.776,
+   "motion_in": 1.766,
+   "motion_out": 1.712,
+   "face": 0.121,
+   "facing": 1.0,
+   "people": 2,
+   "voice": 0.899,
+   "music": 0.531,
+   "laugh": 0.038,
+   "labels": [
+    "structure",
+    "sign",
+    "camera"
+   ],
+   "aesthetic": 0.491,
+   "same": false,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 1
+  },
+  {
+   "t": 34.268,
+   "d": 6.393,
+   "motion": 3.196,
+   "motion_in": 3.389,
+   "motion_out": 5.668,
+   "face": 0.943,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.91,
+   "music": 0.48,
+   "laugh": 0.068,
+   "labels": [
+    "people",
+    "adult"
+   ],
+   "aesthetic": 0.357,
+   "same": false,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 1
+  }
+ ],
+ "joins": [
+  {
+   "t": 3.17,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 5.205,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 9.209,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 12.746,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 14.848,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 15.749,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 18.318,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 31.632,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 34.268,
+   "kind": "cut",
+   "dur": 0.0
+  }
+ ],
+ "open": false,
+ "close": false,
+ "words": [
+  {
+   "t": 0.0,
+   "d": 5.0,
+   "band": "middle",
+   "size": 0.085,
+   "upper": 1.0,
+   "n": 2,
+   "kind": null
+  },
+  {
+   "t": 5.0,
+   "d": 4.0,
+   "band": "bottom",
+   "size": 0.037,
+   "upper": 1.0,
+   "n": 2,
+   "kind": null
+  },
+  {
+   "t": 9.0,
+   "d": 6.0,
+   "band": "middle",
+   "size": 0.056,
+   "upper": 0.99,
+   "n": 6,
+   "kind": null
+  },
+  {
+   "t": 15.0,
+   "d": 0.5,
+   "band": "bottom",
+   "size": 0.037,
+   "upper": 1.0,
+   "n": 4,
+   "kind": null
+  },
+  {
+   "t": 16.0,
+   "d": 2.5,
+   "band": "middle",
+   "size": 0.096,
+   "upper": 1.0,
+   "n": 3,
+   "kind": null
+  },
+  {
+   "t": 18.5,
+   "d": 22.0,
+   "band": "bottom",
+   "size": 0.044,
+   "upper": 0.9,
+   "n": 3,
+   "kind": null
+  },
+  {
+   "t": 31.5,
+   "d": 3.0,
+   "band": "middle",
+   "size": 0.119,
+   "upper": 0.75,
+   "n": 8,
+   "kind": null
+  },
+  {
+   "t": 31.5,
+   "d": 2.5,
+   "band": "top",
+   "size": 0.041,
+   "upper": 1.0,
+   "n": 3,
+   "kind": null
+  }
+ ],
+ "music": {
+  "bpm": null,
+  "on": 0.585,
+  "beat": null
+ },
+ "lufs": -15.3,
+ "editor": {
+  "premise": "A travel giveaway pitch breaks down the prize, then connects it to a travel-savings service.",
+  "hook": {
+   "shots": [
+    1,
+    2
+   ],
+   "kind": "talk"
+  },
+  "chapters": [
+   {
+    "name": "Prize breakdown",
+    "first": 3,
+    "last": 7,
+    "purpose": "Make the offer concrete through accommodation, dining, and flight visuals."
+   },
+   {
+    "name": "Service pitch",
+    "first": 8,
+    "last": 10,
+    "purpose": "Explain the service and finish on its practical savings benefit."
+   }
+  ],
+  "captions": {
+   "role": "mixed",
+   "note": "Large central offer labels give way to smaller speech subtitles; text changes within held shots to keep the explanation moving."
+  },
+  "music": [
+   {
+    "shot": 3,
+    "event": "start"
+   },
+   {
+    "shot": 8,
+    "event": "drop_out"
+   },
+   {
+    "shot": 9,
+    "event": "return"
+   },
+   {
+    "shot": 10,
+    "event": "drop_out"
+   }
+  ],
+  "ending": "cut",
+  "techniques": [
+   {
+    "name": "straight_cuts",
+    "shots": [
+     3,
+     4,
+     5,
+     8
+    ]
+   },
+   {
+    "name": "talk_then_show",
+    "shots": [
+     3,
+     4,
+     5
+    ]
+   },
+   {
+    "name": "jump_cuts",
+    "shots": [
+     2
+    ]
+   },
+   {
+    "name": "sound_across_cut",
+    "shots": [
+     4,
+     5,
+     6,
+     7
+    ]
+   },
+   {
+    "name": "music_drop_out",
+    "shots": [
+     8,
+     10
+    ]
+   },
+   {
+    "name": "subtitles",
+    "shots": [
+     3,
+     8,
+     10
+    ]
+   },
+   {
+    "name": "split_screen",
+    "shots": [
+     1,
+     2
+    ]
+   }
+  ],
+  "notes": "Stack the offer above the speakers immediately. Illustrate each benefit with one readable image, then hold the explanation longer. Use changing subtitles and one brief insert to refresh attention without interrupting the pitch.",
+  "roles_given": 10,
+  "model": "gpt-6.1-sol",
+  "cost": 0.0156,
+  "at": "2026-10-23"
+ }
+}

@@ -30,7 +30,7 @@ import sys
 import time
 from pathlib import Path
 
-from . import cloud, reference, remix
+from . import cloud, reference, remix, recipe, deep_learn
 from .indexer import CACHE
 
 DIR = CACHE / "vibes"
@@ -67,17 +67,39 @@ def learn_set(niche: str, sources: list[str], name: str | None = None, say=print
     if len(styles) < MIN_REELS:
         raise ValueError(f"a vibe needs at least {MIN_REELS} reels that could be read; got {len(styles)}")
     fp = remix.fingerprint(styles)
+
+    # Extract enhanced recipe for visual preview and adjustment
+    vibe_recipe = recipe.from_styles(styles)
+
+    # Deep learning: Extract EVERYTHING about how the vlogs are made
+    say("  analyzing style in depth...")
+    # Merge all styles for comprehensive analysis
+    merged_style = {
+        "transitions": styles[0].get("transitions", {}),
+        "beat": styles[0].get("beat", {}),
+        "music": styles[0].get("music", {}),
+        "pace": styles[0].get("pace", {}),
+        "look": styles[0].get("look", {}),
+        "frame": styles[0].get("frame", {}),
+        "words": styles[0].get("words", {}),
+    }
+    blueprint = deep_learn.from_style(merged_style)
+    blueprint_data = deep_learn.blueprint_to_dict(blueprint)
+
     rec = {
         "id": _slug(name or niche) + "-" + time.strftime("%Y%m%d"),
         "niche": niche, "name": name or niche.title(), "n": len(styles),
         "sources": [{"rid": r["rid"], "title": r["title"], "url": r.get("url")} for r in recs],
-        "fingerprint": fp, "learnt_at": time.time(), "version": 1,
+        "fingerprint": fp, "learnt_at": time.time(), "version": 2,
+        "recipe": recipe.recipe_to_dict(vibe_recipe),
+        "blueprint": blueprint_data,  # Everything learned about the vlogs
         "words": [remix.describe(fp)] + ([f"words at the {fp['text']['band']}, held {fp['text']['hold_s']:.1f} s"]
                                          if fp.get("text") and fp["text"].get("band") else []),
     }
     save(rec)
     cloud.push("vibe", "lib:" + rec["id"], rec, rec["learnt_at"])
-    say(f"vibe {rec['id']}: {remix.describe(fp)}")
+    say(f"vibe {rec['id']}: {blueprint_data['style_one_liner']}")
+    say(f"  key techniques: {', '.join(blueprint_data['key_techniques'][:3])}")
     return rec
 
 

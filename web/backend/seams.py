@@ -70,7 +70,7 @@ def check(items: list[dict], clips: dict) -> list[dict]:
         out.append({"after": items[k]["key"], "before": items[k + 1]["key"], "at": items[k + 1]["seq_start"],
                     "verdict": r["verdict"],
                     "findings": [{"key": f.key, "label": f.label, "value": f.value, "unit": f.unit,
-                                  "verdict": f.verdict, "detail": f.detail} for f in r["findings"]]})
+                                  "verdict": f.verdict, "detail": f.detail, "data": f.extra} for f in r["findings"]]})
     return out
 
 

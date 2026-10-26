@@ -1,0 +1,904 @@
+{
+ "v": 1,
+ "id": "S040",
+ "source": "reference",
+ "group": "short",
+ "vertical": true,
+ "duration": 58.721,
+ "cutoff": false,
+ "have": [
+  "motion",
+  "faces",
+  "sound",
+  "words",
+  "labels",
+  "roles",
+  "music"
+ ],
+ "shots": [
+  {
+   "t": 0.0,
+   "d": 1.335,
+   "motion": 1.198,
+   "motion_in": 1.406,
+   "motion_out": 1.194,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.928,
+   "music": 0.307,
+   "laugh": 0.067,
+   "labels": [
+    "outdoor",
+    "sky",
+    "cloudy"
+   ],
+   "aesthetic": 0.388,
+   "same": false,
+   "speed": 1.0,
+   "role": "hook",
+   "chapter": null
+  },
+  {
+   "t": 1.335,
+   "d": 1.501,
+   "motion": 1.625,
+   "motion_in": 1.265,
+   "motion_out": 2.724,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.908,
+   "music": 0.22,
+   "laugh": 0.052,
+   "labels": [
+    "machine",
+    "wheel",
+    "tire"
+   ],
+   "aesthetic": 0.295,
+   "same": true,
+   "speed": 1.0,
+   "role": "hook",
+   "chapter": null
+  },
+  {
+   "t": 2.836,
+   "d": 0.601,
+   "motion": 3.766,
+   "motion_in": 3.766,
+   "motion_out": 3.733,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.879,
+   "music": 0.262,
+   "laugh": 0.093,
+   "labels": [
+    "bedding",
+    "housewares",
+    "people"
+   ],
+   "aesthetic": -0.686,
+   "same": false,
+   "speed": 1.0,
+   "role": "setup",
+   "chapter": 0
+  },
+  {
+   "t": 3.437,
+   "d": 1.902,
+   "motion": 5.958,
+   "motion_in": 3.98,
+   "motion_out": 4.049,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.906,
+   "music": 0.192,
+   "laugh": 0.102,
+   "labels": [
+    "hospital",
+    "interior_room",
+    "material"
+   ],
+   "aesthetic": 0.289,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 0
+  },
+  {
+   "t": 5.339,
+   "d": 1.701,
+   "motion": 10.774,
+   "motion_in": 4.902,
+   "motion_out": 14.187,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.95,
+   "music": 0.205,
+   "laugh": 0.087,
+   "labels": [
+    "people",
+    "adult",
+    "hospital"
+   ],
+   "aesthetic": 0.204,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 0
+  },
+  {
+   "t": 7.04,
+   "d": 3.737,
+   "motion": 9.045,
+   "motion_in": 5.198,
+   "motion_out": 13.341,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.895,
+   "music": 0.211,
+   "laugh": 0.033,
+   "labels": [
+    "people",
+    "adult"
+   ],
+   "aesthetic": -0.303,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 0
+  },
+  {
+   "t": 10.777,
+   "d": 0.835,
+   "motion": 13.026,
+   "motion_in": 13.026,
+   "motion_out": null,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.957,
+   "music": 0.166,
+   "laugh": 0.033,
+   "labels": [
+    "people",
+    "adult"
+   ],
+   "aesthetic": -0.517,
+   "same": false,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 0
+  },
+  {
+   "t": 11.612,
+   "d": 2.435,
+   "motion": 8.405,
+   "motion_in": null,
+   "motion_out": 9.599,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.94,
+   "music": 0.196,
+   "laugh": 0.051,
+   "labels": [
+    "art",
+    "illustrations"
+   ],
+   "aesthetic": 0.196,
+   "same": false,
+   "speed": 1.0,
+   "role": "setup",
+   "chapter": 0
+  },
+  {
+   "t": 14.047,
+   "d": 7.374,
+   "motion": 0.44,
+   "motion_in": 1.128,
+   "motion_out": 0.228,
+   "face": 0.029,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.225,
+   "music": 0.435,
+   "laugh": 0.017,
+   "labels": [
+    "people",
+    "adult",
+    "structure"
+   ],
+   "aesthetic": 0.237,
+   "same": false,
+   "speed": 1.0,
+   "role": "setup",
+   "chapter": 1
+  },
+  {
+   "t": 21.421,
+   "d": 1.836,
+   "motion": 0.183,
+   "motion_in": 0.168,
+   "motion_out": 0.162,
+   "face": 0.772,
+   "facing": 0.315,
+   "people": 1,
+   "voice": 0.057,
+   "music": 0.575,
+   "laugh": 0.012,
+   "labels": [
+    "structure",
+    "furniture",
+    "seat"
+   ],
+   "aesthetic": 0.385,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 23.257,
+   "d": 2.936,
+   "motion": 0.438,
+   "motion_in": 0.278,
+   "motion_out": 0.559,
+   "face": 0.127,
+   "facing": 0.0,
+   "people": 1,
+   "voice": 0.024,
+   "music": 0.361,
+   "laugh": 0.027,
+   "labels": [
+    "people",
+    "adult",
+    "utensil"
+   ],
+   "aesthetic": 0.314,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 26.193,
+   "d": 1.268,
+   "motion": 5.281,
+   "motion_in": 7.664,
+   "motion_out": 3.07,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.02,
+   "music": 0.493,
+   "laugh": 0.011,
+   "labels": [
+    "utensil",
+    "tableware",
+    "plate"
+   ],
+   "aesthetic": 0.43,
+   "same": false,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 1
+  },
+  {
+   "t": 27.461,
+   "d": 1.034,
+   "motion": 2.333,
+   "motion_in": 2.034,
+   "motion_out": 2.604,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.004,
+   "music": 0.461,
+   "laugh": 0.007,
+   "labels": [
+    "machine"
+   ],
+   "aesthetic": 0.155,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 28.495,
+   "d": 2.436,
+   "motion": 4.773,
+   "motion_in": 5.061,
+   "motion_out": 3.184,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.006,
+   "music": 0.236,
+   "laugh": 0.016,
+   "labels": [
+    "utensil",
+    "cookware",
+    "pan"
+   ],
+   "aesthetic": 0.343,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 30.931,
+   "d": 1.001,
+   "motion": 3.25,
+   "motion_in": 1.98,
+   "motion_out": 4.339,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.004,
+   "music": 0.221,
+   "laugh": 0.008,
+   "labels": [
+    "utensil",
+    "tableware",
+    "plate"
+   ],
+   "aesthetic": -0.49,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 31.932,
+   "d": 1.234,
+   "motion": 2.68,
+   "motion_in": 3.085,
+   "motion_out": 2.674,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.01,
+   "music": 0.268,
+   "laugh": 0.011,
+   "labels": [
+    "utensil",
+    "cookware",
+    "pan"
+   ],
+   "aesthetic": 0.297,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 33.166,
+   "d": 0.601,
+   "motion": 4.857,
+   "motion_in": 4.883,
+   "motion_out": 4.805,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.012,
+   "music": 0.358,
+   "laugh": 0.01,
+   "labels": [
+    "people",
+    "adult"
+   ],
+   "aesthetic": 0.293,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 33.767,
+   "d": 0.868,
+   "motion": 4.329,
+   "motion_in": 2.98,
+   "motion_out": 5.086,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.012,
+   "music": 0.348,
+   "laugh": 0.014,
+   "labels": [
+    "cord",
+    "machine",
+    "appliance"
+   ],
+   "aesthetic": -0.165,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 34.635,
+   "d": 2.135,
+   "motion": 5.843,
+   "motion_in": 13.157,
+   "motion_out": 2.197,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.103,
+   "music": 0.396,
+   "laugh": 0.014,
+   "labels": [],
+   "aesthetic": 0.208,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 36.77,
+   "d": 3.971,
+   "motion": 10.861,
+   "motion_in": 18.721,
+   "motion_out": 9.808,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.885,
+   "music": 0.183,
+   "laugh": 0.073,
+   "labels": [
+    "structure",
+    "material",
+    "raw_glass"
+   ],
+   "aesthetic": -0.621,
+   "same": false,
+   "speed": 1.0,
+   "role": "setup",
+   "chapter": 2
+  },
+  {
+   "t": 40.741,
+   "d": 3.904,
+   "motion": 0.462,
+   "motion_in": 1.169,
+   "motion_out": 0.125,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.652,
+   "music": 0.201,
+   "laugh": 0.041,
+   "labels": [
+    "outdoor",
+    "land",
+    "grass"
+   ],
+   "aesthetic": -0.804,
+   "same": false,
+   "speed": 1.0,
+   "role": "setup",
+   "chapter": 2
+  },
+  {
+   "t": 44.645,
+   "d": 1.501,
+   "motion": 0.185,
+   "motion_in": 0.283,
+   "motion_out": 0.174,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.753,
+   "music": 0.193,
+   "laugh": 0.019,
+   "labels": [
+    "outdoor",
+    "land",
+    "grass"
+   ],
+   "aesthetic": -0.731,
+   "same": false,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 2
+  },
+  {
+   "t": 46.146,
+   "d": 2.636,
+   "motion": 0.533,
+   "motion_in": 0.509,
+   "motion_out": 0.381,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.687,
+   "music": 0.213,
+   "laugh": 0.026,
+   "labels": [
+    "outdoor",
+    "land",
+    "grass"
+   ],
+   "aesthetic": -0.694,
+   "same": true,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 2
+  },
+  {
+   "t": 48.782,
+   "d": 1.335,
+   "motion": 0.592,
+   "motion_in": 0.611,
+   "motion_out": 0.591,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.747,
+   "music": 0.194,
+   "laugh": 0.025,
+   "labels": [
+    "outdoor",
+    "land",
+    "grass"
+   ],
+   "aesthetic": -0.723,
+   "same": true,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 2
+  },
+  {
+   "t": 50.117,
+   "d": 5.739,
+   "motion": 3.017,
+   "motion_in": 2.394,
+   "motion_out": 2.534,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.778,
+   "music": 0.29,
+   "laugh": 0.053,
+   "labels": [
+    "food",
+    "vegetable",
+    "pepper_veggie"
+   ],
+   "aesthetic": 0.268,
+   "same": false,
+   "speed": 1.0,
+   "role": "payoff",
+   "chapter": 3
+  },
+  {
+   "t": 55.856,
+   "d": 2.865,
+   "motion": 2.686,
+   "motion_in": 2.783,
+   "motion_out": 2.636,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.887,
+   "music": 0.227,
+   "laugh": 0.022,
+   "labels": [
+    "tableware",
+    "utensil",
+    "plate"
+   ],
+   "aesthetic": 0.307,
+   "same": true,
+   "speed": 1.0,
+   "role": "payoff",
+   "chapter": 3
+  }
+ ],
+ "joins": [
+  {
+   "t": 1.335,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 2.836,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 3.437,
+   "kind": "dissolve",
+   "dur": 0.834
+  },
+  {
+   "t": 5.339,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 7.04,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 10.777,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 11.612,
+   "kind": "dissolve",
+   "dur": 1.043
+  },
+  {
+   "t": 14.047,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 21.421,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 23.257,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 26.193,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 27.461,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 28.495,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 30.931,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 31.932,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 33.166,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 33.767,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 34.635,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 36.77,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 40.741,
+   "kind": "dissolve",
+   "dur": 0.792
+  },
+  {
+   "t": 44.645,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 46.146,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 48.782,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 50.117,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 55.856,
+   "kind": "jump",
+   "dur": 0.0
+  }
+ ],
+ "open": false,
+ "close": false,
+ "words": [
+  {
+   "t": 1.5,
+   "d": 1.5,
+   "band": "middle",
+   "size": 0.03,
+   "upper": 0.67,
+   "n": 1,
+   "kind": null
+  },
+  {
+   "t": 16.0,
+   "d": 0.5,
+   "band": "bottom",
+   "size": 0.065,
+   "upper": 1.0,
+   "n": 1,
+   "kind": null
+  },
+  {
+   "t": 29.0,
+   "d": 1.0,
+   "band": "bottom",
+   "size": 0.069,
+   "upper": 1.0,
+   "n": 1,
+   "kind": null
+  },
+  {
+   "t": 32.0,
+   "d": 1.0,
+   "band": "bottom",
+   "size": 0.099,
+   "upper": 0.88,
+   "n": 4,
+   "kind": null
+  },
+  {
+   "t": 35.0,
+   "d": 2.0,
+   "band": "top",
+   "size": 0.03,
+   "upper": 1.0,
+   "n": 1,
+   "kind": null
+  }
+ ],
+ "music": {
+  "bpm": null,
+  "on": 0.119,
+  "beat": null
+ },
+ "lufs": -11.2,
+ "editor": {
+  "premise": "Making dinner inside a parked truck, with compact cooking steps, a nighttime pause, and a finished-plate reveal.",
+  "hook": {
+   "shots": [
+    1,
+    2
+   ],
+   "kind": "scene"
+  },
+  "chapters": [
+   {
+    "name": "Kitchen setup",
+    "first": 3,
+    "last": 8,
+    "purpose": "Reveal how the small interior becomes a working kitchen."
+   },
+   {
+    "name": "Making dinner",
+    "first": 9,
+    "last": 19,
+    "purpose": "Compress preparation, frying, and reheating into a readable sequence."
+   },
+   {
+    "name": "Nighttime pause",
+    "first": 20,
+    "last": 24,
+    "purpose": "Interrupt the cooking rhythm while the food heats."
+   },
+   {
+    "name": "Dinner reveal",
+    "first": 25,
+    "last": 26,
+    "purpose": "Resolve the preparation with a sustained look at the meal."
+   }
+  ],
+  "captions": {
+   "role": "subtitle",
+   "note": "Apparently sparse speech fragments, mostly single words; positions shift between center, bottom, and top. They punctuate rather than explain the cooking."
+  },
+  "music": [
+   {
+    "shot": 10,
+    "event": "start"
+   },
+   {
+    "shot": 11,
+    "event": "end"
+   }
+  ],
+  "ending": "payoff_hold",
+  "techniques": [
+   {
+    "name": "straight_cuts",
+    "shots": [
+     11,
+     12,
+     13,
+     14,
+     15,
+     16
+    ]
+   },
+   {
+    "name": "jump_cuts",
+    "shots": [
+     23,
+     24,
+     26
+    ]
+   },
+   {
+    "name": "wide_then_close",
+    "shots": [
+     9,
+     11,
+     12
+    ]
+   },
+   {
+    "name": "hands_and_details",
+    "shots": [
+     12,
+     13,
+     15,
+     18,
+     19
+    ]
+   },
+   {
+    "name": "sound_across_cut",
+    "shots": [
+     1,
+     2,
+     3,
+     4
+    ]
+   },
+   {
+    "name": "ambient_soundtrack",
+    "shots": [
+     13,
+     14,
+     15,
+     16,
+     21
+    ]
+   }
+  ],
+  "notes": "Establish the cramped workspace before tightening onto hands. Keep routine transfers brief, but let preparation and the finished plate breathe. The exterior pause delays the reveal without adding another task. Do not mistake every flagged join for a jump cut.",
+  "roles_given": 26,
+  "model": "gpt-6.1-sol",
+  "cost": 0.023,
+  "at": "2026-10-23"
+ }
+}

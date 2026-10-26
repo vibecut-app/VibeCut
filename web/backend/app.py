@@ -9,6 +9,7 @@ from __future__ import annotations
 import copy
 import json
 import os
+import secrets
 import shutil
 import subprocess
 import sys
@@ -16,6 +17,7 @@ import threading
 import time
 import uuid
 from pathlib import Path
+from typing import Callable
 from urllib.parse import unquote
 
 from contextlib import asynccontextmanager
@@ -31,7 +33,7 @@ from cutgrammar import grade
 
 from . import board as bd
 from . import projects as pj
-from . import audiomix, bed, brief, cloud, defaults, habits, make, vibes, tempo, ink, moment, cut, export, looks, pitch, seams, selfcheck, smooth, sound, subtitles, places, indexer, llm, locate, musiclib, oai, overlays, reference, remix, speech, story, storyboard, talk, timeline, vision, voiceover
+from . import audiomix, bed, brief, cloud, cutnotes, defaults, habits, make, vibes, vlog, tempo, ink, moment, cut, export, looks, pitch, seams, selfcheck, smooth, sound, subtitles, places, indexer, llm, locate, musiclib, oai, overlays, reference, remix, share, covers, postcopy, speech, story, storyboard, talk, timeline, vision, voiceover, youtube
 from .preferences import PreferenceError, Preferences
 from .workflow import GATE, Workflow, WorkflowError
 
@@ -247,6 +249,7 @@ def _capabilities() -> dict:
         "sound": sound.status(),
         "links": reference.ytdlp() is not None,
         "music_folder": musiclib.STATE.get("folder"),
+        "youtube": youtube.configured(),
         "platform": sys.platform,
     }
 
@@ -255,8 +258,9 @@ def _capabilities() -> dict:
 # they succeed the project is written to disk. Uploads, the finished-video
 # tool and the reference library stand apart: they are not project state.
 _NO_PROJECT_OK = ("/api/projects", "/api/upload", "/api/locate", "/api/polish", "/api/music/folder",
-                  "/api/references", "/api/profile", "/api/vibes")
-_NOT_SAVED = ("/api/projects", "/api/upload", "/api/locate", "/api/polish", "/api/music/folder", "/api/profile", "/api/vibes")
+                  "/api/references", "/api/profile", "/api/vibes", "/api/youtube")
+_NOT_SAVED = ("/api/projects", "/api/upload", "/api/locate", "/api/polish", "/api/music/folder", "/api/profile", "/api/vibes",
+              "/api/youtube")
 
 
 @app.middleware("http")
@@ -337,6 +341,7 @@ def _session() -> dict:
         "board": board,
         "structure_note": _structure_note(b),
         "last": {"turn": last.id, "diff": last.diff, "ghosts": ghosts, "review": review} if last else None,
+        "scenes": {e["beat"]: e["word"] for e in (PROJECT["p"].events if PROJECT["p"] else []) if e.get("kind") == "scene_verdict"},
         "seams": cuts,
         "turns": [{
             "id": t.id, "kind": t.kind, "text": t.text, "reply": t.reply, "question": t.question,
@@ -357,6 +362,7 @@ def _session() -> dict:
         "mix": _mix_public(b, tl),
         "preferences": _prefs_public(),
         "habits": MAKE.get("last_habits") or [],
+        "prefer": _prefer_public(),
         "voiceover": _voiceover_public(),
         "project": _meta(),
         "brief": PROJECT["p"].brief if PROJECT["p"] else None,
@@ -373,6 +379,31 @@ def _session() -> dict:
 class SmoothReq(BaseModel):
     order: bool = True
     nudge: bool = True
+
+
+@app.post("/api/cutnotes")
+def api_cutnotes() -> dict:
+    """Check my cut: timestamped notes on the edit as it stands, from the
+    checks every turn already runs (cutnotes.py). Free, no model, changes
+    nothing; the check is kept on the project (kind `cut_check`) with what
+    it found, so later turns can show whether the notes were acted on."""
+    with LOCK:
+        b = SESSION.board
+        if not b:
+            raise HTTPException(400, "There's no edit to check yet.")
+        tl = timeline.build(b, CLIPS, _track())
+        rep = cutnotes.notes(tl["items"], seams.check(tl["items"], CLIPS), overlays.resolve(b),
+                             overlays.check(b, CATALOG["cat"]))
+        last = SESSION.last_active()
+        rep["turn"] = last.id if last else None
+        if PROJECT["p"]:
+            by: dict[str, int] = {}
+            for n in rep["notes"]:
+                for k in n["checks"]:
+                    by[k] = by.get(k, 0) + 1
+            PROJECT["p"].events.append({"kind": "cut_check", "turn": rep["turn"], "notes": len(rep["notes"]),
+                                        "checks": by, "at": time.time()})
+        return rep
 
 
 @app.post("/api/smooth")
@@ -438,14 +469,27 @@ def _music_public() -> dict | None:
 MIXES: dict[str, dict] = {}
 
 
-def _mix_spec(b: dict | None, items: list[dict]) -> dict | None:
+_SESSION_TRACK = object()
+
+
+def _mix_spec(b: dict | None, items: list[dict], track=_SESSION_TRACK) -> dict | None:
+    """`track`: the music under `b`, when it isn't the session's board (a card's version)."""
     if not b or not items:
         return None
-    t = _track()
+    t = _track() if track is _SESSION_TRACK else track
     sp = export.spans(items)
     plan, _ = export.plan_transitions(sp, CLIPS, _style(b))
     music = export.music_spec(t.path if t else None, b.get("music"))
     return audiomix.spec(sp, CLIPS, b.get("joins"), plan, music, audiomix.strips_of(b))
+
+
+def _keep_mix(sp: dict) -> str:
+    """Remember a mix spec so /api/mix can render it; its key."""
+    k = audiomix.key_of(sp)
+    MIXES[k] = sp
+    while len(MIXES) > 64:   # only recent edits can still be asked for
+        MIXES.pop(next(iter(MIXES)))
+    return k
 
 
 def _mix_public(b: dict | None, tl: dict) -> dict | None:
@@ -453,10 +497,7 @@ def _mix_public(b: dict | None, tl: dict) -> dict | None:
     sp = _mix_spec(b, tl["items"])
     if sp is None:
         return None
-    k = audiomix.key_of(sp)
-    MIXES[k] = sp
-    while len(MIXES) > 64:   # only recent edits can still be asked for
-        MIXES.pop(next(iter(MIXES)))
+    k = _keep_mix(sp)
     joins = audiomix.joins_for(sp["items"], sp["joins"])
     # The picture side of the same plan export renders (plan_transitions):
     # per shot, frames of handle for a dissolve and any dip or flash, so the
@@ -1270,11 +1311,26 @@ def api_make(req: BriefAutoReq | None = None) -> dict:
                 due = habits.used([h["id"] for h in acted])
                 for h in due:
                     habits.mark_offered(h["id"])
-            SESSION.add({"kind": "direct", "text": MAKE_TEXT, "ops": ops_,
-                         "reply": job.result["reply"] + (" " + said if said else "")},
-                        CATALOG["cat"], _make_proposals)
+            made_turn = SESSION.add({"kind": "direct", "text": MAKE_TEXT, "ops": ops_,
+                                     "reply": job.result["reply"] + (" " + said if said else "")},
+                                    CATALOG["cat"], _make_proposals)
+            # "which do you like better?" (prefer.py): the versions the taste model weighed
+            pick_ = job.result.get("taste_pick") or {}
+            PREFER["deck"] = (prefer.Deck(job.result["deck"], pick_, made_turn.id, getattr(PROJECT["p"], "id", None),
+                                          extra=ops_[len(job.result["ops"]):])
+                              if job.result.get("deck") and len(pick_.get("specs") or []) > 1 else None)
             if job.result.get("check"):
                 _check_landed(job.result["check"], PROJECT["p"], "make")     # its fixes undo on their own
+            if style.get("format", "tall") != "short" and not job.result["fp"].get("refs_used") and SESSION.board:
+                # a vlog's cuts sit on movement (vlog.py step 5): the smoother's nudge, as its
+                # own turn so one undo takes it back and an undo is heard (preferences.py)
+                try:
+                    n_ops, n_said = smooth.propose(SESSION.board, clips, CATALOG["cat"], order=False, nudge=True)
+                    if n_ops:
+                        SESSION.add({"kind": "direct", "text": "Smoother cuts", "ops": n_ops, "reply": n_said},
+                                    CATALOG["cat"], _make_proposals)
+                except Exception as e:  # noqa: BLE001 -- a nudge that fails leaves the cut as made
+                    job.result.setdefault("notes", []).append(f"no nudge: {e}")
             pr_ = PROJECT["p"]
             if pr_ is not None and pr_.brief:
                 # the chips read the brief: after Make it must describe the cut, not the guess
@@ -1421,12 +1477,168 @@ def api_vibe_status(jid: str) -> dict:
     return job.public()
 
 
+@app.get("/api/vibes/{vid}")
+def api_vibe_get(vid: str) -> dict:
+    """Get a vibe's data including full blueprint and emotional intelligence."""
+    rec = vibes.get(vid)
+    if not rec:
+        raise HTTPException(404, "no such vibe")
+    blueprint = rec.get("blueprint", {})
+    return {
+        "id": rec["id"],
+        "name": rec["name"],
+        "niche": rec.get("niche"),
+        "n": rec.get("n"),
+        "recipe": rec.get("recipe"),
+        "blueprint": blueprint,  # Full detailed analysis
+        "emotional_blueprint": blueprint.get("emotional_blueprint"),  # Emotional intelligence layer
+        "summary": rec.get("words", []),
+    }
+
+
 @app.get("/api/make/{jid}")
 def api_make_status(jid: str) -> dict:
     job = make.JOBS.get(jid)
     if not job:
         raise HTTPException(404, "no such job")
     return job.public()
+
+
+# --------------------------------------------------------------------------
+# which do you like better? a few cards after Make (prefer.py; sarah, 2026-10-21)
+# --------------------------------------------------------------------------
+
+from . import prefer  # noqa: E402
+
+PREFER: dict = {"deck": None}
+PREFER_LOCK = threading.Lock()     # builds a card outside LOCK; never taken while holding LOCK
+# what the app puts on a made video by itself, from what the creator told it, as a turn of its own
+# after Make (a profile's captions or transition at every cut), by that turn's text -> what puts it
+# on again. Under such a turn the video is still as made, so a pick may land; the picked version
+# then gets it too, inside the pick's own turn, so one Undo brings the other version back whole.
+REDRESS: dict[str, Callable[[prefer.Deck], None]] = {}
+
+
+def _basis(d: prefer.Deck) -> int | None:
+    """Under LOCK: the turn the video's version is read from, the last live
+    one, looking past what REDRESS put on by itself since."""
+    live = [t for t in SESSION.turns if not t.undone and t.ops]
+    while live and live[-1].text in REDRESS and live[-1].id not in d.turns:
+        live.pop()
+    return live[-1].id if live else None
+
+
+def _follow(d: prefer.Deck) -> bool:
+    """Under LOCK: whether the video is as Make or the last pick left it (Deck.follow)."""
+    return d.follow(_basis(d))
+
+
+def _prefer_deck() -> prefer.Deck | None:
+    """The cards for the video on screen: gone when another project is open,
+    or the Make they came from was undone or made again. Under LOCK."""
+    d, pr = PREFER["deck"], PROJECT["p"]
+    if d is None or pr is None or d.project != pr.id:
+        return None
+    mk = next((t for t in SESSION.turns if t.id == d.make_turn), None)
+    if mk is None or mk.undone or any(t.text == MAKE_TEXT and t.id > d.make_turn and not t.undone for t in SESSION.turns):
+        return None
+    return d
+
+
+def _prefer_public() -> dict | None:
+    d = _prefer_deck()
+    # `on`: the turn the video's version is read from; when it moves (an Undo) the card is fetched again
+    return None if d is None or d.done() else {"at": min(d.i + 1, len(d.kinds)), "of": len(d.kinds),
+                                               "deck": d.make_turn, "on": _basis(d)}
+
+
+def _card_public(card: dict) -> dict:
+    sides = []
+    for side, win in zip(card["sides"], card["windows"]):
+        m = side.board.get("music") or {}
+        t = musiclib.find(m["track"]) if m.get("track") else None
+        out = prefer.side_public(side, win)
+        sp = _mix_spec(side.board, timeline.layout(side.board), track=t)
+        out["audio"] = f"/api/mix/{_keep_mix(sp)}.wav" if sp else None
+        # its first shot's still, shown until it plays (as the player holds a frame while loading)
+        first = next((CATALOG["cat"].shots.get(it["shot_id"]) for it in out["items"] if it["kind"] == "shot"), None)
+        out["poster"] = first.thumb if first else None
+        sides.append(out)
+    return {"id": card["id"], "ask": card["ask"], "at": card["at"], "of": card["of"], "sides": sides}
+
+
+@app.get("/api/prefer")
+def api_prefer() -> dict:
+    """The card on show: two versions of the video that differ in one part,
+    each as the shots that play and the sound they play with."""
+    with PREFER_LOCK:
+        with LOCK:
+            d = _prefer_deck()
+            if d is not None:
+                _follow(d)
+            frame = export.frame_size(timeline.layout(SESSION.board), CLIPS, _want()) if d is not None else None
+        card = d.next_card() if d is not None else None
+        with LOCK:
+            return {"card": _card_public(card) if card else None, "frame": frame}
+
+
+class PreferReq(BaseModel):
+    pick: int | None = None      # 0 / 1 = the left / right version; None = can't tell
+
+
+@app.post("/api/prefer/{cid}")
+def api_prefer_pick(cid: int, req: PreferReq) -> dict:
+    """Her pick: kept as a pair for her layer of the taste model, and the
+    picked version put on the video while it is as Make (or the last pick)
+    left it, as one undoable turn."""
+    if req.pick not in (None, 0, 1):
+        raise HTTPException(400, "pick is 0, 1 or nothing")
+    with PREFER_LOCK:
+        with LOCK:
+            d = _prefer_deck()
+            if d is None:
+                raise HTTPException(409, "These versions are for a video that has changed since.")
+            last = SESSION.last_active()
+            as_made = _follow(d)
+            redress = list(dict.fromkeys(t.text for t in SESSION.turns
+                                         if not t.undone and t.ops and t.id > d.make_turn and t.text in REDRESS))
+        try:
+            got = d.answer(cid, req.pick)
+        except KeyError as e:
+            raise HTTPException(409, "That card has gone; here is the next one.") from e
+        with LOCK:
+            side, words = got["side"], got["words"]
+            landed = False
+            if side is None:
+                said = "Skipped."
+            elif not got["change"]:
+                said = "Noted. Your video already has that one."
+            elif as_made and _prefer_deck() is d and SESSION.last_active() is last:
+                t = SESSION.add({"kind": "direct", "text": prefer.TURN_TEXT,
+                                 "ops": copy.deepcopy(side.ops) + copy.deepcopy(d.extra),
+                                 "reply": f"Your video now has {words}."}, CATALOG["cat"], _make_proposals)
+                for text in redress:
+                    n = len(SESSION.turns)
+                    REDRESS[text](d)
+                    for x in SESSION.turns[n:]:        # into the pick's turn: one Undo takes it all back
+                        t.ops += x.ops
+                    del SESSION.turns[n:]
+                if redress:
+                    SESSION.replay(CATALOG["cat"], _make_proposals)
+                d.landed(t.id, side)
+                landed = True
+                said = f"Your video now has {words}."
+            elif last is not None and last.kind == "check":
+                said = "Noted for your next videos. This one keeps the fixes from the check."
+            else:
+                said = "Noted for your next videos. This one keeps the changes you made."
+            if PROJECT["p"] is not None:
+                PROJECT["p"].events.append({"kind": "prefer", "at": time.time(), "ask": d.answers[-1]["kind"],
+                                            "pick": req.pick, "versions": d.answers[-1]["names"],
+                                            "video": d.answers[-1]["video"], "landed": landed})
+            out = {**_session(), "prefer_said": said, "prefer_landed": landed}
+    _save()
+    return out
 
 
 # --------------------------------------------------------------------------
@@ -2157,6 +2369,10 @@ def api_overlays_suggest(req: SuggestReq) -> dict:
 
 class ExportReq(BaseModel):
     music: bool = True
+    # "tall" / "wide": the same edit in the other frame, for the other
+    # platforms (the Share box's "make a vertical version too"); the
+    # project's own frame is unchanged. None = the frame picked up front.
+    frame: str | None = None
 
 
 @app.post("/api/export")
@@ -2167,13 +2383,19 @@ def api_export(req: ExportReq) -> dict:
             raise HTTPException(409, "Choose a story first — there's nothing to export yet.")
         tl = timeline.build(SESSION.board, CLIPS, _track())
         track = _track() if req.music else None
+        if req.frame not in (None, "tall", "wide"):
+            raise HTTPException(400, "frame is tall or wide")
         try:
             # Named after what the video says it is: its title, else the story.
-            title = next((o["text"] for o in SESSION.board.get("overlays", []) if o["kind"] == "title"), None)
+            title = next((o["text"] for o in SESSION.board.get("overlays", []) if o["kind"] == "title"), None) \
+                or SESSION.board.get("name", "")
+            if req.frame:
+                title += " · " + ("vertical" if req.frame == "tall" else "wide")
             job = export.create(looks.camera(tl["items"], SESSION.board), dict(CLIPS), title or SESSION.board.get("name", ""),
                                 track.path if track else None, _style(SESSION.board, for_export=True),
-                                mix=SESSION.board.get("music"), joins=SESSION.board.get("joins"), want=_want(),
-                                sound=audiomix.strips_of(SESSION.board))
+                                mix=SESSION.board.get("music"), joins=SESSION.board.get("joins"),
+                                want=req.frame or _want(), sound=audiomix.strips_of(SESSION.board),
+                                crop=bool(req.frame))
         except ValueError as e:
             raise HTTPException(400, str(e)) from e
         return job.public()
@@ -2198,16 +2420,31 @@ async def api_export_frame(jid: str, n: int, request: Request) -> dict:
 
 class ExportStartReq(BaseModel):
     schedule: list[dict] = []
+    moved: int = 0      # captions the browser moved off faces (a version in the other frame)
 
 
 @app.post("/api/export/{jid}/start")
 def api_export_start(jid: str, req: ExportStartReq) -> dict:
     job = _job(jid)
+    if req.moved > 0 and job.stage == "waiting":
+        job.notes.append(f"{req.moved} caption{'s' * (req.moved != 1)} moved so {'they don’t' if req.moved != 1 else 'it doesn’t'} "
+                         "sit on anyone’s face in this frame.")
     try:
         export.start(job, req.schedule)
     except (ValueError, KeyError, TypeError) as e:
         raise HTTPException(400, str(e)) from e
     return job.public()
+
+
+@app.get("/api/export/{jid}/faces")
+def api_export_faces(jid: str) -> dict:
+    """Where faces sit in a version's frame, for laying its captions out
+    again off them; none for an export in the edit's own frame, whose
+    captions are where the creator saw them in the preview."""
+    job = _job(jid)
+    if not job.alt:
+        return {"faces": []}
+    return {"faces": export.face_areas(job)}
 
 
 @app.get("/api/export/{jid}")
@@ -2223,7 +2460,7 @@ def api_export_status(jid: str) -> dict:
                            "seconds": pub["total"], "size": pub["size"], "music": pub["music"],
                            "overlays": pub["overlays"], "bytes": os.path.getsize(pub["path"]) if pub["path"] and os.path.isfile(pub["path"]) else None,
                            # for launchlog.py: how it was made and what it cost
-                           "elapsed": pub["elapsed"], "style": pub.get("style"),
+                           "elapsed": pub["elapsed"], "style": pub.get("style"), "alt": pub.get("alt", False),
                            "turns": len(live), "undone": sum(t.undone for t in SESSION.turns),
                            "chat_turns": sum(1 for t in live if t.kind == "chat" and t.ops),
                            "default_path": not any(t.kind == "chat" and t.ops for t in live)})
@@ -2249,6 +2486,31 @@ def api_export_verdict(n: int, req: VerdictReq) -> dict:
     with LOCK:
         pr.exports[n]["verdict"] = {"post": req.post, "note": req.note.strip()[:500], "at": time.time()}
         pr.events.append({"kind": "verdict", "at": time.time(), "export": n, "post": req.post})
+        return _session()
+
+
+class SceneReq(BaseModel):
+    word: str
+
+
+@app.post("/api/scenes/{beat}/verdict")
+def api_scene_verdict(beat: str, req: SceneReq) -> dict:
+    """One word per scene after watching -- keep, cut, longer (vlog.py step
+    8). Cut and longer are one undoable turn each, so habits.py hears them
+    as removed / held; every word is kept on the project's record."""
+    pr = PROJECT["p"]
+    with LOCK:
+        if SESSION.board is None:
+            raise HTTPException(409, "Make a video first.")
+        try:
+            ops, text, rec = vlog.verdict_ops(SESSION.board, CATALOG["cat"], beat, req.word.strip().lower())
+        except ValueError as e:
+            raise HTTPException(400, str(e))
+        if ops:
+            SESSION.add({"kind": "direct", "text": text, "ops": ops, "reply": text + "."}, CATALOG["cat"], _make_proposals)
+        if pr is not None:
+            pr.events = [e for e in pr.events if not (e.get("kind") == "scene_verdict" and e.get("beat") == beat)]
+            pr.events.append({**rec, "at": time.time()})
         return _session()
 
 
@@ -2294,6 +2556,7 @@ def api_export_photos(jid: str) -> dict:
     p = subprocess.run(["osascript", "-e", script], capture_output=True, text=True, timeout=120)
     if p.returncode != 0:
         raise HTTPException(500, "Photos didn't take it: " + (p.stderr.strip()[-200:] or "unknown error"))
+    _shared(jid, "photos")
     return {"ok": True}
 
 
@@ -2304,7 +2567,270 @@ def api_export_reveal(jid: str) -> Response:
         raise HTTPException(404, "not finished")
     if sys.platform == "darwin":
         subprocess.Popen(["open", "-R", job.path])
+        _shared(jid, "finder")
     return Response(status_code=204)
+
+
+def _shared(jid: str, how: str) -> None:
+    """A share is on the project's record (kind "share"), against the export
+    it moved on, so launchlog.py counts shares next to "would you post this?"."""
+    pr = PROJECT["p"]
+    if pr is None:
+        return
+    with LOCK:
+        n = next((k for k, e in enumerate(pr.exports) if e.get("job") == jid), None)
+        pr.events.append({"kind": "share", "how": how, "export": n, "at": time.time()})
+    _save()
+
+
+@app.get("/api/export/{jid}/share")
+def api_export_share(jid: str) -> dict:
+    """Where this file can go next: one button per platform, each checked
+    against the file's frame and length (share.py). Nothing is posted --
+    a button copies the caption and opens the platform's own upload page."""
+    job = _job(jid)
+    if job.stage != "done" or not job.path:
+        raise HTTPException(404, "not finished")
+    w, h = (job.size or {}).get("w", 0), (job.size or {}).get("h", 0)
+    rec = _export_rec(jid)
+    return {"shape": share.shape(w, h), "seconds": round(job.total, 2), "platforms": share.targets(w, h, job.total),
+            "mac": sys.platform == "darwin",
+            # words to post with it (postcopy.py) and the licence's credit, kept apart
+            "post": _post_words(job), "credit": _credit(job),
+            "covers": [{"t": t, "url": f"/api/export/{jid}/still/{int(round(t * 1000))}"} for t in covers.candidates(job.items)],
+            # the same edit in the other frame, one click away
+            "other": share.other_version(w, h, job.total, job.alt),
+            "cover": _cover_public(jid, rec)}
+
+
+def _export_rec(jid: str) -> dict | None:
+    pr = PROJECT["p"]
+    return next((e for e in pr.exports if e.get("job") == jid), None) if pr else None
+
+
+def _is_short(job: export.Job) -> bool:
+    w, h = (job.size or {}).get("w", 0), (job.size or {}).get("h", 0)
+    return share.fit("youtube", w, h, job.total)["name"] == "YouTube Shorts"
+
+
+def _post_words(job: export.Job) -> dict:
+    with LOCK:
+        ovs = overlays.resolve(SESSION.board)
+    return postcopy.draft(job.items, job.clips, ovs, job.total, _is_short(job))
+
+
+def _credit(job: export.Job) -> str | None:
+    return (_music_public() or {}).get("credit") if job.music else None   # the licence asks for it
+
+
+def _cover_public(jid: str, rec: dict | None) -> dict | None:
+    c = (rec or {}).get("cover")
+    if not c or not os.path.isfile(c.get("path") or ""):
+        return None
+    return {"t": c["t"], "file": Path(c["path"]).name, "url": f"/api/export/{jid}/cover?v={int(c['t'] * 1000)}"}
+
+
+@app.get("/api/export/{jid}/still/{ms}")
+def api_export_still(jid: str, ms: int) -> FileResponse:
+    """A small frame of the exported file, for the cover picker."""
+    job = _job(jid)
+    if job.stage != "done" or not job.path or not 0 <= ms <= job.total * 1000:
+        raise HTTPException(404)
+    try:
+        return FileResponse(covers.still(job.path, jid, ms / 1000), media_type="image/jpeg")
+    except ValueError as e:
+        raise HTTPException(500, str(e)) from e
+
+
+class CoverReq(BaseModel):
+    t: float
+
+
+@app.post("/api/export/{jid}/cover")
+def api_export_cover(jid: str, req: CoverReq) -> dict:
+    """The creator's cover: that frame of the file, full size, saved beside
+    it (covers.py) and kept on the export's record for YouTube."""
+    job = _job(jid)
+    if job.stage != "done" or not job.path:
+        raise HTTPException(404, "not finished")
+    if not 0 <= req.t <= job.total:
+        raise HTTPException(400, "That moment isn't in the video.")
+    try:
+        dest = covers.save(job.path, jid, req.t)
+    except (ValueError, OSError) as e:
+        raise HTTPException(500, str(e)) from e
+    rec = _export_rec(jid)
+    if rec is not None:
+        with LOCK:
+            rec["cover"] = {"t": round(req.t, 3), "path": str(dest)}
+    else:
+        rec = {"cover": {"t": round(req.t, 3), "path": str(dest)}}
+    return _cover_public(jid, rec)
+
+
+@app.get("/api/export/{jid}/cover")
+def api_export_cover_file(jid: str) -> FileResponse:
+    c = (_export_rec(jid) or {}).get("cover")
+    if not c or not os.path.isfile(c.get("path") or ""):
+        raise HTTPException(404, "no cover chosen")
+    return FileResponse(c["path"], media_type="image/jpeg", filename=Path(c["path"]).name)
+
+
+class SharedReq(BaseModel):
+    how: str
+
+
+@app.post("/api/export/{jid}/shared")
+def api_export_shared(jid: str, req: SharedReq) -> dict:
+    """What the browser did with the file (download, the share sheet, a
+    platform's page, the caption copied), for the record only."""
+    job = _job(jid)
+    if job.stage != "done" or not job.path:
+        raise HTTPException(404, "not finished")
+    if req.how not in share.HOWS or req.how in share.SERVER_HOWS:
+        raise HTTPException(400, f"unknown share: {req.how}")
+    _shared(jid, req.how)
+    return {"ok": True}
+
+
+# --------------------------------------------------------------------------
+# posting to YouTube: the creator's own channel, one confirmed post at a time
+# --------------------------------------------------------------------------
+
+# Single-use codes from the confirm screen: code -> (export job, when).
+# A post must carry one, so nothing reaches YouTube that the creator didn't
+# see (title, channel, who can see it) and press Post on.
+YT_CONFIRMS: dict[str, tuple[str, float]] = {}
+YT_CONFIRM_S = 60 * 60
+
+
+def _yt(fn, *a):
+    try:
+        return fn(*a)
+    except youtube.YouTubeError as e:
+        raise HTTPException(409, str(e)) from e
+
+
+@app.get("/api/youtube")
+def api_youtube() -> dict:
+    return youtube.status()
+
+
+@app.post("/api/youtube/connect")
+def api_youtube_connect() -> dict:
+    """Google's sign-in page for the creator to open; the answer comes back
+    to a one-time listener on this Mac (youtube.py)."""
+    return {"url": _yt(youtube.connect)}
+
+
+@app.post("/api/youtube/disconnect")
+def api_youtube_disconnect() -> dict:
+    youtube.disconnect()
+    return youtube.status()
+
+
+@app.post("/api/export/{jid}/youtube/prepare")
+def api_youtube_prepare(jid: str) -> dict:
+    """What the confirm screen shows -- the channel it would land on, the
+    title and description to start from, whether it will be a Short -- and
+    the single-use code its Post button carries."""
+    job = _job(jid)
+    if job.stage != "done" or not job.path:
+        raise HTTPException(404, "not finished")
+    if not youtube.status()["connected"]:
+        raise HTTPException(409, "Connect your YouTube channel first.")
+    ch = _yt(youtube.channel)
+    if not ch:
+        raise HTTPException(409, "This Google account has no YouTube channel yet. Make one on youtube.com, then connect again.")
+    now = time.time()
+    for k, (_, at) in list(YT_CONFIRMS.items()):
+        if now - at > YT_CONFIRM_S:
+            YT_CONFIRMS.pop(k, None)
+    code = secrets.token_urlsafe(16)
+    YT_CONFIRMS[code] = (jid, now)
+    w, h = (job.size or {}).get("w", 0), (job.size or {}).get("h", 0)
+    yt = _post_words(job)["youtube"]
+    credit = _credit(job)
+    clean = lambda x: x.replace("<", "").replace(">", "")  # noqa: E731 -- YouTube refuses both
+    short = _is_short(job)
+    cover = _cover_public(jid, _export_rec(jid))
+    return {"confirm": code, "channel": ch, "title": clean(yt["title"])[:youtube.TITLE_MAX],
+            "description": clean(yt["description"] + (f"\n\nMusic: {credit}" if credit else "")),
+            "fit": share.fit("youtube", w, h, job.total), "seconds": round(job.total, 2), "file": Path(job.path).name,
+            # the cover goes with the post (not for a Short: YouTube picks those in its app)
+            "cover": {**cover, "sent": not short} if cover else None}
+
+
+class YouTubePostReq(BaseModel):
+    confirm: str
+    title: str
+    description: str = ""
+    privacy: str
+    made_for_kids: bool | None = None
+    cover_t: float | None = None      # the cover the confirm screen showed; None = none
+
+
+@app.post("/api/export/{jid}/youtube")
+def api_youtube_post(jid: str, req: YouTubePostReq) -> dict:
+    """Post this export to the creator's channel. Only with the code from
+    this export's confirm screen, once."""
+    job = _job(jid)
+    if job.stage != "done" or not job.path:
+        raise HTTPException(404, "not finished")
+    held = YT_CONFIRMS.get(req.confirm)
+    if not held or held[0] != jid or time.time() - held[1] > YT_CONFIRM_S:
+        raise HTTPException(409, "Open the YouTube confirm screen for this video and press Post there.")
+    try:
+        meta = youtube.check_meta(req.title, req.description, req.privacy, req.made_for_kids)
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+    YT_CONFIRMS.pop(req.confirm, None)
+    pr = PROJECT["p"]
+    w, h = (job.size or {}).get("w", 0), (job.size or {}).get("h", 0)
+    short = share.fit("youtube", w, h, job.total)["name"] == "YouTube Shorts"
+
+    def landed(post: youtube.Post) -> None:
+        # on the project's record: a share event, and the post on its export
+        if pr is None or post.stage != "done":
+            return
+        with LOCK:
+            n = next((k for k, e in enumerate(pr.exports) if e.get("job") == jid), None)
+            rec = {"platform": "youtube", "video": post.video, "privacy": post.privacy, "asked": req.privacy,
+                   "short": short, "cover": post.cover_state, "at": time.time()}
+            pr.events.append({"kind": "share", "how": "youtube_post", "export": n, "at": rec["at"],
+                              "video": post.video, "privacy": post.privacy})
+            if n is not None:
+                pr.exports[n].setdefault("posted", []).append(rec)
+        if PROJECT["p"] is pr:
+            _save()
+        else:
+            pj.save(pr)
+
+    # only the cover the creator saw on the confirm screen goes with the post
+    c = (_export_rec(jid) or {}).get("cover")
+    if not c or req.cover_t is None or abs(c["t"] - req.cover_t) > 0.01:
+        c = None
+    post = _yt(youtube.start, job.path, meta, short, landed, c["path"] if c and os.path.isfile(c["path"]) else None)
+    return post.public()
+
+
+@app.get("/api/youtube/posts/{pid}")
+def api_youtube_post_status(pid: str) -> dict:
+    post = youtube.POSTS.get(pid)
+    if not post:
+        raise HTTPException(404, "no such post")
+    return post.public()
+
+
+@app.post("/api/youtube/posts/{pid}/stop")
+def api_youtube_post_stop(pid: str) -> dict:
+    """Stop between chunks; an upload that never finishes leaves nothing on YouTube."""
+    post = youtube.POSTS.get(pid)
+    if not post:
+        raise HTTPException(404, "no such post")
+    if post.stage == "uploading":
+        post.stop = True
+    return post.public()
 
 
 # --------------------------------------------------------------------------

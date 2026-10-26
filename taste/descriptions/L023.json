@@ -1,0 +1,3973 @@
+{
+ "v": 1,
+ "id": "L023",
+ "source": "reference",
+ "group": "long",
+ "vertical": false,
+ "duration": 300.0,
+ "cutoff": true,
+ "have": [
+  "motion",
+  "faces",
+  "sound",
+  "words",
+  "labels",
+  "roles",
+  "music"
+ ],
+ "shots": [
+  {
+   "t": 0.0,
+   "d": 2.667,
+   "motion": 0.45,
+   "motion_in": 0.393,
+   "motion_out": 0.506,
+   "face": 0.064,
+   "facing": 0.0,
+   "people": 1,
+   "voice": 0.024,
+   "music": 0.275,
+   "laugh": 0.011,
+   "labels": [
+    "outdoor",
+    "grass",
+    "land"
+   ],
+   "aesthetic": 0.473,
+   "same": false,
+   "speed": 1.0,
+   "role": "hook",
+   "chapter": null
+  },
+  {
+   "t": 2.667,
+   "d": 2.333,
+   "motion": 1.045,
+   "motion_in": 0.598,
+   "motion_out": 1.292,
+   "face": 0.519,
+   "facing": 0.0,
+   "people": 1,
+   "voice": 0.638,
+   "music": 0.427,
+   "laugh": 0.02,
+   "labels": [
+    "people",
+    "adult",
+    "plant"
+   ],
+   "aesthetic": 0.493,
+   "same": false,
+   "speed": 1.0,
+   "role": "setup",
+   "chapter": 0
+  },
+  {
+   "t": 5.0,
+   "d": 2.292,
+   "motion": 0.288,
+   "motion_in": 0.228,
+   "motion_out": 0.282,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.624,
+   "music": 0.621,
+   "laugh": 0.017,
+   "labels": [
+    "outdoor",
+    "sky",
+    "blue_sky"
+   ],
+   "aesthetic": 0.196,
+   "same": false,
+   "speed": 1.0,
+   "role": "setup",
+   "chapter": 0
+  },
+  {
+   "t": 7.292,
+   "d": 2.916,
+   "motion": 0.778,
+   "motion_in": 0.632,
+   "motion_out": 0.628,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.655,
+   "music": 0.462,
+   "laugh": 0.022,
+   "labels": [
+    "plant",
+    "outdoor",
+    "vegetation"
+   ],
+   "aesthetic": 0.371,
+   "same": false,
+   "speed": 1.0,
+   "role": "setup",
+   "chapter": 0
+  },
+  {
+   "t": 10.208,
+   "d": 1.917,
+   "motion": 0.525,
+   "motion_in": 0.613,
+   "motion_out": 0.433,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.665,
+   "music": 0.405,
+   "laugh": 0.023,
+   "labels": [
+    "plant",
+    "foliage",
+    "ferns"
+   ],
+   "aesthetic": 0.368,
+   "same": false,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 0
+  },
+  {
+   "t": 12.125,
+   "d": 1.583,
+   "motion": 0.189,
+   "motion_in": 0.197,
+   "motion_out": 0.182,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.816,
+   "music": 0.329,
+   "laugh": 0.101,
+   "labels": [
+    "outdoor",
+    "grass",
+    "land"
+   ],
+   "aesthetic": -0.041,
+   "same": false,
+   "speed": 1.0,
+   "role": "setup",
+   "chapter": 0
+  },
+  {
+   "t": 13.708,
+   "d": 1.75,
+   "motion": 0.659,
+   "motion_in": 0.569,
+   "motion_out": 0.584,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.713,
+   "music": 0.371,
+   "laugh": 0.043,
+   "labels": [],
+   "aesthetic": 0.226,
+   "same": false,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 0
+  },
+  {
+   "t": 15.458,
+   "d": 2.25,
+   "motion": 0.918,
+   "motion_in": 0.711,
+   "motion_out": 1.071,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.621,
+   "music": 0.531,
+   "laugh": 0.031,
+   "labels": [
+    "plant",
+    "foliage",
+    "structure"
+   ],
+   "aesthetic": 0.438,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 0
+  },
+  {
+   "t": 17.708,
+   "d": 3.375,
+   "motion": 4.05,
+   "motion_in": 4.171,
+   "motion_out": 4.217,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.515,
+   "music": 0.63,
+   "laugh": 0.029,
+   "labels": [
+    "document",
+    "screenshot",
+    "people"
+   ],
+   "aesthetic": -0.495,
+   "same": false,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 0
+  },
+  {
+   "t": 21.083,
+   "d": 2.084,
+   "motion": 0.583,
+   "motion_in": 0.703,
+   "motion_out": 0.452,
+   "face": 0.141,
+   "facing": 0.5,
+   "people": 1,
+   "voice": 0.31,
+   "music": 0.66,
+   "laugh": 0.015,
+   "labels": [
+    "people",
+    "adult",
+    "plant"
+   ],
+   "aesthetic": 0.381,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 0
+  },
+  {
+   "t": 23.167,
+   "d": 1.5,
+   "motion": 0.585,
+   "motion_in": 0.46,
+   "motion_out": 0.617,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.472,
+   "music": 0.607,
+   "laugh": 0.016,
+   "labels": [
+    "outdoor",
+    "land",
+    "grass"
+   ],
+   "aesthetic": 0.278,
+   "same": false,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 0
+  },
+  {
+   "t": 24.667,
+   "d": 1.708,
+   "motion": 0.308,
+   "motion_in": 0.287,
+   "motion_out": 0.3,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.665,
+   "music": 0.405,
+   "laugh": 0.021,
+   "labels": [
+    "outdoor",
+    "sky",
+    "blue_sky"
+   ],
+   "aesthetic": 0.338,
+   "same": false,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 0
+  },
+  {
+   "t": 26.375,
+   "d": 2.583,
+   "motion": 0.203,
+   "motion_in": 0.196,
+   "motion_out": 0.154,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.572,
+   "music": 0.641,
+   "laugh": 0.014,
+   "labels": [
+    "outdoor",
+    "sky",
+    "sunset_sunrise"
+   ],
+   "aesthetic": 0.445,
+   "same": false,
+   "speed": 1.0,
+   "role": "payoff",
+   "chapter": 0
+  },
+  {
+   "t": 28.958,
+   "d": 2.042,
+   "motion": 0.806,
+   "motion_in": 0.824,
+   "motion_out": 0.733,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.322,
+   "music": 0.674,
+   "laugh": 0.008,
+   "labels": [
+    "grass",
+    "land",
+    "outdoor"
+   ],
+   "aesthetic": 0.364,
+   "same": false,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 0
+  },
+  {
+   "t": 31.0,
+   "d": 5.417,
+   "motion": 0.727,
+   "motion_in": 0.757,
+   "motion_out": 0.758,
+   "face": 0.415,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.612,
+   "music": 0.606,
+   "laugh": 0.02,
+   "labels": [
+    "people",
+    "adult"
+   ],
+   "aesthetic": 0.292,
+   "same": false,
+   "speed": 1.0,
+   "role": "payoff",
+   "chapter": 0
+  },
+  {
+   "t": 36.417,
+   "d": 2.125,
+   "motion": 0.201,
+   "motion_in": 0.184,
+   "motion_out": 0.189,
+   "face": 0.054,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.557,
+   "music": 0.49,
+   "laugh": 0.017,
+   "labels": [],
+   "aesthetic": 0.23,
+   "same": false,
+   "speed": 1.0,
+   "role": "setup",
+   "chapter": 0
+  },
+  {
+   "t": 38.542,
+   "d": 2.041,
+   "motion": 0.883,
+   "motion_in": 0.888,
+   "motion_out": 0.985,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.551,
+   "music": 0.559,
+   "laugh": 0.036,
+   "labels": [
+    "outdoor",
+    "sky",
+    "cloudy"
+   ],
+   "aesthetic": 0.227,
+   "same": false,
+   "speed": 1.0,
+   "role": "setup",
+   "chapter": 0
+  },
+  {
+   "t": 40.583,
+   "d": 2.542,
+   "motion": 0.234,
+   "motion_in": 0.248,
+   "motion_out": 0.28,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.634,
+   "music": 0.543,
+   "laugh": 0.035,
+   "labels": [
+    "outdoor",
+    "sky",
+    "sunset_sunrise"
+   ],
+   "aesthetic": 0.388,
+   "same": false,
+   "speed": 1.0,
+   "role": "payoff",
+   "chapter": 0
+  },
+  {
+   "t": 43.125,
+   "d": 1.0,
+   "motion": 3.162,
+   "motion_in": 3.289,
+   "motion_out": 3.046,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.228,
+   "music": 0.655,
+   "laugh": 0.012,
+   "labels": [
+    "outdoor",
+    "grass",
+    "land"
+   ],
+   "aesthetic": 0.486,
+   "same": false,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 0
+  },
+  {
+   "t": 44.125,
+   "d": 2.25,
+   "motion": 0.252,
+   "motion_in": 0.246,
+   "motion_out": 0.26,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.78,
+   "music": 0.557,
+   "laugh": 0.019,
+   "labels": [
+    "outdoor",
+    "people",
+    "adult"
+   ],
+   "aesthetic": 0.423,
+   "same": false,
+   "speed": 1.0,
+   "role": "setup",
+   "chapter": 0
+  },
+  {
+   "t": 46.375,
+   "d": 0.375,
+   "motion": 4.972,
+   "motion_in": 4.972,
+   "motion_out": 4.972,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.521,
+   "music": 0.745,
+   "laugh": 0.007,
+   "labels": [
+    "outdoor",
+    "sky",
+    "blue_sky"
+   ],
+   "aesthetic": 0.546,
+   "same": false,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 0
+  },
+  {
+   "t": 46.75,
+   "d": 2.417,
+   "motion": 7.024,
+   "motion_in": 5.673,
+   "motion_out": 7.108,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.718,
+   "music": 0.473,
+   "laugh": 0.045,
+   "labels": [
+    "outdoor",
+    "sky",
+    "blue_sky"
+   ],
+   "aesthetic": 0.549,
+   "same": true,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 0
+  },
+  {
+   "t": 49.167,
+   "d": 1.5,
+   "motion": 0.311,
+   "motion_in": 0.352,
+   "motion_out": 0.318,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.467,
+   "music": 0.517,
+   "laugh": 0.063,
+   "labels": [
+    "outdoor",
+    "sky",
+    "cloudy"
+   ],
+   "aesthetic": 0.26,
+   "same": false,
+   "speed": 1.0,
+   "role": "setup",
+   "chapter": 0
+  },
+  {
+   "t": 50.667,
+   "d": 2.458,
+   "motion": 0.598,
+   "motion_in": 0.332,
+   "motion_out": 0.578,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.287,
+   "music": 0.725,
+   "laugh": 0.023,
+   "labels": [
+    "animal",
+    "feline",
+    "mammal"
+   ],
+   "aesthetic": 0.425,
+   "same": false,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 0
+  },
+  {
+   "t": 53.125,
+   "d": 4.333,
+   "motion": 0.316,
+   "motion_in": 0.28,
+   "motion_out": 0.272,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.667,
+   "music": 0.582,
+   "laugh": 0.028,
+   "labels": [
+    "outdoor",
+    "plant",
+    "forest"
+   ],
+   "aesthetic": 0.538,
+   "same": false,
+   "speed": 1.0,
+   "role": "payoff",
+   "chapter": 0
+  },
+  {
+   "t": 57.458,
+   "d": 2.667,
+   "motion": 0.6,
+   "motion_in": 0.543,
+   "motion_out": 0.597,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.673,
+   "music": 0.453,
+   "laugh": 0.016,
+   "labels": [
+    "outdoor",
+    "plant",
+    "forest"
+   ],
+   "aesthetic": 0.518,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 0
+  },
+  {
+   "t": 60.125,
+   "d": 1.917,
+   "motion": 0.508,
+   "motion_in": 0.574,
+   "motion_out": 0.433,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.526,
+   "music": 0.652,
+   "laugh": 0.008,
+   "labels": [
+    "outdoor",
+    "sky",
+    "blue_sky"
+   ],
+   "aesthetic": 0.532,
+   "same": false,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 0
+  },
+  {
+   "t": 62.042,
+   "d": 1.958,
+   "motion": 0.666,
+   "motion_in": 0.638,
+   "motion_out": 0.643,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.762,
+   "music": 0.48,
+   "laugh": 0.018,
+   "labels": [
+    "outdoor",
+    "sky",
+    "blue_sky"
+   ],
+   "aesthetic": 0.466,
+   "same": false,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 0
+  },
+  {
+   "t": 64.0,
+   "d": 2.0,
+   "motion": 0.279,
+   "motion_in": 0.276,
+   "motion_out": 0.315,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.57,
+   "music": 0.61,
+   "laugh": 0.007,
+   "labels": [
+    "outdoor",
+    "plant",
+    "forest"
+   ],
+   "aesthetic": 0.558,
+   "same": false,
+   "speed": 1.0,
+   "role": "payoff",
+   "chapter": 0
+  },
+  {
+   "t": 66.0,
+   "d": 2.958,
+   "motion": 0.364,
+   "motion_in": 0.346,
+   "motion_out": 0.371,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.676,
+   "music": 0.49,
+   "laugh": 0.02,
+   "labels": [
+    "outdoor",
+    "land",
+    "grass"
+   ],
+   "aesthetic": 0.41,
+   "same": false,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 0
+  },
+  {
+   "t": 68.958,
+   "d": 1.792,
+   "motion": 0.709,
+   "motion_in": 0.601,
+   "motion_out": 0.576,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.737,
+   "music": 0.404,
+   "laugh": 0.016,
+   "labels": [
+    "outdoor",
+    "blue_sky",
+    "sky"
+   ],
+   "aesthetic": 0.319,
+   "same": false,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 0
+  },
+  {
+   "t": 70.75,
+   "d": 1.375,
+   "motion": 0.51,
+   "motion_in": 0.418,
+   "motion_out": 0.604,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.46,
+   "music": 0.588,
+   "laugh": 0.015,
+   "labels": [
+    "outdoor",
+    "grass",
+    "land"
+   ],
+   "aesthetic": 0.553,
+   "same": false,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 0
+  },
+  {
+   "t": 72.125,
+   "d": 3.75,
+   "motion": 0.275,
+   "motion_in": 0.28,
+   "motion_out": 0.247,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.561,
+   "music": 0.641,
+   "laugh": 0.018,
+   "labels": [
+    "outdoor",
+    "blue_sky",
+    "sky"
+   ],
+   "aesthetic": -0.034,
+   "same": false,
+   "speed": 1.0,
+   "role": "setup",
+   "chapter": 0
+  },
+  {
+   "t": 75.875,
+   "d": 2.708,
+   "motion": 1.538,
+   "motion_in": 1.66,
+   "motion_out": 1.017,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.619,
+   "music": 0.657,
+   "laugh": 0.018,
+   "labels": [
+    "people",
+    "adult",
+    "light"
+   ],
+   "aesthetic": 0.233,
+   "same": false,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 0
+  },
+  {
+   "t": 78.583,
+   "d": 2.25,
+   "motion": 0.119,
+   "motion_in": 0.079,
+   "motion_out": 0.111,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.276,
+   "music": 0.572,
+   "laugh": 0.025,
+   "labels": [
+    "outdoor",
+    "blue_sky",
+    "sky"
+   ],
+   "aesthetic": -0.285,
+   "same": false,
+   "speed": 1.0,
+   "role": "payoff",
+   "chapter": 0
+  },
+  {
+   "t": 80.833,
+   "d": 2.084,
+   "motion": 0.308,
+   "motion_in": 0.219,
+   "motion_out": 0.302,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.016,
+   "music": 0.756,
+   "laugh": 0.018,
+   "labels": [
+    "outdoor",
+    "sky",
+    "sunset_sunrise"
+   ],
+   "aesthetic": 0.626,
+   "same": false,
+   "speed": 1.0,
+   "role": "payoff",
+   "chapter": 0
+  },
+  {
+   "t": 82.917,
+   "d": 3.5,
+   "motion": 1.332,
+   "motion_in": 1.359,
+   "motion_out": 1.314,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.603,
+   "music": 0.604,
+   "laugh": 0.028,
+   "labels": [
+    "outdoor",
+    "land",
+    "grass"
+   ],
+   "aesthetic": 0.423,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 0
+  },
+  {
+   "t": 86.417,
+   "d": 2.666,
+   "motion": 0.556,
+   "motion_in": 0.725,
+   "motion_out": 0.687,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.746,
+   "music": 0.5,
+   "laugh": 0.048,
+   "labels": [
+    "people",
+    "adult",
+    "plant"
+   ],
+   "aesthetic": 0.459,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 0
+  },
+  {
+   "t": 89.083,
+   "d": 2.25,
+   "motion": 3.39,
+   "motion_in": 2.976,
+   "motion_out": 3.829,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.639,
+   "music": 0.584,
+   "laugh": 0.025,
+   "labels": [
+    "people",
+    "adult",
+    "document"
+   ],
+   "aesthetic": -0.279,
+   "same": false,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 0
+  },
+  {
+   "t": 91.333,
+   "d": 3.042,
+   "motion": 0.409,
+   "motion_in": 0.401,
+   "motion_out": 0.467,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.729,
+   "music": 0.461,
+   "laugh": 0.012,
+   "labels": [
+    "clothing",
+    "hat",
+    "headgear"
+   ],
+   "aesthetic": 0.49,
+   "same": false,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 0
+  },
+  {
+   "t": 94.375,
+   "d": 1.958,
+   "motion": 0.482,
+   "motion_in": 0.411,
+   "motion_out": 0.457,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.769,
+   "music": 0.479,
+   "laugh": 0.018,
+   "labels": [
+    "outdoor",
+    "sky",
+    "blue_sky"
+   ],
+   "aesthetic": 0.414,
+   "same": false,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 0
+  },
+  {
+   "t": 96.333,
+   "d": 2.334,
+   "motion": 0.244,
+   "motion_in": 0.29,
+   "motion_out": 0.237,
+   "face": 0.058,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.738,
+   "music": 0.28,
+   "laugh": 0.025,
+   "labels": [
+    "people",
+    "adult",
+    "outdoor"
+   ],
+   "aesthetic": 0.396,
+   "same": false,
+   "speed": 1.0,
+   "role": "setup",
+   "chapter": 0
+  },
+  {
+   "t": 98.667,
+   "d": 1.75,
+   "motion": 0.367,
+   "motion_in": 0.306,
+   "motion_out": 0.372,
+   "face": 0.016,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.794,
+   "music": 0.288,
+   "laugh": 0.046,
+   "labels": [
+    "outdoor",
+    "blue_sky",
+    "sky"
+   ],
+   "aesthetic": 0.236,
+   "same": false,
+   "speed": 1.0,
+   "role": "setup",
+   "chapter": 0
+  },
+  {
+   "t": 100.417,
+   "d": 2.125,
+   "motion": 0.251,
+   "motion_in": 0.214,
+   "motion_out": 0.205,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.67,
+   "music": 0.445,
+   "laugh": 0.021,
+   "labels": [
+    "outdoor",
+    "land",
+    "grass"
+   ],
+   "aesthetic": 0.493,
+   "same": false,
+   "speed": 1.0,
+   "role": "payoff",
+   "chapter": 0
+  },
+  {
+   "t": 102.542,
+   "d": 1.416,
+   "motion": 0.212,
+   "motion_in": 0.206,
+   "motion_out": 0.224,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.795,
+   "music": 0.47,
+   "laugh": 0.041,
+   "labels": [
+    "outdoor",
+    "land",
+    "grass"
+   ],
+   "aesthetic": 0.362,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 0
+  },
+  {
+   "t": 103.958,
+   "d": 1.917,
+   "motion": 0.726,
+   "motion_in": 0.61,
+   "motion_out": 1.007,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.8,
+   "music": 0.442,
+   "laugh": 0.025,
+   "labels": [
+    "people",
+    "adult",
+    "outdoor"
+   ],
+   "aesthetic": 0.439,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 0
+  },
+  {
+   "t": 105.875,
+   "d": 4.292,
+   "motion": 0.362,
+   "motion_in": 0.332,
+   "motion_out": 0.516,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.74,
+   "music": 0.636,
+   "laugh": 0.055,
+   "labels": [
+    "outdoor",
+    "sky",
+    "cloudy"
+   ],
+   "aesthetic": -0.545,
+   "same": false,
+   "speed": 1.0,
+   "role": "payoff",
+   "chapter": 0
+  },
+  {
+   "t": 110.167,
+   "d": 2.666,
+   "motion": 1.247,
+   "motion_in": 1.236,
+   "motion_out": 0.855,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.014,
+   "music": 0.487,
+   "laugh": 0.007,
+   "labels": [
+    "outdoor",
+    "sky",
+    "cloudy"
+   ],
+   "aesthetic": 0.379,
+   "same": false,
+   "speed": 1.0,
+   "role": "title",
+   "chapter": 1
+  },
+  {
+   "t": 112.833,
+   "d": 3.5,
+   "motion": 0.827,
+   "motion_in": 1.423,
+   "motion_out": 0.728,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.023,
+   "music": 0.727,
+   "laugh": 0.01,
+   "labels": [
+    "outdoor",
+    "sky",
+    "cloudy"
+   ],
+   "aesthetic": 0.279,
+   "same": false,
+   "speed": 1.0,
+   "role": "setup",
+   "chapter": 1
+  },
+  {
+   "t": 116.333,
+   "d": 2.875,
+   "motion": 1.714,
+   "motion_in": 1.586,
+   "motion_out": 1.61,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.051,
+   "music": 0.747,
+   "laugh": 0.026,
+   "labels": [
+    "people",
+    "adult",
+    "outdoor"
+   ],
+   "aesthetic": 0.506,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 119.208,
+   "d": 1.792,
+   "motion": 1.009,
+   "motion_in": 1.248,
+   "motion_out": 0.825,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.042,
+   "music": 0.777,
+   "laugh": 0.011,
+   "labels": [
+    "plant",
+    "outdoor",
+    "vegetation"
+   ],
+   "aesthetic": 0.385,
+   "same": false,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 1
+  },
+  {
+   "t": 121.0,
+   "d": 0.958,
+   "motion": 0.676,
+   "motion_in": 0.546,
+   "motion_out": 0.768,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.039,
+   "music": 0.713,
+   "laugh": 0.013,
+   "labels": [
+    "people",
+    "adult",
+    "clothing"
+   ],
+   "aesthetic": 0.316,
+   "same": false,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 1
+  },
+  {
+   "t": 121.958,
+   "d": 2.0,
+   "motion": 0.467,
+   "motion_in": 0.559,
+   "motion_out": 0.478,
+   "face": 0.274,
+   "facing": 0.0,
+   "people": 1,
+   "voice": 0.022,
+   "music": 0.739,
+   "laugh": 0.005,
+   "labels": [
+    "structure",
+    "wood_natural",
+    "people"
+   ],
+   "aesthetic": 0.32,
+   "same": true,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 123.958,
+   "d": 2.0,
+   "motion": 0.609,
+   "motion_in": 0.581,
+   "motion_out": 0.535,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.013,
+   "music": 0.672,
+   "laugh": 0.014,
+   "labels": [
+    "consumer_electronics",
+    "machine",
+    "structure"
+   ],
+   "aesthetic": 0.414,
+   "same": false,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 1
+  },
+  {
+   "t": 125.958,
+   "d": 5.25,
+   "motion": 0.723,
+   "motion_in": 0.872,
+   "motion_out": 0.561,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.019,
+   "music": 0.677,
+   "laugh": 0.013,
+   "labels": [
+    "plant",
+    "foliage",
+    "outdoor"
+   ],
+   "aesthetic": -0.029,
+   "same": false,
+   "speed": 1.0,
+   "role": "setup",
+   "chapter": 1
+  },
+  {
+   "t": 131.208,
+   "d": 1.625,
+   "motion": 0.578,
+   "motion_in": 0.6,
+   "motion_out": 0.612,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.027,
+   "music": 0.792,
+   "laugh": 0.011,
+   "labels": [
+    "people",
+    "adult",
+    "plant"
+   ],
+   "aesthetic": 0.378,
+   "same": true,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 132.833,
+   "d": 6.709,
+   "motion": 2.5,
+   "motion_in": 1.975,
+   "motion_out": 1.455,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.026,
+   "music": 0.735,
+   "laugh": 0.016,
+   "labels": [
+    "structure",
+    "wood_natural",
+    "plant"
+   ],
+   "aesthetic": 0.351,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 139.542,
+   "d": 2.25,
+   "motion": 0.893,
+   "motion_in": 0.633,
+   "motion_out": 1.092,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.032,
+   "music": 0.79,
+   "laugh": 0.013,
+   "labels": [
+    "plant",
+    "foliage",
+    "structure"
+   ],
+   "aesthetic": 0.305,
+   "same": true,
+   "speed": 1.0,
+   "role": "payoff",
+   "chapter": 1
+  },
+  {
+   "t": 141.792,
+   "d": 3.333,
+   "motion": 1.306,
+   "motion_in": 1.289,
+   "motion_out": 1.574,
+   "face": 0.667,
+   "facing": 0.667,
+   "people": 1,
+   "voice": 0.017,
+   "music": 0.7,
+   "laugh": 0.024,
+   "labels": [
+    "people",
+    "adult",
+    "structure"
+   ],
+   "aesthetic": 0.452,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 145.125,
+   "d": 2.375,
+   "motion": 0.226,
+   "motion_in": 0.209,
+   "motion_out": 0.175,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.022,
+   "music": 0.645,
+   "laugh": 0.03,
+   "labels": [
+    "plant",
+    "people",
+    "adult"
+   ],
+   "aesthetic": 0.428,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 147.5,
+   "d": 2.25,
+   "motion": 3.309,
+   "motion_in": 3.572,
+   "motion_out": 3.115,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.045,
+   "music": 0.761,
+   "laugh": 0.019,
+   "labels": [
+    "document",
+    "screenshot",
+    "people"
+   ],
+   "aesthetic": -0.068,
+   "same": false,
+   "speed": 1.0,
+   "role": "payoff",
+   "chapter": 1
+  },
+  {
+   "t": 149.75,
+   "d": 2.667,
+   "motion": 1.435,
+   "motion_in": 1.199,
+   "motion_out": 1.253,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.024,
+   "music": 0.711,
+   "laugh": 0.02,
+   "labels": [
+    "plant",
+    "outdoor",
+    "vegetation"
+   ],
+   "aesthetic": 0.393,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 152.417,
+   "d": 1.833,
+   "motion": 0.532,
+   "motion_in": 0.516,
+   "motion_out": 0.541,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.016,
+   "music": 0.719,
+   "laugh": 0.013,
+   "labels": [
+    "people",
+    "adult",
+    "outdoor"
+   ],
+   "aesthetic": 0.308,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 154.25,
+   "d": 1.875,
+   "motion": 1.31,
+   "motion_in": 2.007,
+   "motion_out": 0.548,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.017,
+   "music": 0.671,
+   "laugh": 0.012,
+   "labels": [
+    "plant",
+    "foliage",
+    "ferns"
+   ],
+   "aesthetic": 0.157,
+   "same": false,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 1
+  },
+  {
+   "t": 156.125,
+   "d": 2.042,
+   "motion": 0.707,
+   "motion_in": 0.614,
+   "motion_out": 0.802,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.015,
+   "music": 0.827,
+   "laugh": 0.01,
+   "labels": [
+    "plant",
+    "foliage",
+    "machine"
+   ],
+   "aesthetic": 0.402,
+   "same": false,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 1
+  },
+  {
+   "t": 158.167,
+   "d": 2.666,
+   "motion": 0.542,
+   "motion_in": 0.695,
+   "motion_out": 0.668,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.015,
+   "music": 0.663,
+   "laugh": 0.012,
+   "labels": [
+    "people",
+    "adult",
+    "plant"
+   ],
+   "aesthetic": 0.487,
+   "same": false,
+   "speed": 1.0,
+   "role": "payoff",
+   "chapter": 1
+  },
+  {
+   "t": 160.833,
+   "d": 1.917,
+   "motion": 0.27,
+   "motion_in": 0.293,
+   "motion_out": 0.288,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.007,
+   "music": 0.658,
+   "laugh": 0.008,
+   "labels": [
+    "outdoor",
+    "sky",
+    "blue_sky"
+   ],
+   "aesthetic": 0.358,
+   "same": false,
+   "speed": 1.0,
+   "role": "setup",
+   "chapter": 1
+  },
+  {
+   "t": 162.75,
+   "d": 2.417,
+   "motion": 0.682,
+   "motion_in": 0.818,
+   "motion_out": 0.235,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.007,
+   "music": 0.606,
+   "laugh": 0.005,
+   "labels": [
+    "plant",
+    "foliage",
+    "decorative_plant"
+   ],
+   "aesthetic": 0.388,
+   "same": true,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 1
+  },
+  {
+   "t": 165.167,
+   "d": 2.541,
+   "motion": 0.782,
+   "motion_in": 0.851,
+   "motion_out": 0.869,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.015,
+   "music": 0.791,
+   "laugh": 0.008,
+   "labels": [
+    "outdoor",
+    "people",
+    "adult"
+   ],
+   "aesthetic": 0.397,
+   "same": false,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 1
+  },
+  {
+   "t": 167.708,
+   "d": 1.584,
+   "motion": 0.178,
+   "motion_in": 0.144,
+   "motion_out": 0.194,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.009,
+   "music": 0.734,
+   "laugh": 0.004,
+   "labels": [
+    "outdoor",
+    "land",
+    "grass"
+   ],
+   "aesthetic": -0.043,
+   "same": false,
+   "speed": 1.0,
+   "role": "payoff",
+   "chapter": 1
+  },
+  {
+   "t": 169.292,
+   "d": 1.958,
+   "motion": 0.429,
+   "motion_in": 0.385,
+   "motion_out": 0.4,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.013,
+   "music": 0.739,
+   "laugh": 0.004,
+   "labels": [
+    "outdoor",
+    "sky",
+    "blue_sky"
+   ],
+   "aesthetic": 0.449,
+   "same": false,
+   "speed": 1.0,
+   "role": "payoff",
+   "chapter": 1
+  },
+  {
+   "t": 171.25,
+   "d": 1.833,
+   "motion": 1.109,
+   "motion_in": 1.32,
+   "motion_out": 0.762,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.008,
+   "music": 0.752,
+   "laugh": 0.006,
+   "labels": [
+    "document",
+    "screenshot"
+   ],
+   "aesthetic": 0.338,
+   "same": false,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 1
+  },
+  {
+   "t": 173.083,
+   "d": 1.917,
+   "motion": 0.488,
+   "motion_in": 0.526,
+   "motion_out": 0.452,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.019,
+   "music": 0.68,
+   "laugh": 0.008,
+   "labels": [
+    "document",
+    "screenshot"
+   ],
+   "aesthetic": -0.204,
+   "same": false,
+   "speed": 1.0,
+   "role": "payoff",
+   "chapter": 1
+  },
+  {
+   "t": 175.0,
+   "d": 1.917,
+   "motion": 0.514,
+   "motion_in": 0.572,
+   "motion_out": 0.497,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.033,
+   "music": 0.822,
+   "laugh": 0.011,
+   "labels": [
+    "plant",
+    "ferns",
+    "foliage"
+   ],
+   "aesthetic": 0.372,
+   "same": false,
+   "speed": 1.0,
+   "role": "payoff",
+   "chapter": 1
+  },
+  {
+   "t": 176.917,
+   "d": 1.375,
+   "motion": 0.285,
+   "motion_in": 0.297,
+   "motion_out": 0.306,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.015,
+   "music": 0.768,
+   "laugh": 0.007,
+   "labels": [
+    "dandelion",
+    "food",
+    "herb"
+   ],
+   "aesthetic": 0.441,
+   "same": false,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 1
+  },
+  {
+   "t": 178.292,
+   "d": 0.958,
+   "motion": 0.363,
+   "motion_in": 0.359,
+   "motion_out": 0.371,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.012,
+   "music": 0.819,
+   "laugh": 0.004,
+   "labels": [
+    "people",
+    "adult",
+    "outdoor"
+   ],
+   "aesthetic": 0.615,
+   "same": false,
+   "speed": 1.0,
+   "role": "payoff",
+   "chapter": 1
+  },
+  {
+   "t": 179.25,
+   "d": 1.667,
+   "motion": 1.691,
+   "motion_in": 1.377,
+   "motion_out": 1.911,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.01,
+   "music": 0.757,
+   "laugh": 0.004,
+   "labels": [
+    "outdoor",
+    "sky",
+    "cloudy"
+   ],
+   "aesthetic": 0.372,
+   "same": false,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 1
+  },
+  {
+   "t": 180.917,
+   "d": 1.916,
+   "motion": 0.295,
+   "motion_in": 0.276,
+   "motion_out": 0.306,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.024,
+   "music": 0.7,
+   "laugh": 0.026,
+   "labels": [
+    "plant",
+    "foliage",
+    "outdoor"
+   ],
+   "aesthetic": 0.428,
+   "same": false,
+   "speed": 1.0,
+   "role": "setup",
+   "chapter": 1
+  },
+  {
+   "t": 182.833,
+   "d": 1.75,
+   "motion": 1.163,
+   "motion_in": 1.247,
+   "motion_out": 1.035,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.011,
+   "music": 0.696,
+   "laugh": 0.021,
+   "labels": [
+    "plant",
+    "outdoor",
+    "vegetation"
+   ],
+   "aesthetic": 0.412,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 184.583,
+   "d": 2.042,
+   "motion": 0.152,
+   "motion_in": 0.186,
+   "motion_out": 0.152,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.005,
+   "music": 0.624,
+   "laugh": 0.01,
+   "labels": [
+    "plant",
+    "outdoor",
+    "vegetation"
+   ],
+   "aesthetic": 0.468,
+   "same": false,
+   "speed": 1.0,
+   "role": "setup",
+   "chapter": 1
+  },
+  {
+   "t": 186.625,
+   "d": 9.542,
+   "motion": 0.247,
+   "motion_in": 0.148,
+   "motion_out": 0.226,
+   "face": 0.007,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.092,
+   "music": 0.579,
+   "laugh": 0.033,
+   "labels": [
+    "people",
+    "adult",
+    "plant"
+   ],
+   "aesthetic": 0.338,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 196.167,
+   "d": 3.208,
+   "motion": 0.715,
+   "motion_in": 0.766,
+   "motion_out": 0.737,
+   "face": 0.379,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.041,
+   "music": 0.645,
+   "laugh": 0.016,
+   "labels": [
+    "people",
+    "adult"
+   ],
+   "aesthetic": 0.519,
+   "same": false,
+   "speed": 1.0,
+   "role": "payoff",
+   "chapter": 1
+  },
+  {
+   "t": 199.375,
+   "d": 6.875,
+   "motion": 0.262,
+   "motion_in": 0.436,
+   "motion_out": 0.23,
+   "face": 0.016,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.124,
+   "music": 0.607,
+   "laugh": 0.033,
+   "labels": [
+    "people",
+    "adult",
+    "plant"
+   ],
+   "aesthetic": 0.36,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 206.25,
+   "d": 1.458,
+   "motion": 0.24,
+   "motion_in": 0.245,
+   "motion_out": 0.232,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.027,
+   "music": 0.568,
+   "laugh": 0.009,
+   "labels": [
+    "outdoor",
+    "land",
+    "grass"
+   ],
+   "aesthetic": 0.406,
+   "same": false,
+   "speed": 1.0,
+   "role": "setup",
+   "chapter": 1
+  },
+  {
+   "t": 207.708,
+   "d": 1.917,
+   "motion": 0.407,
+   "motion_in": 0.642,
+   "motion_out": 0.403,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.008,
+   "music": 0.284,
+   "laugh": 0.005,
+   "labels": [
+    "grass",
+    "land",
+    "outdoor"
+   ],
+   "aesthetic": 0.332,
+   "same": false,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 1
+  },
+  {
+   "t": 209.625,
+   "d": 1.292,
+   "motion": 0.969,
+   "motion_in": 1.182,
+   "motion_out": 0.477,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.018,
+   "music": 0.591,
+   "laugh": 0.012,
+   "labels": [
+    "grass",
+    "land",
+    "outdoor"
+   ],
+   "aesthetic": 0.273,
+   "same": true,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 1
+  },
+  {
+   "t": 210.917,
+   "d": 3.041,
+   "motion": 1.269,
+   "motion_in": 0.658,
+   "motion_out": 0.32,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.009,
+   "music": 0.485,
+   "laugh": 0.015,
+   "labels": [
+    "grass",
+    "land",
+    "outdoor"
+   ],
+   "aesthetic": 0.363,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 213.958,
+   "d": 1.917,
+   "motion": 1.624,
+   "motion_in": 1.514,
+   "motion_out": 1.414,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.007,
+   "music": 0.473,
+   "laugh": 0.009,
+   "labels": [
+    "grass",
+    "land",
+    "outdoor"
+   ],
+   "aesthetic": 0.287,
+   "same": false,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 1
+  },
+  {
+   "t": 215.875,
+   "d": 3.333,
+   "motion": 1.548,
+   "motion_in": 2.146,
+   "motion_out": 0.808,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.013,
+   "music": 0.531,
+   "laugh": 0.005,
+   "labels": [
+    "outdoor",
+    "grass",
+    "land"
+   ],
+   "aesthetic": 0.23,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 219.208,
+   "d": 1.917,
+   "motion": 0.693,
+   "motion_in": 0.585,
+   "motion_out": 0.786,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.012,
+   "music": 0.768,
+   "laugh": 0.003,
+   "labels": [
+    "outdoor",
+    "land",
+    "grass"
+   ],
+   "aesthetic": 0.245,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 221.125,
+   "d": 2.0,
+   "motion": 0.352,
+   "motion_in": 0.354,
+   "motion_out": 0.339,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.019,
+   "music": 0.759,
+   "laugh": 0.004,
+   "labels": [
+    "outdoor",
+    "land",
+    "grass"
+   ],
+   "aesthetic": 0.368,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 223.125,
+   "d": 1.917,
+   "motion": 0.33,
+   "motion_in": 0.302,
+   "motion_out": 0.271,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.009,
+   "music": 0.73,
+   "laugh": 0.007,
+   "labels": [
+    "outdoor",
+    "grass",
+    "land"
+   ],
+   "aesthetic": 0.512,
+   "same": true,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 225.042,
+   "d": 1.791,
+   "motion": 0.421,
+   "motion_in": 0.236,
+   "motion_out": 0.46,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.007,
+   "music": 0.767,
+   "laugh": 0.004,
+   "labels": [
+    "outdoor",
+    "grass",
+    "land"
+   ],
+   "aesthetic": 0.488,
+   "same": true,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 226.833,
+   "d": 1.334,
+   "motion": 0.403,
+   "motion_in": 0.323,
+   "motion_out": 0.497,
+   "face": 0.75,
+   "facing": 0.0,
+   "people": 1,
+   "voice": 0.024,
+   "music": 0.758,
+   "laugh": 0.01,
+   "labels": [
+    "people",
+    "adult",
+    "grass"
+   ],
+   "aesthetic": 0.515,
+   "same": false,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 1
+  },
+  {
+   "t": 228.167,
+   "d": 3.875,
+   "motion": 1.025,
+   "motion_in": 0.517,
+   "motion_out": 0.474,
+   "face": 0.155,
+   "facing": 0.25,
+   "people": 1,
+   "voice": 0.011,
+   "music": 0.782,
+   "laugh": 0.007,
+   "labels": [
+    "outdoor",
+    "land",
+    "grass"
+   ],
+   "aesthetic": 0.506,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 232.042,
+   "d": 2.458,
+   "motion": 0.585,
+   "motion_in": 0.333,
+   "motion_out": 0.595,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.039,
+   "music": 0.594,
+   "laugh": 0.04,
+   "labels": [
+    "animal",
+    "feline",
+    "mammal"
+   ],
+   "aesthetic": 0.258,
+   "same": false,
+   "speed": 1.0,
+   "role": "payoff",
+   "chapter": 1
+  },
+  {
+   "t": 234.5,
+   "d": 2.292,
+   "motion": 0.537,
+   "motion_in": 0.359,
+   "motion_out": 0.657,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.023,
+   "music": 0.551,
+   "laugh": 0.012,
+   "labels": [
+    "outdoor",
+    "sky",
+    "blue_sky"
+   ],
+   "aesthetic": 0.49,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 236.792,
+   "d": 2.041,
+   "motion": 0.29,
+   "motion_in": 0.293,
+   "motion_out": 0.263,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.066,
+   "music": 0.265,
+   "laugh": 0.048,
+   "labels": [
+    "outdoor",
+    "blue_sky",
+    "sky"
+   ],
+   "aesthetic": 0.325,
+   "same": false,
+   "speed": 1.0,
+   "role": "setup",
+   "chapter": 1
+  },
+  {
+   "t": 238.833,
+   "d": 2.125,
+   "motion": 1.172,
+   "motion_in": 1.208,
+   "motion_out": 1.074,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.022,
+   "music": 0.215,
+   "laugh": 0.03,
+   "labels": [
+    "outdoor",
+    "agriculture",
+    "farm"
+   ],
+   "aesthetic": 0.426,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 240.958,
+   "d": 2.334,
+   "motion": 0.602,
+   "motion_in": 0.54,
+   "motion_out": 0.443,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.023,
+   "music": 0.139,
+   "laugh": 0.025,
+   "labels": [
+    "outdoor",
+    "grass",
+    "land"
+   ],
+   "aesthetic": 0.253,
+   "same": false,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 1
+  },
+  {
+   "t": 243.292,
+   "d": 1.416,
+   "motion": 0.354,
+   "motion_in": 0.33,
+   "motion_out": 0.404,
+   "face": 0.151,
+   "facing": 0.0,
+   "people": 1,
+   "voice": 0.024,
+   "music": 0.126,
+   "laugh": 0.027,
+   "labels": [
+    "grass",
+    "land",
+    "outdoor"
+   ],
+   "aesthetic": 0.317,
+   "same": true,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 1
+  },
+  {
+   "t": 244.708,
+   "d": 3.792,
+   "motion": 0.954,
+   "motion_in": 0.912,
+   "motion_out": 0.782,
+   "face": 0.204,
+   "facing": 0.0,
+   "people": 1,
+   "voice": 0.027,
+   "music": 0.408,
+   "laugh": 0.007,
+   "labels": [
+    "people",
+    "adult",
+    "outdoor"
+   ],
+   "aesthetic": 0.286,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 248.5,
+   "d": 3.5,
+   "motion": 1.366,
+   "motion_in": 1.347,
+   "motion_out": 1.291,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.014,
+   "music": 0.592,
+   "laugh": 0.026,
+   "labels": [
+    "outdoor",
+    "agriculture",
+    "farm"
+   ],
+   "aesthetic": 0.407,
+   "same": false,
+   "speed": 1.0,
+   "role": "payoff",
+   "chapter": 1
+  },
+  {
+   "t": 252.0,
+   "d": 4.042,
+   "motion": 1.112,
+   "motion_in": 0.884,
+   "motion_out": 0.6,
+   "face": 0.238,
+   "facing": 0.0,
+   "people": 1,
+   "voice": 0.01,
+   "music": 0.557,
+   "laugh": 0.01,
+   "labels": [
+    "outdoor",
+    "blue_sky",
+    "sky"
+   ],
+   "aesthetic": 0.248,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 256.042,
+   "d": 2.875,
+   "motion": 1.413,
+   "motion_in": 1.401,
+   "motion_out": 1.121,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.033,
+   "music": 0.647,
+   "laugh": 0.024,
+   "labels": [
+    "outdoor",
+    "grass",
+    "land"
+   ],
+   "aesthetic": 0.374,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 1
+  },
+  {
+   "t": 258.917,
+   "d": 2.125,
+   "motion": 0.235,
+   "motion_in": 0.258,
+   "motion_out": 0.232,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.043,
+   "music": 0.766,
+   "laugh": 0.006,
+   "labels": [
+    "outdoor",
+    "land",
+    "grass"
+   ],
+   "aesthetic": 0.268,
+   "same": false,
+   "speed": 1.0,
+   "role": "payoff",
+   "chapter": 1
+  },
+  {
+   "t": 261.042,
+   "d": 2.666,
+   "motion": 0.353,
+   "motion_in": 0.436,
+   "motion_out": 0.293,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.013,
+   "music": 0.751,
+   "laugh": 0.008,
+   "labels": [
+    "outdoor",
+    "sky",
+    "cloudy"
+   ],
+   "aesthetic": 0.319,
+   "same": false,
+   "speed": 1.0,
+   "role": "payoff",
+   "chapter": 1
+  },
+  {
+   "t": 263.708,
+   "d": 5.292,
+   "motion": 1.192,
+   "motion_in": 0.491,
+   "motion_out": 1.071,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.015,
+   "music": 0.728,
+   "laugh": 0.008,
+   "labels": [
+    "consumer_electronics",
+    "machine",
+    "plant"
+   ],
+   "aesthetic": 0.341,
+   "same": false,
+   "speed": 1.0,
+   "role": "setup",
+   "chapter": 2
+  },
+  {
+   "t": 269.0,
+   "d": 1.083,
+   "motion": 1.353,
+   "motion_in": 1.437,
+   "motion_out": 1.295,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.01,
+   "music": 0.744,
+   "laugh": 0.009,
+   "labels": [
+    "machine",
+    "consumer_electronics"
+   ],
+   "aesthetic": 0.357,
+   "same": true,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 2
+  },
+  {
+   "t": 270.083,
+   "d": 1.459,
+   "motion": 0.983,
+   "motion_in": 0.439,
+   "motion_out": 1.388,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.025,
+   "music": 0.779,
+   "laugh": 0.012,
+   "labels": [
+    "toy",
+    "gamepad",
+    "machine"
+   ],
+   "aesthetic": 0.377,
+   "same": false,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 2
+  },
+  {
+   "t": 271.542,
+   "d": 2.625,
+   "motion": 0.531,
+   "motion_in": 0.607,
+   "motion_out": 0.377,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.018,
+   "music": 0.767,
+   "laugh": 0.013,
+   "labels": [
+    "outdoor",
+    "blue_sky",
+    "sky"
+   ],
+   "aesthetic": 0.313,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 2
+  },
+  {
+   "t": 274.167,
+   "d": 2.291,
+   "motion": 0.379,
+   "motion_in": 0.37,
+   "motion_out": 0.325,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.021,
+   "music": 0.693,
+   "laugh": 0.02,
+   "labels": [
+    "plant",
+    "foliage"
+   ],
+   "aesthetic": 0.438,
+   "same": false,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 2
+  },
+  {
+   "t": 276.458,
+   "d": 3.042,
+   "motion": 0.425,
+   "motion_in": 0.377,
+   "motion_out": 0.44,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.016,
+   "music": 0.776,
+   "laugh": 0.009,
+   "labels": [
+    "clothing",
+    "hat",
+    "headgear"
+   ],
+   "aesthetic": 0.433,
+   "same": false,
+   "speed": 1.0,
+   "role": "payoff",
+   "chapter": 2
+  },
+  {
+   "t": 279.5,
+   "d": 2.5,
+   "motion": 1.03,
+   "motion_in": 1.082,
+   "motion_out": 0.922,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.021,
+   "music": 0.715,
+   "laugh": 0.01,
+   "labels": [
+    "outdoor",
+    "blue_sky",
+    "sky"
+   ],
+   "aesthetic": 0.287,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 2
+  },
+  {
+   "t": 282.0,
+   "d": 1.583,
+   "motion": 0.627,
+   "motion_in": 0.524,
+   "motion_out": 0.631,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.019,
+   "music": 0.694,
+   "laugh": 0.018,
+   "labels": [
+    "outdoor",
+    "land",
+    "grass"
+   ],
+   "aesthetic": 0.264,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 2
+  },
+  {
+   "t": 283.583,
+   "d": 1.417,
+   "motion": 0.085,
+   "motion_in": 0.068,
+   "motion_out": 0.095,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.014,
+   "music": 0.707,
+   "laugh": 0.007,
+   "labels": [
+    "document",
+    "screenshot",
+    "outdoor"
+   ],
+   "aesthetic": -0.051,
+   "same": false,
+   "speed": 1.0,
+   "role": "setup",
+   "chapter": 2
+  },
+  {
+   "t": 285.0,
+   "d": 2.625,
+   "motion": 0.177,
+   "motion_in": 0.144,
+   "motion_out": 0.209,
+   "face": 0.026,
+   "facing": 0.0,
+   "people": 1,
+   "voice": 0.013,
+   "music": 0.753,
+   "laugh": 0.007,
+   "labels": [
+    "outdoor",
+    "grass",
+    "land"
+   ],
+   "aesthetic": 0.389,
+   "same": false,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 2
+  },
+  {
+   "t": 287.625,
+   "d": 3.333,
+   "motion": 0.615,
+   "motion_in": 0.633,
+   "motion_out": 0.769,
+   "face": 0.232,
+   "facing": 0.0,
+   "people": 1,
+   "voice": 0.013,
+   "music": 0.765,
+   "laugh": 0.008,
+   "labels": [
+    "outdoor",
+    "grass",
+    "land"
+   ],
+   "aesthetic": 0.291,
+   "same": false,
+   "speed": 1.0,
+   "role": "payoff",
+   "chapter": 2
+  },
+  {
+   "t": 290.958,
+   "d": 2.25,
+   "motion": 0.076,
+   "motion_in": 0.068,
+   "motion_out": 0.058,
+   "face": 0.005,
+   "facing": 0.0,
+   "people": 1,
+   "voice": 0.014,
+   "music": 0.787,
+   "laugh": 0.006,
+   "labels": [
+    "outdoor",
+    "blue_sky",
+    "sky"
+   ],
+   "aesthetic": -0.089,
+   "same": false,
+   "speed": 1.0,
+   "role": "setup",
+   "chapter": 2
+  },
+  {
+   "t": 293.208,
+   "d": 2.792,
+   "motion": 0.255,
+   "motion_in": 0.263,
+   "motion_out": 0.259,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.013,
+   "music": 0.753,
+   "laugh": 0.007,
+   "labels": [
+    "outdoor",
+    "sky",
+    "blue_sky"
+   ],
+   "aesthetic": 0.205,
+   "same": false,
+   "speed": 1.0,
+   "role": "payoff",
+   "chapter": 2
+  },
+  {
+   "t": 296.0,
+   "d": 2.708,
+   "motion": 1.519,
+   "motion_in": 1.596,
+   "motion_out": 0.971,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.014,
+   "music": 0.751,
+   "laugh": 0.007,
+   "labels": [
+    "people",
+    "adult",
+    "light"
+   ],
+   "aesthetic": 0.285,
+   "same": false,
+   "speed": 1.0,
+   "role": "payoff",
+   "chapter": 2
+  },
+  {
+   "t": 298.708,
+   "d": 1.292,
+   "motion": 0.844,
+   "motion_in": 0.743,
+   "motion_out": 0.878,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.013,
+   "music": 0.743,
+   "laugh": 0.006,
+   "labels": [
+    "outdoor",
+    "sky",
+    "blue_sky"
+   ],
+   "aesthetic": 0.228,
+   "same": false,
+   "speed": 1.0,
+   "role": "payoff",
+   "chapter": 2
+  }
+ ],
+ "joins": [
+  {
+   "t": 2.667,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 5.0,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 7.292,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 10.208,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 12.125,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 13.708,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 15.458,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 17.708,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 21.083,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 23.167,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 24.667,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 26.375,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 28.958,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 31.0,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 36.417,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 38.542,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 40.583,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 43.125,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 44.125,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 46.375,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 46.75,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 49.167,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 50.667,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 53.125,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 57.458,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 60.125,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 62.042,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 64.0,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 66.0,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 68.958,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 70.75,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 72.125,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 75.875,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 78.583,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 80.833,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 82.917,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 86.417,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 89.083,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 91.333,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 94.375,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 96.333,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 98.667,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 100.417,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 102.542,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 103.958,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 105.875,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 110.167,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 112.833,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 116.333,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 119.208,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 121.0,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 121.958,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 123.958,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 125.958,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 131.208,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 132.833,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 139.542,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 141.792,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 145.125,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 147.5,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 149.75,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 152.417,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 154.25,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 156.125,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 158.167,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 160.833,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 162.75,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 165.167,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 167.708,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 169.292,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 171.25,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 173.083,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 175.0,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 176.917,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 178.292,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 179.25,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 180.917,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 182.833,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 184.583,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 186.625,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 196.167,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 199.375,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 206.25,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 207.708,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 209.625,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 210.917,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 213.958,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 215.875,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 219.208,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 221.125,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 223.125,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 225.042,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 226.833,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 228.167,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 232.042,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 234.5,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 236.792,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 238.833,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 240.958,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 243.292,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 244.708,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 248.5,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 252.0,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 256.042,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 258.917,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 261.042,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 263.708,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 269.0,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 270.083,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 271.542,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 274.167,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 276.458,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 279.5,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 282.0,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 283.583,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 285.0,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 287.625,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 290.958,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 293.208,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 296.0,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 298.708,
+   "kind": "cut",
+   "dur": 0.0
+  }
+ ],
+ "open": false,
+ "close": false,
+ "words": [
+  {
+   "t": 0.0,
+   "d": 2.5,
+   "band": "middle",
+   "size": 0.065,
+   "upper": 0.26,
+   "n": 4,
+   "kind": null
+  },
+  {
+   "t": 0.0,
+   "d": 7.5,
+   "band": "top",
+   "size": 0.022,
+   "upper": 1.0,
+   "n": 4,
+   "kind": null
+  },
+  {
+   "t": 2.5,
+   "d": 4.0,
+   "band": "bottom",
+   "size": 0.057,
+   "upper": 0.03,
+   "n": 8,
+   "kind": null
+  },
+  {
+   "t": 7.5,
+   "d": 2.5,
+   "band": "bottom",
+   "size": 0.063,
+   "upper": 0.0,
+   "n": 6,
+   "kind": null
+  },
+  {
+   "t": 9.0,
+   "d": 17.5,
+   "band": "top",
+   "size": 0.022,
+   "upper": 1.0,
+   "n": 4,
+   "kind": null
+  },
+  {
+   "t": 11.0,
+   "d": 12.5,
+   "band": "bottom",
+   "size": 0.059,
+   "upper": 0.0,
+   "n": 6,
+   "kind": null
+  },
+  {
+   "t": 24.5,
+   "d": 12.0,
+   "band": "bottom",
+   "size": 0.059,
+   "upper": 0.0,
+   "n": 6,
+   "kind": null
+  },
+  {
+   "t": 29.0,
+   "d": 7.5,
+   "band": "top",
+   "size": 0.022,
+   "upper": 1.0,
+   "n": 4,
+   "kind": null
+  },
+  {
+   "t": 37.5,
+   "d": 5.5,
+   "band": "bottom",
+   "size": 0.059,
+   "upper": 0.0,
+   "n": 8,
+   "kind": null
+  },
+  {
+   "t": 38.5,
+   "d": 2.0,
+   "band": "top",
+   "size": 0.02,
+   "upper": 0.98,
+   "n": 4,
+   "kind": null
+  },
+  {
+   "t": 43.0,
+   "d": 3.5,
+   "band": "top",
+   "size": 0.022,
+   "upper": 1.0,
+   "n": 4,
+   "kind": null
+  },
+  {
+   "t": 44.0,
+   "d": 8.0,
+   "band": "bottom",
+   "size": 0.056,
+   "upper": 0.02,
+   "n": 6,
+   "kind": null
+  },
+  {
+   "t": 47.0,
+   "d": 0.5,
+   "band": "middle",
+   "size": 0.124,
+   "upper": 0.0,
+   "n": 1,
+   "kind": null
+  },
+  {
+   "t": 48.5,
+   "d": 0.5,
+   "band": "middle",
+   "size": 0.088,
+   "upper": 0.0,
+   "n": 1,
+   "kind": null
+  },
+  {
+   "t": 48.5,
+   "d": 0.5,
+   "band": "top",
+   "size": 0.033,
+   "upper": 0.0,
+   "n": 1,
+   "kind": null
+  },
+  {
+   "t": 50.5,
+   "d": 21.0,
+   "band": "top",
+   "size": 0.026,
+   "upper": 0.99,
+   "n": 3,
+   "kind": null
+  },
+  {
+   "t": 53.0,
+   "d": 26.5,
+   "band": "bottom",
+   "size": 0.056,
+   "upper": 0.01,
+   "n": 4,
+   "kind": null
+  },
+  {
+   "t": 76.0,
+   "d": 2.5,
+   "band": "top",
+   "size": 0.02,
+   "upper": 1.0,
+   "n": 4,
+   "kind": null
+  },
+  {
+   "t": 83.0,
+   "d": 18.5,
+   "band": "bottom",
+   "size": 0.056,
+   "upper": 0.03,
+   "n": 5,
+   "kind": null
+  },
+  {
+   "t": 83.0,
+   "d": 3.5,
+   "band": "middle",
+   "size": 0.022,
+   "upper": 1.0,
+   "n": 2,
+   "kind": null
+  },
+  {
+   "t": 83.0,
+   "d": 23.0,
+   "band": "top",
+   "size": 0.022,
+   "upper": 0.95,
+   "n": 4,
+   "kind": null
+  },
+  {
+   "t": 91.5,
+   "d": 3.0,
+   "band": "middle",
+   "size": 0.081,
+   "upper": 0.0,
+   "n": 1,
+   "kind": null
+  },
+  {
+   "t": 102.5,
+   "d": 7.5,
+   "band": "bottom",
+   "size": 0.059,
+   "upper": 0.02,
+   "n": 6,
+   "kind": null
+  },
+  {
+   "t": 110.0,
+   "d": 3.0,
+   "band": "middle",
+   "size": 0.074,
+   "upper": 0.3,
+   "n": 5,
+   "kind": null
+  },
+  {
+   "t": 110.0,
+   "d": 75.5,
+   "band": "top",
+   "size": 0.022,
+   "upper": 0.97,
+   "n": 4,
+   "kind": null
+  },
+  {
+   "t": 113.0,
+   "d": 33.5,
+   "band": "bottom",
+   "size": 0.048,
+   "upper": 0.05,
+   "n": 9,
+   "kind": null
+  },
+  {
+   "t": 124.0,
+   "d": 2.0,
+   "band": "middle",
+   "size": 0.022,
+   "upper": 0.19,
+   "n": 3,
+   "kind": null
+  },
+  {
+   "t": 147.5,
+   "d": 33.5,
+   "band": "bottom",
+   "size": 0.052,
+   "upper": 0.02,
+   "n": 8,
+   "kind": null
+  },
+  {
+   "t": 186.5,
+   "d": 0.5,
+   "band": "top",
+   "size": 0.026,
+   "upper": 1.0,
+   "n": 3,
+   "kind": null
+  },
+  {
+   "t": 194.5,
+   "d": 0.5,
+   "band": "top",
+   "size": 0.033,
+   "upper": 1.0,
+   "n": 3,
+   "kind": null
+  },
+  {
+   "t": 196.0,
+   "d": 10.5,
+   "band": "top",
+   "size": 0.026,
+   "upper": 0.9,
+   "n": 3,
+   "kind": null
+  },
+  {
+   "t": 202.0,
+   "d": 33.5,
+   "band": "bottom",
+   "size": 0.052,
+   "upper": 0.02,
+   "n": 8,
+   "kind": null
+  },
+  {
+   "t": 221.5,
+   "d": 0.5,
+   "band": "top",
+   "size": 0.074,
+   "upper": 0.0,
+   "n": 1,
+   "kind": null
+  },
+  {
+   "t": 225.0,
+   "d": 2.0,
+   "band": "top",
+   "size": 0.076,
+   "upper": 0.0,
+   "n": 1,
+   "kind": null
+  },
+  {
+   "t": 230.0,
+   "d": 0.5,
+   "band": "top",
+   "size": 0.074,
+   "upper": 0.0,
+   "n": 1,
+   "kind": null
+  },
+  {
+   "t": 232.0,
+   "d": 36.0,
+   "band": "top",
+   "size": 0.022,
+   "upper": 0.93,
+   "n": 4,
+   "kind": null
+  },
+  {
+   "t": 237.0,
+   "d": 63.0,
+   "band": "bottom",
+   "size": 0.052,
+   "upper": 0.06,
+   "n": 9,
+   "kind": null
+  },
+  {
+   "t": 248.5,
+   "d": 3.5,
+   "band": "middle",
+   "size": 0.026,
+   "upper": 1.0,
+   "n": 2,
+   "kind": null
+  },
+  {
+   "t": 269.0,
+   "d": 2.5,
+   "band": "middle",
+   "size": 0.046,
+   "upper": 0.3,
+   "n": 4,
+   "kind": null
+  },
+  {
+   "t": 269.0,
+   "d": 6.5,
+   "band": "top",
+   "size": 0.022,
+   "upper": 1.0,
+   "n": 4,
+   "kind": null
+  },
+  {
+   "t": 276.5,
+   "d": 3.0,
+   "band": "middle",
+   "size": 0.087,
+   "upper": 0.1,
+   "n": 1,
+   "kind": null
+  },
+  {
+   "t": 276.5,
+   "d": 23.5,
+   "band": "top",
+   "size": 0.022,
+   "upper": 0.85,
+   "n": 5,
+   "kind": null
+  }
+ ],
+ "music": {
+  "bpm": null,
+  "on": 0.773,
+  "beat": null
+ },
+ "lufs": -16.8,
+ "editor": {
+  "premise": "Watch a nature-inspired short film, then see how its shots were made with a compact camera and practical shooting choices.",
+  "hook": {
+   "shots": [
+    1
+   ],
+   "kind": "title"
+  },
+  "chapters": [
+   {
+    "name": "Nature film",
+    "first": 2,
+    "last": 47,
+    "purpose": "Establish the finished visual language before explaining how it was achieved."
+   },
+   {
+    "name": "Making the images",
+    "first": 48,
+    "last": 107,
+    "purpose": "Connect equipment and shooting decisions to recognizable finished shots."
+   },
+   {
+    "name": "Camera settings",
+    "first": 108,
+    "last": 122,
+    "purpose": "Turn the demonstration into practical settings advice backed by examples."
+   }
+  ],
+  "captions": {
+   "role": "subtitle",
+   "note": "Small bottom-centered lines follow narration across cuts; centered chapter headings and occasional top labels distinguish explanations from finished examples."
+  },
+  "music": [
+   {
+    "shot": 3,
+    "event": "start"
+   },
+   {
+    "shot": 40,
+    "event": "drop_out"
+   },
+   {
+    "shot": 47,
+    "event": "return"
+   },
+   {
+    "shot": 48,
+    "event": "drop_out"
+   },
+   {
+    "shot": 49,
+    "event": "return"
+   },
+   {
+    "shot": 85,
+    "event": "drop_out"
+   },
+   {
+    "shot": 89,
+    "event": "return"
+   },
+   {
+    "shot": 98,
+    "event": "drop_out"
+   },
+   {
+    "shot": 103,
+    "event": "return"
+   }
+  ],
+  "ending": "cutoff",
+  "techniques": [
+   {
+    "name": "straight_cuts",
+    "shots": [
+     4,
+     5,
+     6,
+     7,
+     8
+    ]
+   },
+   {
+    "name": "jump_cuts",
+    "shots": [
+     21,
+     22,
+     85,
+     86,
+     91,
+     92,
+     93
+    ]
+   },
+   {
+    "name": "wide_then_close",
+    "shots": [
+     6,
+     7,
+     67,
+     68,
+     84,
+     85
+    ]
+   },
+   {
+    "name": "hands_and_details",
+    "shots": [
+     9,
+     39,
+     54,
+     65,
+     108,
+     109
+    ]
+   },
+   {
+    "name": "sound_across_cut",
+    "shots": [
+     2,
+     3,
+     4,
+     5,
+     6
+    ]
+   },
+   {
+    "name": "music_drop_out",
+    "shots": [
+     40,
+     41,
+     42,
+     98,
+     99,
+     100
+    ]
+   },
+   {
+    "name": "subtitles",
+    "shots": [
+     2,
+     3,
+     25,
+     26,
+     49,
+     50
+    ]
+   },
+   {
+    "name": "signpost_cards",
+    "shots": [
+     1,
+     48,
+     58,
+     82,
+     96,
+     106
+    ]
+   }
+  ],
+  "notes": "Show the finished image before explaining it, then pair the setup with its result. Keep illustrative inserts brief; hold difficult staging longer. Repeated compositions let viewers recognize exactly what each practical choice produced.",
+  "roles_given": 122,
+  "model": "gpt-6.1-sol",
+  "cost": 0.0632,
+  "at": "2026-10-21"
+ }
+}

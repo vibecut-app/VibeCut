@@ -161,6 +161,7 @@ export function CreatorProfile({ onClose }: { onClose: () => void }) {
               <div className="flex justify-between"><dt className="text-muted">Pacing</dt><dd className="text-zinc-200">{profile.pace}</dd></div>
               <div className="flex justify-between"><dt className="text-muted">References</dt><dd className="text-zinc-200">{profile.references.length}</dd></div>
             </dl>
+            <a href="#/welcome" className="mt-6 block text-[12px] text-muted underline underline-offset-2 hover:text-zinc-100">About VibeCut</a>
           </aside>
         </form>
       </main>

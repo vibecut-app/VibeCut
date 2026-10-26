@@ -30,6 +30,7 @@ the file. Every number in PRIOR is a guess until the creator says otherwise.
 
 from __future__ import annotations
 
+import sys
 import threading
 import time
 import uuid
@@ -471,6 +472,16 @@ def start(clips: dict[str, dict], cut, fmt: str, pace: str, look: str | None, ab
                 raise ValueError("none of the clips had a moment worth keeping — add more footage")
             if not chapters:
                 end_strong(plan)      # the AI already ends each chapter on its payoff
+            # the taste model weighs a few cuts of these moments (tastepick.py), on the
+            # rules path only: AI chapters name their own picks. It needs the plan as
+            # it is before the music re-cuts it to the beat.
+            raw = None
+            if not chapters:
+                try:
+                    from . import tastepick
+                    raw = tastepick.copy_plan(plan) if tastepick.enabled(fmt) else None
+                except Exception as e:  # noqa: BLE001 -- no model to ask: today's edit, as before
+                    print(f"tastepick: {e!r}; today's edit stands", file=sys.stderr)
             job.stage = "music"
             mx, source = (music(clips, plan, fp, pace, own, progress) if want_music
                           else (None, "off, as last time"))
@@ -482,9 +493,25 @@ def start(clips: dict[str, dict], cut, fmt: str, pace: str, look: str | None, ab
             lines = None if chapters else words(plan, about, taste, words_ask, fp, found, phrasing)
             # only a writer's lines are "written": place and time of day are the plain fallback
             wrote = bool(lines) and lines != plain_lines(plan, found)
-            job.result = {"ops": ops(plan, fp, mx, fmt, look, about, talking, lines=lines, chapters=chapters),
-                          "music": mx, "fp": fp, "plan": plan, "taste": taste, "written": wrote, "ai": ai,
-                          "reply": say(plan, fp, mx, source, judged, ai) + (" Claude wrote the lines, in your voice." if wrote else "")}
+            made = ops(plan, fp, mx, fmt, look, about, talking, lines=lines, chapters=chapters)
+            picked = deck = None
+            if raw is not None:
+                job.line = "Weighing a few cuts…"
+                base = (plan, mx, made)
+                try:
+                    plan, mx, made, picked = tastepick.choose(clips, raw, fp, mx, fmt, look, about, talking, lines, base)
+                    # what the "which do you like better?" cards cut their versions from (prefer.py)
+                    deck = {"raw": raw, "base": base, "clips": clips, "fp": fp, "mx": base[1], "fmt": fmt,
+                            "look": look, "about": about, "talking": talking, "lines": lines}
+                except Exception as e:  # noqa: BLE001 -- today's edit stands; the video is always made
+                    print(f"tastepick: {e!r}; today's edit stands", file=sys.stderr)
+                    picked = {"error": str(e)[:160]}
+                job.line = ""
+            chose = tastepick.sentence(picked) if raw is not None else ""
+            job.result = {"ops": made, "music": mx, "fp": fp, "plan": plan, "taste": taste, "written": wrote,
+                          "ai": ai, "taste_pick": picked, "deck": deck,
+                          "reply": say(plan, fp, mx, source, judged, ai) + (" Claude wrote the lines, in your voice." if wrote else "")
+                          + (" " + chose if chose else "")}
             if check:
                 job.stage = "checking"
                 job.result["check"] = check(job.result["ops"], mx["period"] if mx else None)

@@ -17,12 +17,14 @@ import { PauseChat } from './components/PauseChat'
 import { PaceButton } from './components/PaceButton'
 import { Setup, type SetupData } from './components/Setup'
 import { LengthButton } from './components/LengthButton'
+import { PreferCards } from './components/PreferCards'
 import type { OverlayEdit } from './components/OverlayCanvas'
 import { Menu, SwapPicker, type MenuItem } from './components/Menus'
 import { Music } from './components/Music'
 import type { ClassifyReq } from './components/Remember'
 import { Shelf } from './components/Shelf'
 import { SmoothButton, Story, type PlayItem, type Selection } from './components/Story'
+import { CutNotes } from './components/CutNotes'
 import { Timeline, type Marks } from './components/Timeline'
 import { Inspector, type InspectorTab, type JoinPick } from './components/Inspector'
 import { PreviewBar, type FrameChoice } from './components/PreviewBar'
@@ -1180,6 +1182,12 @@ export default function App({ id, view }: { id: string; view: 'story' | 'frames'
                                onDone={(r) => { setSession(r); offerUndo(r) }} />
                    <SmoothButton wide rough={(session.seams ?? []).filter((x) => x.verdict !== 'ok').length}
                                  onSmooth={async (order, nudge) => { const r = await api.smooth(order, nudge); setSession(r); offerUndo(r) }} />
+                   <CutNotes turn={session.last?.turn ?? null} onJump={(n) => {
+                     // a cut plays through from just before it; a caption shows from its start
+                     timelineOwns(); snapStore.set(null)
+                     transport.seek(Math.max(0, n.kind === 'cut' ? n.t - 1.5 : n.t + 0.3))
+                     if (n.kind === 'cut') transport.play(1)
+                   }} />
                  </div>
                ) : null}
                onFix={(patch, label) => selItem && run([{ op: 'set_shot', shot: selItem.key, ...patch }], label)}
@@ -1423,6 +1431,8 @@ export default function App({ id, view }: { id: string; view: 'story' | 'frames'
                         }}>Undo that</button>
               </p>
             ) : null}
+            {/* this version or that one? her picks teach her taste and tailor this video (PreferCards.tsx) */}
+            <PreferCards prefer={session?.prefer ?? null} turns={session?.turns ?? []} onSession={setSession} />
           </main>
         ) : framesView ? (
           <main className="relative flex min-h-0 min-w-0 flex-col px-3 pb-3">

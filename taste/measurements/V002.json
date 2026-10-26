@@ -1,0 +1,240 @@
+{
+ "id": "V002",
+ "source_name": "As it happened 2026-10-14 18.54.mp4",
+ "version": 2,
+ "duration": 59.767,
+ "fps": 29.983,
+ "width": 1080,
+ "height": 1920,
+ "have": [
+  "audio",
+  "meta",
+  "motion",
+  "still"
+ ],
+ "pace": {
+  "shots": 19,
+  "per_min": 19.07,
+  "median_s": 3.168,
+  "p10_s": 1.661,
+  "p90_s": 5.83,
+  "cv": 0.53,
+  "first_s": 0.133,
+  "curve": [
+   1.0,
+   0.768,
+   0.6,
+   2.0,
+   1.032
+  ],
+  "trend": 0.539,
+  "words": [
+   "about 3.2 s a shot",
+   "steady pace",
+   "slows down towards the end"
+  ],
+  "evidence": [
+   "still"
+  ]
+ },
+ "transitions": {
+  "counts": {
+   "cut": 18,
+   "dissolve": 0,
+   "dip_black": 0,
+   "flash": 0
+  },
+  "share": {
+   "cut": 1.0,
+   "dissolve": 0.0,
+   "dip_black": 0.0,
+   "flash": 0.0
+  },
+  "dur": {},
+  "open": true,
+  "close": true,
+  "words": [
+   "hard cuts only",
+   "opens from black",
+   "fades out at the end"
+  ],
+  "evidence": [
+   "motion"
+  ]
+ },
+ "beat": {
+  "bpm": 95.0,
+  "on_grid": 0.222,
+  "chance": 0.19,
+  "lift": 1.17,
+  "beats_per_shot": 4.51,
+  "onset_hit": 0.111,
+  "phase": 0.3,
+  "cuts_on_beat": false,
+  "words": [
+   "cuts ignore the 95 BPM beat"
+  ],
+  "evidence": [
+   "motion",
+   "audio"
+  ]
+ },
+ "music": {
+  "bpm": 95.0,
+  "energy": [
+   0.162,
+   0.0,
+   0.395,
+   0.878,
+   0.994,
+   0.871,
+   0.558,
+   0.256,
+   0.55,
+   0.794,
+   0.849,
+   0.817,
+   0.544,
+   0.46,
+   0.753,
+   0.709,
+   0.948,
+   0.984,
+   0.822,
+   0.786,
+   0.817,
+   0.889,
+   0.943,
+   0.909,
+   0.773,
+   0.646,
+   0.367,
+   0.079,
+   0.392,
+   0.747,
+   0.719,
+   0.57
+  ],
+  "arc": "peaks in the middle",
+  "bright": 1101.5,
+  "words": [
+   "peaks in the middle energy",
+   "a steady beat around 95 BPM",
+   "a warm, low sound"
+  ],
+  "evidence": [
+   "audio"
+  ]
+ },
+ "look": {
+  "tone": [
+   0.92,
+   23.2,
+   27.93,
+   38.41,
+   49.61,
+   59.19,
+   69.82,
+   92.62,
+   117.11,
+   141.26,
+   161.27,
+   178.1,
+   193.86,
+   203.41,
+   212.77,
+   222.98,
+   229.2,
+   231.49,
+   249.84
+  ],
+  "shadow": [
+   7.66,
+   -1.48,
+   -7.88
+  ],
+  "mid": [
+   10.84,
+   -1.47,
+   -17.35
+  ],
+  "high": [
+   6.6,
+   -0.64,
+   -13.06
+  ],
+  "cast": [
+   8.7,
+   -1.21,
+   -13.65
+  ],
+  "sat": 0.0972,
+  "warmth": 22.35,
+  "tint": 1.26,
+  "black": 23.2,
+  "white": 231.49,
+  "median": 141.26,
+  "contrast": 184.57,
+  "words": [
+   "warm",
+   "muted colour",
+   "lifted, filmic blacks"
+  ],
+  "evidence": [
+   "still"
+  ]
+ },
+ "frame": {
+  "vertical": true,
+  "aspect": 0.562,
+  "bars": [
+   0,
+   0
+  ],
+  "letterbox": null,
+  "words": [
+   "vertical (9:16)"
+  ],
+  "evidence": [
+   "meta",
+   "still"
+  ]
+ },
+ "opening": {
+  "first_cut_s": 0.13,
+  "motion_ratio": 1.03,
+  "words": [
+   "first cut at 0.1 s",
+   "opens at its own pace"
+  ],
+  "evidence": [
+   "motion"
+  ]
+ },
+ "ending": {
+  "last_s": 3.74,
+  "fade_out": true,
+  "motion_ratio": 0.31,
+  "words": [
+   "last shot held 3.7 s",
+   "fades out",
+   "ends still"
+  ],
+  "evidence": [
+   "motion"
+  ]
+ },
+ "words": {
+  "pending": [
+   "vision"
+  ],
+  "evidence": [
+   "still"
+  ],
+  "words": [
+   "not checked — reading words on screen needs the Mac's Vision"
+  ]
+ },
+ "lufs": -17.9,
+ "measured_s": 59.77
+}

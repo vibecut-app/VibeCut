@@ -89,16 +89,43 @@ def probe(path: str) -> dict:
     return json.loads(raw)
 
 
+def _fraction(val: str) -> float | None:
+    try:
+        num, den = val.split("/")
+        if float(den) > 0 and float(num) > 0:
+            return float(num) / float(den)
+    except (ValueError, ZeroDivisionError):
+        pass
+    return None
+
+
+def _rate(stream: dict) -> str | None:
+    """The rate a file is decoded and timed at, as ffmpeg wrote it
+    ("30000/1001"): the nominal rate when it is a sane camera rate at or
+    above the average, else the average; None when neither reads.
+
+    The nominal grid, not the average: a phone clip at 30 fps with a short
+    low-light stall averages 29.2, and resampling the whole file to 29.2
+    would drop a frame every second or so -- each one a double step that
+    reads as a jump cut and a motion spike. On the nominal grid a stall
+    just repeats a frame where it happened.
+    """
+    nominal = stream.get("r_frame_rate", "0/0")
+    average = stream.get("avg_frame_rate", "0/0")
+    r, avg = _fraction(nominal), _fraction(average)
+    if r is not None and r <= 120 and (avg is None or r >= avg - 1e-6):
+        return nominal
+    if avg is not None:
+        return average
+    return nominal if r is not None else None
+
+
 def _parse_fps(stream: dict) -> float:
-    for key in ("avg_frame_rate", "r_frame_rate"):
-        val = stream.get(key, "0/0")
-        try:
-            num, den = val.split("/")
-            if float(den) > 0 and float(num) > 0:
-                return float(num) / float(den)
-        except (ValueError, ZeroDivisionError):
-            continue
-    return 30.0
+    val = _rate(stream)
+    if val is None:
+        return 30.0
+    num, den = val.split("/")
+    return float(num) / float(den)
 
 
 def load(path: str, verbose: bool = False, limit_s: float | None = None) -> Media:
@@ -123,10 +150,23 @@ def load(path: str, verbose: bool = False, limit_s: float | None = None) -> Medi
         print(f"  decoding {path} ({duration:.1f}s @ {fps:.2f}fps)")
 
     # --- video: native fps, tiny resolution -------------------------------
+    # Phones and screen recorders write variable frame rate. Left to itself,
+    # ffmpeg pads such a file out to its *top* rate with repeated frames,
+    # while every later stage turns frame index into seconds with `fps`, the
+    # average -- a 30 fps-average clip with 60 fps bursts came out twice as
+    # long, its cuts landing after the video had ended. Resampling to an even
+    # grid at exactly the rate reported here (`_rate`: the nominal one when
+    # sane, so a stall repeats frames instead of dropping some all through
+    # the file) keeps index / fps = seconds. A
+    # constant-rate file already sits on that grid, so it decodes as before.
+    # The grid starts at the file's zero, not at the first picture: a picture
+    # that starts a frame after the sound (concat's audio priming) is held
+    # over that frame, as before, so cuts and sound stay lined up.
     raw = _run([
         "ffmpeg", "-v", "error", "-i", path, *head,
         "-f", "rawvideo", "-pix_fmt", "rgb24",
-        "-vf", f"scale={FRAME_W}:{FRAME_H}",
+        "-vf", f"fps={_rate(v) or f'{fps:.6f}'}:start_time=0,scale={FRAME_W}:{FRAME_H}",
+        "-fps_mode", "passthrough",
         "-",
     ])
     stride = FRAME_W * FRAME_H * 3
