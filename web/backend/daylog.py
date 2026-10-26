@@ -83,8 +83,14 @@ def clock(dt: datetime) -> str:
 
 def phrase(labels: dict[str, float]) -> str | None:
     """The most specific thing the labels are sure of, as a creator would say it."""
-    hits = [k for k, v in labels.items() if v >= MIN_LABEL and k in _SAYS]
-    return _SAYS[min(hits, key=_RANK.__getitem__)] if hits else None
+    said = phrases(labels)
+    return said[0] if said else None
+
+
+def phrases(labels: dict[str, float]) -> list[str]:
+    """Everything the labels are sure of, most specific first, each said once."""
+    hits = sorted((k for k, v in labels.items() if v >= MIN_LABEL and k in _SAYS), key=_RANK.__getitem__)
+    return list(dict.fromkeys(_SAYS[k] for k in hits))
 
 
 def moments(board: dict, cat, places: dict | None = None) -> list[dict]:

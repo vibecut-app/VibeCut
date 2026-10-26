@@ -115,17 +115,11 @@ def time_of_day(when) -> str:
             else "afternoon" if h < 17 else "evening" if h < 20 else "night")
 
 
-def plain_lines(plan: sel.Plan, found: dict | None) -> list[str]:
-    """Without a key: one line per stop from where and when it was filmed --
-    "Morningside Heights, morning" -- the way a person would say it. The
-    place comes from the clip's GPS through Apple's geocoder (places.py);
-    nothing is guessed from labels. An empty line means the stop says nothing."""
-    out = []
+def stop_places(plan: sel.Plan, found: dict | None) -> list[str | None]:
+    """Each stop's place name, from its clips' GPS through Apple's geocoder
+    (places.py); None where nothing was found."""
+    out: list[str | None] = []
     for picks in plan.sessions:
-        if not picks:
-            out.append("")
-            continue
-        p0 = picks[0]
         place = None
         for p in picks:
             g = getattr(p.shot, "gps", None)
@@ -133,8 +127,57 @@ def plain_lines(plan: sel.Plan, found: dict | None) -> list[str]:
                 place = places.short_name(found.get(places.key(g)))
                 if place:
                     break
-        tod = time_of_day(p0.shot.when)
-        out.append(f"{place}, {tod}" if place and tod else (place or tod or ""))
+        out.append(place)
+    return out
+
+
+# What a vlogger writes when the hour is all there is to say [prior]: the
+# genre's words, not a clock and not a geotag.
+HOUR_LINES = {"late night": "late night", "early morning": "early start", "morning": "good morning",
+              "around noon": "midday", "afternoon": "afternoon", "evening": "evening", "night": "night time"}
+PLACE_SEP = "\n"     # "Place\nline": the place rides above the line (the overlay's `sub`), as the describe captions do
+
+
+def plain_lines(plan: sel.Plan, found: dict | None) -> list[str]:
+    """Without a key: one line per stop, the way a day vlog is captioned.
+    A day spent on one campus said "Columbia University, morning",
+    "…, around noon", "…, night" seven times over (2026-10-25): a geotag,
+    not a caption. So the place is named once, above the line, where the
+    day arrives there; the line says what's happening, from what the
+    picture shows (daylog's phrase table: "coffee run", "class time"),
+    else how the day has moved on ("good morning", "night time"); no line
+    is said twice, and a stop with nothing new to say says nothing
+    (an empty line)."""
+    from . import daylog
+    named = stop_places(plan, found)
+    out: list[str] = []
+    said = {remix.TAG_TEXT.lower()}      # never the title again
+    last_hour = None
+    for n_, (picks, arrived) in enumerate(zip(plan.sessions, arrivals(named))):
+        if not picks:
+            out.append("")
+            continue
+        hour = time_of_day(picks[0].shot.when)
+        line = ""
+        for p in picks:                    # what the picture shows, most specific first, not said before
+            line = next((x for x in daylog.phrases(getattr(p.shot, "labels", None) or {}) if x.lower() not in said), "")
+            if line:
+                break
+        if not line and hour and hour != last_hour and HOUR_LINES.get(hour, hour).lower() not in said:
+            line = HOUR_LINES.get(hour, hour)
+        if line:
+            said.add(line.lower())
+        out.append(f"{arrived}{PLACE_SEP}{line}" if arrived and line else (arrived or line))
+        last_hour = hour or last_hour
+    return out
+
+
+def arrivals(named: list[str | None]) -> list[str | None]:
+    """The place name only at the stop where the day arrives there."""
+    out, last = [], None
+    for place in named:
+        out.append(place if place and place != last else None)
+        last = place or last
     return out
 
 
@@ -220,6 +263,7 @@ def words(plan: sel.Plan, about: str, taste: str = "", ask=None, fp: dict | None
     reel's. Without one (or when it fails): place and time of day, plainly
     (plain_lines). `ask(items, about, taste)` stands in for tests."""
     plain = plain_lines(plan, found)
+    named = stop_places(plan, found)
     if ask is None:
         from . import llm
         if not llm.available():
@@ -235,7 +279,7 @@ def words(plan: sel.Plan, about: str, taste: str = "", ask=None, fp: dict | None
             for k, v in (getattr(p.shot, "labels", None) or {}).items():
                 labels[k] = max(labels.get(k, 0.0), float(v))
         top = [k for k, _ in sorted(labels.items(), key=lambda kv: -kv[1])[:6]]
-        where = plain[n_].split(",")[0] if plain[n_] and not plain[n_].startswith(time_of_day(picks[0].shot.when)) else ""
+        where = named[n_] or ""
         items.append({"time": remix._clock(picks[0].shot.when) if picks[0].shot.when else "",
                       "labels": ([f"at {where}"] if where else []) + top})
     if phrasing:
@@ -249,7 +293,9 @@ def words(plan: sel.Plan, about: str, taste: str = "", ask=None, fp: dict | None
     except Exception:  # noqa: BLE001 -- place and time stand
         return plain
     got = [str(x).strip() for x in lines][:len(items)] + [""] * max(0, len(items) - len(lines))
-    return [g or plain[i] for i, g in enumerate(got)]
+    # the writer's line, with the place above it where the day arrives there, as without one
+    arrived = arrivals(named)
+    return [(f"{arrived[i]}{PLACE_SEP}{g}" if arrived[i] and g else g) or plain[i] for i, g in enumerate(got)]
 
 
 def ops(plan: sel.Plan, fp: dict, mx: dict | None, fmt: str, look: str | None, about: str,
@@ -313,8 +359,12 @@ def ops(plan: sel.Plan, fp: dict, mx: dict | None, fmt: str, look: str | None, a
             out.append({"op": "add_overlay", "kind": "title", "text": c["text"], "sub": c.get("sub", ""),
                         "anchor": {"to": "edit"}, "at": 0.0, "dur": round(c["end"] - c["start"], 2), "anim": "rise"})
         elif c["kind"] == "scene":
-            out.append({"op": "add_overlay", "kind": "part", "text": c["text"], "pos": "top", "size": "S",
-                        "start": c["start"], "dur": round(c["end"] - c["start"], 2), "anim": "rise"})
+            sub, _, text = c["text"].rpartition(PLACE_SEP)
+            op_ = {"op": "add_overlay", "kind": "part", "text": text or sub, "pos": "top", "size": "S",
+                   "start": c["start"], "dur": round(c["end"] - c["start"], 2), "anim": "rise"}
+            if sub and text:
+                op_["sub"] = sub                 # the place, named once, above the line
+            out.append(op_)
     return out
 
 

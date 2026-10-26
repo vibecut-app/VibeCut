@@ -386,7 +386,8 @@ def captions(plan: sel.Plan, title: str | None, sub: str | None, hold_s: float |
         p0 = picks[0]
         words = _clock(p0.shot.when) if (p0.shot.when and clock) else ""
         # a written line for this stop (make.words, the model with the creator's taste) beats the label table
-        phrase = (phrases[n_] if phrases and n_ < len(phrases) and phrases[n_] else None) or _phrase(picks)
+        # an empty written line means the stop has nothing new to say (make.plain_lines), not "use the table"
+        phrase = (phrases[n_] or None) if phrases is not None and n_ < len(phrases) else _phrase(picks)
         if not clock and not phrase:
             continue      # no clock stamps on their own (2026-10-18): a stop with nothing to say says nothing
         if phrase:

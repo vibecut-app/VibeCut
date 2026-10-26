@@ -309,6 +309,18 @@ The promise to a user is therefore *not* "this will be beautiful." It is
   (`remix.captions(clock=False)`); with a key the writer gets the place as
   a label and the creator's own retyped lines (`phrasing`), and any empty
   answer falls back to the plain line.
+  **Rewritten 2026-10-25** (the user: "no repeated place names, write lines
+  a vlogger would actually post"; a day on one campus read "Columbia
+  University, morning … , night" seven times, two identical): the place is
+  named once, as the overlay's `sub` above the line, where the day arrives
+  there (`make.arrivals`, `PLACE_SEP` "\n" inside a line); the line says
+  what the picture shows (`daylog.phrases`, most specific first, not said
+  before), else how the day moved on (`HOUR_LINES`: "good morning",
+  "night time"); never a line twice, never the title again, and an empty
+  line stays empty (`remix.captions` no longer fills it from its own
+  table). On the face-free half of her shoot: "class time" (under Columbia
+  University), "lunch", "study time", "heading out", "night time",
+  "walking". `tests/test_plain_lines.py`. Priors.
 - **Posting** (2026-10-18): `POST /api/export/{jid}/photos` imports the
   file into Photos by AppleScript (Mac only, says so elsewhere); the
   export dialog has Save to Photos and "Copy caption + credit" (the title
