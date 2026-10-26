@@ -536,7 +536,8 @@ export function typeLook(o: Overlay, style: OverlayStyle, u: number): TypeLook {
 export type OverlayBox = { id: string; x: number; y: number; w: number; h: number }
 
 export function drawOverlays(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, W: number, H: number,
-  items: Overlay[], style: OverlayStyle, parts: Part[], t: number, boxes?: OverlayBox[]): void {
+  items: Overlay[], style: OverlayStyle, parts: Part[], t: number, boxes?: OverlayBox[],
+  shifts?: Record<string, number>): void {
   ctx.clearRect(0, 0, W, H)
   const u = Math.min(W, H)
   for (const o of items) {
@@ -548,7 +549,9 @@ export function drawOverlays(ctx: CanvasRenderingContext2D | OffscreenCanvasRend
     // the quiet caption sits low and to one side; a picked template keeps the centre
     const pos = o.kind === 'caption' ? (style.captions === 'center' ? 'center' : style.template ? 'bottom' : 'bottom-left') : o.pos
     // placed by hand: centred where it was dropped, at its own size
-    const a: Anchor = o.place ? { x: o.place.x * W, align: 'center', v: 'middle', y: o.place.y * H } : anchorFor(pos, W, H)
+    const a0: Anchor = o.place ? { x: o.place.x * W, align: 'center', v: 'middle', y: o.place.y * H } : anchorFor(pos, W, H)
+    // moved off a face (faceShifts), the whole time it's on
+    const a: Anchor = shifts?.[o.id] ? { ...a0, y: a0.y + shifts[o.id] * H } : a0
     const at = (g: number) => pose(o, p.pin, p.pout, g, u, a.align, motion)
     if (at(0).alpha <= 0.001 && at(1).alpha <= 0.001) continue
     drawBlock(ctx, W, H, u, linesFor(o, style, u * (o.place?.scale ?? 1), chars), o, style, a, at, boxes)
@@ -842,6 +845,59 @@ export type ScheduleEntry = { frame: number | null; start: number; end: number }
  *  animations, graphicDraw.ts): which frames it's on, a key that changes
  *  when its pixels do, and how to draw it at t onto a cleared canvas. */
 export type UnderLayer = { frames: number[]; key: (t: number) => string; draw: (ctx: OffscreenCanvasRenderingContext2D, t: number) => void }
+// ---- off faces -----------------------------------------------------------
+
+/** Where faces sit in an export's frame, shot by shot (backend
+ *  export.face_areas): shares of the frame, top-left origin. */
+export type FaceArea = { start: number; end: number; boxes: [number, number, number, number][] }
+
+// room kept between words and a face, a share of the short side [prior]
+const FACE_MARGIN = 0.02
+// how finely a caption is slid up or down looking for a clear spot
+const SLIDE_STEP = 0.01
+
+/** In a version laid out again for another frame (a vertical version of a
+ *  wide edit), a caption can land on the person the crop just centred --
+ *  a caption over a face is the plainest tell there is. For each caption,
+ *  the faces on screen at any moment it's shown; if its block covers one,
+ *  it slides up or down (never sideways: its alignment is the look's) to
+ *  the nearest place that covers none, else the one that covers least.
+ *  One shift per caption for its whole time on screen, so words never jump
+ *  at a cut. Returns {overlay id: shift as a share of the height}. */
+export function faceShifts(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, W: number, H: number,
+  items: Overlay[], style: OverlayStyle, parts: Part[], faces: FaceArea[]): Record<string, number> {
+  const out: Record<string, number> = {}
+  if (!faces.length) return out
+  const u = Math.min(W, H), pad = FACE_MARGIN * u, m = safe(W, H)
+  for (const o of items) {
+    if (o.kind === 'chapters') continue
+    const rects = faces.filter((f) => f.start < o.shown_end && f.end > o.start)
+      .flatMap((f) => f.boxes.map(([x, y, w, h]) => ({ l: x * W - pad, t: y * H - pad, r: (x + w) * W + pad, b: (y + h) * H + pad })))
+    if (!rects.length) continue
+    // the block as it sits once fully in (its entrance done)
+    const { inS, outS } = envelope(o, motionFor(o, style))
+    const t = Math.min(o.start + inS + 0.05, Math.max(o.start, o.shown_end - outS - 0.05))
+    const boxes: OverlayBox[] = []
+    drawOverlays(ctx, W, H, [o], style, parts, t, boxes)
+    const bx = boxes.find((b) => b.id === o.id)
+    if (!bx) continue
+    const cover = (dy: number) => rects.reduce((n, r) =>
+      n + Math.max(0, Math.min(bx.x + bx.w, r.r) - Math.max(bx.x, r.l)) * Math.max(0, Math.min(bx.y + dy + bx.h, r.b) - Math.max(bx.y + dy, r.t)), 0)
+    const now = cover(0)
+    if (now <= 0) continue
+    // within the frame's safe area (or the frame, for words placed by hand)
+    const top = (o.place ? 0 : m.t) - bx.y, bottom = H - (o.place ? 0 : m.b) - (bx.y + bx.h)
+    let best = 0, bestCover = now
+    const step = SLIDE_STEP * H
+    for (let dy = Math.ceil(top / step) * step; dy <= bottom; dy += step) {
+      const c = cover(dy)
+      if (c < bestCover - 1e-6 || (Math.abs(c - bestCover) <= 1e-6 && Math.abs(dy) < Math.abs(best))) { best = dy; bestCover = c }
+    }
+    if (best) out[o.id] = best / H
+  }
+  ctx.clearRect(0, 0, W, H)
+  return out
+}
 
 /** Render every distinct overlay frame of the edit, hand each PNG to
  *  `upload`, and return when each frame is on screen. Equal keys -> one
@@ -849,6 +905,9 @@ export type UnderLayer = { frames: number[]; key: (t: number) => string; draw: (
 export async function renderSchedule(opts: {
   items: Overlay[]; style: OverlayStyle; parts: Part[]; fps: number; total: number; w: number; h: number
   under?: UnderLayer
+  // faces in this frame (a version in the other frame): captions are moved off them
+  faces?: FaceArea[]
+  onMoved?: (n: number) => void
   upload: (n: number, png: Blob) => Promise<void>
   onProgress?: (done: number, of: number) => void
   cancelled?: () => boolean
@@ -859,6 +918,8 @@ export async function renderSchedule(opts: {
   const canvas = new OffscreenCanvas(w, h)
   const ctx = canvas.getContext('2d')!
   const below = under ? new OffscreenCanvas(w, h) : null
+  const shifts = opts.faces?.length ? faceShifts(ctx, w, h, items, style, parts, opts.faces) : {}
+  opts.onMoved?.(Object.keys(shifts).length)
   const schedule: ScheduleEntry[] = []
   const seen = new Map<string, number>()
   const pending = new Set<Promise<void>>()
@@ -880,7 +941,7 @@ export async function renderSchedule(opts: {
       if (id == null) {
         id = n++
         seen.set(key, id)
-        drawOverlays(ctx, w, h, items, style, parts, t)
+        drawOverlays(ctx, w, h, items, style, parts, t, undefined, shifts)
         if (below && art) {
           // the layer goes under the words: drawn on its own, then slid beneath
           const bctx = below.getContext('2d')!

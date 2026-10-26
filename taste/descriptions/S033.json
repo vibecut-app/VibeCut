@@ -1,0 +1,293 @@
+{
+ "v": 1,
+ "id": "S033",
+ "source": "reference",
+ "group": "short",
+ "vertical": true,
+ "duration": 14.881,
+ "cutoff": false,
+ "have": [
+  "motion",
+  "faces",
+  "sound",
+  "words",
+  "labels",
+  "roles",
+  "music"
+ ],
+ "shots": [
+  {
+   "t": 0.0,
+   "d": 2.433,
+   "motion": 11.539,
+   "motion_in": 6.881,
+   "motion_out": 19.489,
+   "face": 0.852,
+   "facing": 0.617,
+   "people": 2,
+   "voice": 0.471,
+   "music": 0.545,
+   "laugh": 0.081,
+   "labels": [
+    "outdoor",
+    "sky",
+    "blue_sky"
+   ],
+   "aesthetic": -0.164,
+   "same": false,
+   "speed": 1.0,
+   "role": "hook",
+   "chapter": null
+  },
+  {
+   "t": 2.433,
+   "d": 2.3,
+   "motion": 6.693,
+   "motion_in": 5.534,
+   "motion_out": 5.99,
+   "face": 0.123,
+   "facing": 0.0,
+   "people": 1,
+   "voice": 0.164,
+   "music": 0.452,
+   "laugh": 0.043,
+   "labels": [
+    "people",
+    "outdoor",
+    "sky"
+   ],
+   "aesthetic": -0.478,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 0
+  },
+  {
+   "t": 4.733,
+   "d": 5.6,
+   "motion": 7.353,
+   "motion_in": 9.225,
+   "motion_out": 4.525,
+   "face": 0.063,
+   "facing": 0.0,
+   "people": 1,
+   "voice": 0.229,
+   "music": 0.639,
+   "laugh": 0.092,
+   "labels": [
+    "outdoor",
+    "sky",
+    "blue_sky"
+   ],
+   "aesthetic": -0.27,
+   "same": false,
+   "speed": 1.0,
+   "role": "payoff",
+   "chapter": 0
+  },
+  {
+   "t": 10.333,
+   "d": 2.267,
+   "motion": 16.989,
+   "motion_in": 16.893,
+   "motion_out": 14.328,
+   "face": 0.159,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.37,
+   "music": 0.656,
+   "laugh": 0.072,
+   "labels": [
+    "people",
+    "adult",
+    "recreation"
+   ],
+   "aesthetic": -0.578,
+   "same": false,
+   "speed": 1.0,
+   "role": "payoff",
+   "chapter": 0
+  },
+  {
+   "t": 12.6,
+   "d": 2.281,
+   "motion": 6.301,
+   "motion_in": 5.359,
+   "motion_out": 7.146,
+   "face": 0.711,
+   "facing": 1.0,
+   "people": 2,
+   "voice": 0.425,
+   "music": 0.625,
+   "laugh": 0.042,
+   "labels": [
+    "people",
+    "adult",
+    "outdoor"
+   ],
+   "aesthetic": 0.413,
+   "same": false,
+   "speed": 1.0,
+   "role": "outro",
+   "chapter": 0
+  }
+ ],
+ "joins": [
+  {
+   "t": 2.433,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 4.733,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 10.333,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 12.6,
+   "kind": "cut",
+   "dur": 0.0
+  }
+ ],
+ "open": false,
+ "close": false,
+ "words": [
+  {
+   "t": 0.0,
+   "d": 1.0,
+   "band": "middle",
+   "size": 0.102,
+   "upper": 0.0,
+   "n": 1,
+   "kind": null
+  },
+  {
+   "t": 0.0,
+   "d": 15.0,
+   "band": "top",
+   "size": 0.03,
+   "upper": 1.0,
+   "n": 8,
+   "kind": null
+  },
+  {
+   "t": 1.0,
+   "d": 1.0,
+   "band": "bottom",
+   "size": 0.037,
+   "upper": 1.0,
+   "n": 2,
+   "kind": null
+  },
+  {
+   "t": 2.5,
+   "d": 0.5,
+   "band": "middle",
+   "size": 0.084,
+   "upper": 1.0,
+   "n": 3,
+   "kind": null
+  },
+  {
+   "t": 3.0,
+   "d": 0.5,
+   "band": "bottom",
+   "size": 0.085,
+   "upper": 1.0,
+   "n": 1,
+   "kind": null
+  },
+  {
+   "t": 4.5,
+   "d": 2.0,
+   "band": "middle",
+   "size": 0.059,
+   "upper": 1.0,
+   "n": 2,
+   "kind": null
+  },
+  {
+   "t": 10.5,
+   "d": 2.0,
+   "band": "middle",
+   "size": 0.019,
+   "upper": 1.0,
+   "n": 2,
+   "kind": null
+  }
+ ],
+ "music": {
+  "bpm": null,
+  "on": 0.8,
+  "beat": null
+ },
+ "lufs": -17.2,
+ "editor": {
+  "premise": "A field-level celebration after a football victory, moving through players, a mascot, and a coach.",
+  "hook": {
+   "shots": [
+    1
+   ],
+   "kind": "scene"
+  },
+  "chapters": [
+   {
+    "name": "Postgame celebration",
+    "first": 2,
+    "last": 5,
+    "purpose": "Extend the opening excitement through several field-level encounters."
+   }
+  ],
+  "captions": {
+   "role": "title",
+   "note": "A compact, two-line result headline stays near the top across cuts, keeping context readable while the people and action change beneath it."
+  },
+  "music": [
+   {
+    "shot": 1,
+    "event": "start"
+   },
+   {
+    "shot": 2,
+    "event": "drop_out"
+   },
+   {
+    "shot": 3,
+    "event": "return"
+   },
+   {
+    "shot": 5,
+    "event": "end"
+   }
+  ],
+  "ending": "cut",
+  "techniques": [
+   {
+    "name": "straight_cuts",
+    "shots": [
+     2,
+     3,
+     4,
+     5
+    ]
+   },
+   {
+    "name": "music_drop_out",
+    "shots": [
+     2,
+     3
+    ]
+   }
+  ],
+  "notes": "Keep the headline fixed while changing subjects. Surround the longer central celebration with short clips. Finish on a person approaching the lens rather than adding a separate goodbye.",
+  "roles_given": 5,
+  "model": "gpt-6.1-sol",
+  "cost": 0.0122,
+  "at": "2026-10-21"
+ }
+}

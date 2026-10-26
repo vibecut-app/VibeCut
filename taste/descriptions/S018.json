@@ -1,0 +1,629 @@
+{
+ "v": 1,
+ "id": "S018",
+ "source": "reference",
+ "group": "short",
+ "vertical": false,
+ "duration": 44.467,
+ "cutoff": false,
+ "have": [
+  "motion",
+  "faces",
+  "sound",
+  "words",
+  "labels",
+  "roles",
+  "music"
+ ],
+ "shots": [
+  {
+   "t": 0.0,
+   "d": 1.533,
+   "motion": 3.755,
+   "motion_in": 4.349,
+   "motion_out": 2.992,
+   "face": 0.174,
+   "facing": 0.0,
+   "people": 1,
+   "voice": 0.018,
+   "music": 0.226,
+   "laugh": 0.005,
+   "labels": [
+    "clothing",
+    "headgear",
+    "helmet"
+   ],
+   "aesthetic": 0.348,
+   "same": false,
+   "speed": 1.0,
+   "role": "hook",
+   "chapter": null
+  },
+  {
+   "t": 1.533,
+   "d": 2.8,
+   "motion": 8.052,
+   "motion_in": 6.149,
+   "motion_out": 2.685,
+   "face": 0.738,
+   "facing": 0.179,
+   "people": 1,
+   "voice": 0.556,
+   "music": 0.241,
+   "laugh": 0.031,
+   "labels": [
+    "people",
+    "adult",
+    "clothing"
+   ],
+   "aesthetic": 0.339,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 0
+  },
+  {
+   "t": 4.333,
+   "d": 1.7,
+   "motion": 4.848,
+   "motion_in": 3.674,
+   "motion_out": 5.765,
+   "face": 0.984,
+   "facing": 0.019,
+   "people": 1,
+   "voice": 0.706,
+   "music": 0.424,
+   "laugh": 0.02,
+   "labels": [
+    "clothing",
+    "people",
+    "adult"
+   ],
+   "aesthetic": 0.388,
+   "same": true,
+   "speed": 1.0,
+   "role": "reaction",
+   "chapter": 0
+  },
+  {
+   "t": 6.033,
+   "d": 1.134,
+   "motion": 1.79,
+   "motion_in": 1.242,
+   "motion_out": 1.747,
+   "face": 0.189,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.714,
+   "music": 0.676,
+   "laugh": 0.104,
+   "labels": [
+    "people",
+    "adult",
+    "structure"
+   ],
+   "aesthetic": 0.312,
+   "same": false,
+   "speed": 1.0,
+   "role": "setup",
+   "chapter": 0
+  },
+  {
+   "t": 7.167,
+   "d": 2.533,
+   "motion": 7.136,
+   "motion_in": 5.909,
+   "motion_out": 3.024,
+   "face": 0.184,
+   "facing": 0.543,
+   "people": 1,
+   "voice": 0.787,
+   "music": 0.673,
+   "laugh": 0.068,
+   "labels": [
+    "people",
+    "adult",
+    "cord"
+   ],
+   "aesthetic": 0.305,
+   "same": true,
+   "speed": 1.0,
+   "role": "detail",
+   "chapter": 0
+  },
+  {
+   "t": 9.7,
+   "d": 1.433,
+   "motion": 12.592,
+   "motion_in": 19.623,
+   "motion_out": 5.418,
+   "face": 0.105,
+   "facing": 0.0,
+   "people": 1,
+   "voice": 0.775,
+   "music": 0.476,
+   "laugh": 0.046,
+   "labels": [
+    "people",
+    "adult",
+    "clothing"
+   ],
+   "aesthetic": 0.376,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 0
+  },
+  {
+   "t": 11.133,
+   "d": 0.634,
+   "motion": 0.001,
+   "motion_in": 0.002,
+   "motion_out": 0.002,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.313,
+   "music": 0.823,
+   "laugh": 0.092,
+   "labels": [
+    "document",
+    "screenshot"
+   ],
+   "aesthetic": -0.127,
+   "same": false,
+   "speed": 1.0,
+   "role": "title",
+   "chapter": 0
+  },
+  {
+   "t": 11.767,
+   "d": 2.233,
+   "motion": 2.86,
+   "motion_in": 4.45,
+   "motion_out": 1.114,
+   "face": 0.513,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.735,
+   "music": 0.512,
+   "laugh": 0.064,
+   "labels": [
+    "recreation",
+    "rock_climbing",
+    "people"
+   ],
+   "aesthetic": 0.458,
+   "same": false,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 0
+  },
+  {
+   "t": 14.0,
+   "d": 0.767,
+   "motion": 0.002,
+   "motion_in": 0.002,
+   "motion_out": 0.002,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.013,
+   "music": 0.78,
+   "laugh": 0.017,
+   "labels": [
+    "document",
+    "screenshot"
+   ],
+   "aesthetic": -0.127,
+   "same": false,
+   "speed": 1.0,
+   "role": "title",
+   "chapter": 0
+  },
+  {
+   "t": 14.767,
+   "d": 4.033,
+   "motion": 5.377,
+   "motion_in": 0.483,
+   "motion_out": 2.294,
+   "face": 0.064,
+   "facing": 0.0,
+   "people": 1,
+   "voice": 0.63,
+   "music": 0.634,
+   "laugh": 0.019,
+   "labels": [
+    "outdoor",
+    "sky",
+    "cloudy"
+   ],
+   "aesthetic": -0.343,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 0
+  },
+  {
+   "t": 18.8,
+   "d": 0.533,
+   "motion": 0.001,
+   "motion_in": 0.001,
+   "motion_out": 0.001,
+   "face": 0.122,
+   "facing": 0.0,
+   "people": 1,
+   "voice": 0.256,
+   "music": 0.705,
+   "laugh": 0.036,
+   "labels": [
+    "document",
+    "screenshot"
+   ],
+   "aesthetic": -0.125,
+   "same": false,
+   "speed": 1.0,
+   "role": "title",
+   "chapter": 0
+  },
+  {
+   "t": 19.333,
+   "d": 1.8,
+   "motion": 1.849,
+   "motion_in": 1.965,
+   "motion_out": 2.035,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.325,
+   "music": 0.588,
+   "laugh": 0.032,
+   "labels": [
+    "outdoor",
+    "sky",
+    "cloudy"
+   ],
+   "aesthetic": 0.443,
+   "same": false,
+   "speed": 1.0,
+   "role": "step",
+   "chapter": 0
+  },
+  {
+   "t": 21.133,
+   "d": 0.734,
+   "motion": 0.001,
+   "motion_in": 0.001,
+   "motion_out": 0.002,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.206,
+   "music": 0.762,
+   "laugh": 0.02,
+   "labels": [
+    "document",
+    "screenshot"
+   ],
+   "aesthetic": -0.125,
+   "same": false,
+   "speed": 1.0,
+   "role": "title",
+   "chapter": 1
+  },
+  {
+   "t": 21.867,
+   "d": 5.283,
+   "motion": 2.592,
+   "motion_in": 2.03,
+   "motion_out": 3.918,
+   "face": 0.866,
+   "facing": 1.0,
+   "people": 1,
+   "voice": 0.605,
+   "music": 0.545,
+   "laugh": 0.021,
+   "labels": [
+    "people",
+    "adult",
+    "clothing"
+   ],
+   "aesthetic": 0.24,
+   "same": false,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 1
+  },
+  {
+   "t": 27.15,
+   "d": 10.45,
+   "motion": 0.243,
+   "motion_in": 0.292,
+   "motion_out": 0.363,
+   "face": 0.757,
+   "facing": 0.943,
+   "people": 1,
+   "voice": 0.78,
+   "music": 0.518,
+   "laugh": 0.049,
+   "labels": [
+    "people",
+    "adult",
+    "clothing"
+   ],
+   "aesthetic": 0.479,
+   "same": false,
+   "speed": 1.0,
+   "role": "talk",
+   "chapter": 1
+  },
+  {
+   "t": 37.6,
+   "d": 0.6,
+   "motion": 0.001,
+   "motion_in": 0.001,
+   "motion_out": 0.001,
+   "face": 0.294,
+   "facing": 0.0,
+   "people": 1,
+   "voice": 0.252,
+   "music": 0.765,
+   "laugh": 0.018,
+   "labels": [
+    "people",
+    "adult"
+   ],
+   "aesthetic": 0.347,
+   "same": false,
+   "speed": 1.0,
+   "role": "setup",
+   "chapter": 1
+  },
+  {
+   "t": 38.2,
+   "d": 5.367,
+   "motion": 1.644,
+   "motion_in": 2.715,
+   "motion_out": 0.705,
+   "face": 0.02,
+   "facing": 0.0,
+   "people": 1,
+   "voice": 0.249,
+   "music": 0.631,
+   "laugh": 0.014,
+   "labels": [
+    "people",
+    "adult",
+    "clothing"
+   ],
+   "aesthetic": 0.329,
+   "same": false,
+   "speed": 1.0,
+   "role": "payoff",
+   "chapter": 1
+  },
+  {
+   "t": 43.567,
+   "d": 0.9,
+   "motion": null,
+   "motion_in": null,
+   "motion_out": null,
+   "face": 0.0,
+   "facing": null,
+   "people": 0,
+   "voice": 0.533,
+   "music": 0.764,
+   "laugh": 0.046,
+   "labels": [
+    "document",
+    "screenshot",
+    "outdoor"
+   ],
+   "aesthetic": -0.126,
+   "same": false,
+   "speed": 1.0,
+   "role": "outro",
+   "chapter": 1
+  }
+ ],
+ "joins": [
+  {
+   "t": 1.533,
+   "kind": "dissolve",
+   "dur": 0.458
+  },
+  {
+   "t": 4.333,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 6.033,
+   "kind": "dip_black",
+   "dur": 0.533
+  },
+  {
+   "t": 7.167,
+   "kind": "jump",
+   "dur": 0.0
+  },
+  {
+   "t": 9.7,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 11.133,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 11.767,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 14.0,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 14.767,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 18.8,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 19.333,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 21.133,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 21.867,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 27.15,
+   "kind": "dip_black",
+   "dur": 0.567
+  },
+  {
+   "t": 37.6,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 38.2,
+   "kind": "cut",
+   "dur": 0.0
+  },
+  {
+   "t": 43.567,
+   "kind": "cut",
+   "dur": 0.0
+  }
+ ],
+ "open": false,
+ "close": true,
+ "words": [
+  {
+   "t": 0.0,
+   "d": 44.5,
+   "band": "bottom",
+   "size": 0.067,
+   "upper": 0.14,
+   "n": 4,
+   "kind": null
+  },
+  {
+   "t": 4.5,
+   "d": 0.5,
+   "band": "top",
+   "size": 0.026,
+   "upper": 0.33,
+   "n": 1,
+   "kind": null
+  }
+ ],
+ "music": {
+  "bpm": null,
+  "on": 0.6,
+  "beat": null
+ },
+ "lufs": -14.1,
+ "editor": {
+  "premise": "A cliffside climb turns into an after-dark adventure, contrasting exposed daylight movement with a precarious nighttime stop.",
+  "hook": {
+   "shots": [
+    1
+   ],
+   "kind": "scene"
+  },
+  "chapters": [
+   {
+    "name": "Daylight ascent",
+    "first": 2,
+    "last": 12,
+    "purpose": "Establish the exposure and advance the climb through changing viewpoints."
+   },
+   {
+    "name": "After dark",
+    "first": 13,
+    "last": 18,
+    "purpose": "Slow down for personal commentary, then reveal the nighttime situation."
+   }
+  ],
+  "captions": {
+   "role": "title",
+   "note": "A repeated lower-center title persists over action and black screens; it identifies the premise rather than transcribing speech or narrating progress."
+  },
+  "music": [
+   {
+    "shot": 4,
+    "event": "start"
+   },
+   {
+    "shot": 6,
+    "event": "drop_out"
+   },
+   {
+    "shot": 7,
+    "event": "return"
+   },
+   {
+    "shot": 18,
+    "event": "end"
+   }
+  ],
+  "ending": "fade",
+  "techniques": [
+   {
+    "name": "straight_cuts",
+    "shots": [
+     6,
+     8,
+     10,
+     12,
+     16,
+     17
+    ]
+   },
+   {
+    "name": "talk_then_show",
+    "shots": [
+     15,
+     16,
+     17
+    ]
+   },
+   {
+    "name": "jump_cuts",
+    "shots": [
+     2,
+     3
+    ]
+   },
+   {
+    "name": "hands_and_details",
+    "shots": [
+     5
+    ]
+   }
+  ],
+  "notes": "Use short daylight angles to establish exposure without showing every climbing move. Black beats interrupt the flow. After dark, hold speech much longer, then finish on a wider reveal. Reserve soft transitions for larger shifts.",
+  "roles_given": 18,
+  "model": "gpt-6.1-sol",
+  "cost": 0.0195,
+  "at": "2026-10-21"
+ }
+}

@@ -1,0 +1,164 @@
+{
+ "group": "short",
+ "videos": [
+  "S001",
+  "S002",
+  "S003",
+  "S004",
+  "S005",
+  "S006",
+  "S007"
+ ],
+ "n": 7,
+ "held_out": [
+  "S008"
+ ],
+ "thin": true,
+ "traits": {
+  "shot_s": {
+   "median": 1.067,
+   "low": 0.755,
+   "high": 1.125,
+   "n": 7,
+   "means": "typical shot length, seconds"
+  },
+  "shot_short_s": {
+   "median": 0.55,
+   "low": 0.473,
+   "high": 0.633,
+   "n": 7,
+   "means": "the quick shots (10th percentile), seconds"
+  },
+  "shot_long_s": {
+   "median": 2.357,
+   "low": 1.893,
+   "high": 2.819,
+   "n": 7,
+   "means": "the held shots (90th percentile), seconds"
+  },
+  "cuts_per_min": {
+   "median": 47.05,
+   "low": 35.22,
+   "high": 57.36,
+   "n": 7,
+   "means": "cuts per minute"
+  },
+  "rhythm_cv": {
+   "median": 0.803,
+   "low": 0.633,
+   "high": 1.093,
+   "n": 7,
+   "means": "how uneven shot lengths are (0 = metronome)"
+  },
+  "pace_trend": {
+   "median": 0.0,
+   "low": -0.154,
+   "high": 0.139,
+   "n": 7,
+   "means": "shots getting shorter (<0) or longer (>0) towards the end"
+  },
+  "first_cut_s": {
+   "median": 2.43,
+   "low": 0.935,
+   "high": 2.75,
+   "n": 7,
+   "means": "when the first cut comes, seconds"
+  },
+  "open_motion": {
+   "median": 0.98,
+   "low": 0.365,
+   "high": 3.015,
+   "n": 7,
+   "means": "movement in the first 2 s vs the rest"
+  },
+  "last_shot_s": {
+   "median": 1.05,
+   "low": 0.435,
+   "high": 1.55,
+   "n": 7,
+   "means": "how long the last shot is held, seconds"
+  },
+  "cut_share": {
+   "median": 1.0,
+   "low": 0.995,
+   "high": 1.0,
+   "n": 7,
+   "means": "share of joins that are hard cuts"
+  },
+  "dissolve_share": {
+   "median": 0.0,
+   "low": 0.0,
+   "high": 0.005,
+   "n": 7,
+   "means": "share of joins that are dissolves"
+  },
+  "beat_hit": {
+   "median": 0.4,
+   "low": 0.35,
+   "high": 0.518,
+   "n": 7,
+   "means": "share of cuts on a sound onset"
+  },
+  "lufs": {
+   "median": -19.2,
+   "low": -24.8,
+   "high": -12.25,
+   "n": 7,
+   "means": "loudness, LUFS (social ~ -14)"
+  },
+  "warmth": {
+   "median": 23.39,
+   "low": 20.51,
+   "high": 28.36,
+   "n": 7,
+   "means": "colour warmth (>0 warm)"
+  },
+  "saturation": {
+   "median": 0.134,
+   "low": 0.127,
+   "high": 0.14,
+   "n": 7,
+   "means": "saturation"
+  },
+  "contrast": {
+   "median": 191.28,
+   "low": 179.52,
+   "high": 209.96,
+   "n": 7,
+   "means": "contrast (white minus black level)"
+  },
+  "black": {
+   "median": 2.35,
+   "low": 2.065,
+   "high": 2.82,
+   "n": 7,
+   "means": "black level (0 = deep)"
+  },
+  "words_share": {
+   "median": 0.247,
+   "low": 0.145,
+   "high": 0.29,
+   "n": 7,
+   "means": "share of time with words on screen"
+  },
+  "words_first_s": {
+   "median": 1.0,
+   "low": 0.5,
+   "high": 3.5,
+   "n": 7,
+   "means": "when the first words appear, seconds"
+  },
+  "words_hold_s": {
+   "median": 0.5,
+   "low": 0.5,
+   "high": 0.75,
+   "n": 7,
+   "means": "how long a caption stays, seconds"
+  },
+  "words_band": {
+   "most": "middle",
+   "n": 7,
+   "means": "where captions sit: bottom / middle / top"
+  }
+ }
+}

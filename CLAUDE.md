@@ -34,6 +34,30 @@ The promise to a user is therefore *not* "this will be beautiful." It is
 - `storyline/` — proposes several edits from one shoot. Not built as a
   module; v1 axis enumeration (time / place / subject, no LLM) lives in
   `web/backend/storyboard.py`.
+- `taste/` — the taste model (sarah, 2026-10-21: "a learnable model that
+  iterates and improves", read the way a pro editor reads a cut): reference
+  vlogs described shot by shot, a scorer trained on real edits against
+  damaged copies, Make weighs a few one-change versions with it and keeps
+  at most one change per part (opening / rhythm / order / ending;
+  `web/backend/tastepick.py`). Trained 2026-10-21 on her Mac (24 long vlogs /
+  8 creators: 90% real-vs-damaged on unseen creators; 28 shorts / 12
+  creators: 85%; both past `MIN_LOCO`, so Make uses them). 2026-10-23 (her
+  Build it): new readings for talk left running and swapped shots
+  (`longest_hold`, `talk_longest`, `flow_seen`, `continuity`,
+  `music_under_talk`); retrained here: 93% / 85%; cold openings and endings
+  are still not caught (half the pros open on an ordinary shot). 2026-10-24:
+  20 more creators, mostly American (50 long / 20 creators: 92%; 37 shorts /
+  17: 87%; better on the creators it knew, see the README). **Which do you
+  like better?** (sarah, 2026-10-21; `web/backend/prefer.py`,
+  `PreferCards.tsx`, `/api/prefer`): under the made video up to 3 cards
+  play two versions one change apart; a pick refits her layer
+  (`taste/model.py` `PICK_STEP`) and, while the video is untouched since
+  Make, lands as one undoable turn. A turn the app adds by itself after Make
+  (a profile's captions or transition) isn't a change: register its text in
+  `app.REDRESS` and the picked version gets it too, inside the pick's turn
+  (#47's "From your profile" needs that one line when the two meet).
+  `tests/test_prefer.py`. Every threshold
+  a prior. See `taste/README.md`.
 - `web/` — the app (FastAPI + Vite/React). Built at the user's explicit
   request despite the "no web UI" non-goal below; scope is deliberately one
   path: **Projects → Footage → (style questions) → Story → Export**, the rough trim automatic
@@ -74,6 +98,35 @@ The promise to a user is therefore *not* "this will be beautiful." It is
   Bottom: the timeline with Video / Captions / Audio lanes (music drawn as a
   strip). Clicking something opens its tab. Every border drags (sizes saved
   in this browser). The old bottom tool bar (ShotBar) is gone.
+- **Landing page** (`web/frontend/src/components/Landing.tsx`, route
+  `#/welcome`; 2026-10-21, the user: "like those websites selling this
+  product"; tightened 2026-10-22). Hero (two-line pitch + a before/after:
+  the shoot as a pile of clips with its tells marked, then the edit; flips
+  by itself until clicked), the 40/30/20/10 promise, three steps (with
+  "or paste a reel you love" under them), what it fixes, pricing (early
+  access free; a Creator plan named but unpriced), FAQ (which carries the
+  privacy answers), closing. Restyled 2026-10-23 (the user: "the vibe of
+  current YC companies' landing pages", then "too cartoon-ish, make it more
+  aesthetic, cool and sharp"): on the app's own dark palette (`.on-video`,
+  the one the player uses over footage), the app's own faces (Garamond
+  headlines and wordmark, system sans labels; the user, 2026-10-23: "the
+  font does not match the app"; Nunito only inside drawn captions) with one
+  italic turn per headline, numbered section labels, hairline grids instead
+  of cards, 4–10 px corners, film grain, one pale-blue accent, no emoji or
+  pastels; the carousel's scenes are light (dusk, coast, night street), not
+  drawings. A marquee of the tells, and a plain mark (`Mark`: one frame cut in two on a diagonal,
+  also `public/favicon.svg`; the clapperboard mascot went, the user:
+  "too cartoonish"); motion is in the file's
+  own CSS and off under reduced motion. No logos, quotes or backers we don't
+  have. Cut down 2026-10-23 (the user: "less words, more straight to the
+  point, and a carousel of animations that we can do"): every section is a
+  headline and a line; "What it can do" (`Moves`) is a carousel of 29 looping
+  9:16 cards, filterable by Captions / Transitions / Effects / On the beat,
+  each a move the editor has under its menu name, drawn as CSS over made-up
+  scenes (no faces); it advances by itself until touched. Both
+  sides of the before/after are drawn in CSS because every real screenshot
+  shows the creator's face. The app's home (`#/`) stays bare; the page is
+  linked only from the profile page ("About VibeCut"). Copy keeps to "no amateur tells", never "beautiful".
 - Chat editing rule: a turn applies operations to the working storyboard
   (`web/backend/board.py`), never regenerates it. The LLM only emits ops;
   the diff is computed, not reported by the model. Keep it that way.
@@ -262,6 +315,118 @@ The promise to a user is therefore *not* "this will be beautiful." It is
   line plus the track's licence credit, now on `session.music.credit`);
   the no-music export is the dialog's Music switch; "Would you post this?"
   stays the number.
+  **Share it** (2026-10-23, the user: "after the video is created how to
+  move it to like tiktok youtube … publish share it save it";
+  `web/backend/share.py`, `SharePanel.tsx`): after an export the dialog
+  shows Download, Save to Photos, Show in Finder (Mac) and Share… (the
+  system sheet, AirDrop / Messages / Mail, through `navigator.share` with
+  the file, fetched ahead so the click opens it; where the browser can't
+  share files it says so and the button isn't there), then one link each
+  for TikTok, YouTube (Shorts when vertical and ≤ 3 min, else a normal
+  upload) and Instagram: the click copies the caption + credit (the credit
+  only when the file has the music) and opens that platform's own upload
+  page in a new tab, and the line under it says which file to pick from
+  which folder. Each platform is checked against the file first
+  (`GET /api/export/{jid}/share`: frame and length, e.g. "Too long for a
+  Short", "Wide — TikTok shows it small with bars"), said in amber, never
+  hidden. Limits are the platforms' own numbers as of 2026-10, in one
+  table. Every way out is a `Project.events` entry (kind `share`, `how`,
+  `export`; browser-side ones through `POST /api/export/{jid}/shared`,
+  Photos and Finder by their own endpoints) and `launchlog` counts
+  projects shared and each way next to "would you post this?". **VibeCut
+  never posts by itself**: posting through TikTok's and Instagram's APIs
+  (OAuth, app review, audits) is written up in `web/feature-roadmap.md` and
+  waits for the user's go-ahead. `tests/test_share.py`.
+  **Posting to YouTube** (the user, 2026-10-23: "start direct posting with
+  YouTube … with a confirm before every post"; `web/backend/youtube.py`,
+  `YouTubePost.tsx`): the creator's own Google Cloud "Desktop app" OAuth
+  client (`YOUTUBE_CLIENT_ID` in web/.env; setup in web/README.md), else
+  the Share box says it isn't set up. Sign-in = Google's page + a one-time
+  listener on 127.0.0.1 (random port, closed after the answer), PKCE + state;
+  scopes `youtube.upload` + `youtube.readonly` (to name the channel on the
+  confirm screen); refresh token in the Keychain (`security`), channel in
+  `$VIBECUT_CACHE/youtube.json`; disconnect revokes at Google. **Every post
+  is confirmed**: `POST /api/export/{jid}/youtube/prepare` returns the
+  channel, title, description (the music credit), whether it'll be a Short
+  and a single-use code; `POST /api/export/{jid}/youtube` refuses without
+  that code for that export, or without a made-for-kids answer; privacy
+  defaults to Only me. Resumable upload over urllib in 8 MiB chunks, a
+  dropped chunk asks where it stands and carries on, Stop between chunks
+  leaves nothing; the reply reports the privacy YouTube actually set.
+  Landed posts are a `share` event (`how: youtube_post`, video id) and
+  `posted` on the export; launchlog counts `posted`. Never retried, never
+  posted again by itself. `tests/test_youtube.py` against a stand-in Google
+  (`tests/fake_google.py`); walked through in the app against the stand-in,
+  not yet against real Google (needs the creator's client id).
+  **Words and a cover to post with** (2026-10-24, the user: "think about
+  what other feature is missing, keep building"; the Share box said "No
+  caption to copy" on most edits). `web/backend/postcopy.py`: a draft from
+  the edit alone, never the model — the title on screen, else where and
+  when it was filmed ("A Saturday in Lisbon, morning to night", "3 days in
+  Lisbon", from the edit's clips' times and the place names places.py has
+  cached, no new lookups); ≤ `MAX_TAGS` 5 hashtags (#dayinmylife /
+  #weekendvlog / #travel, #vlog, city, a named place, #shorts for a Short);
+  YouTube chapters by YouTube's rules (first 0:00, ≥ 3, each ≥ 10 s; chapter
+  titles on screen first, else stops by place; none for a Short). The Share
+  box's "Words to post with it" is that draft, the creator's to change; the
+  music credit is added to whatever they write. YouTube's confirm screen
+  starts from its title / description. `web/backend/covers.py`: the cover
+  is a frame of the export itself (captions and look included, never made
+  up): up to 6 stills, the hook then the longest-held shots, picked in the
+  Share box, saved full size as "<name> cover.jpg" beside the video (≤ 2 MB)
+  and on the export's record; YouTube gets it with the post through
+  `thumbnails.set` (`youtube.set_thumbnail`, not for a Short; a refusal,
+  e.g. an unverified channel, is said and the post stands). The post sends
+  only the cover the confirm screen showed (`cover_t`). Tests:
+  `tests/test_postcopy.py`, additions in `test_share.py`, `test_youtube.py`.
+  Tags and the cover rule are priors.
+  **The other frame, one click** (2026-10-24, the user: "when an export is
+  wide, add a one-click 'make a vertical version too' … and the other way
+  round for YouTube"): the Share box offers the same edit in the other
+  frame (`share.other_version`: wide → vertical "for TikTok, Reels and
+  Shorts" as far as the length allows; vertical → wide "for YouTube"; not
+  for a version or a square). `POST /api/export {frame: tall | wide}`
+  exports it without touching the project's own frame; captions are drawn
+  again for the new size by the same browser pipeline; `export.create(crop=
+  True)` → `cover_mismatched`: shots filmed the other way up (after their
+  quarter turns) fill the frame instead of bars, and the export says how
+  many. Saved as "<name> · vertical …" / "· wide", `alt` on the job and the
+  export record; the dialog lists what it made just now and asks "would you
+  post this?" only of the original. `test_share.py` (bars vs filled, by
+  brightness). **The crop follows the people** (2026-10-24, the user:
+  "follow the people in each shot instead of always keeping the middle";
+  `web/backend/aim.py`, `export.aim_refits`): one window per shot (a
+  window chasing every frame reads as a robot camera), from Vision's face
+  boxes on the index samples inside the seconds the shot uses (cached as
+  `faceboxes.json`, written at index time from now on, read once for older
+  clips): people who fit in the window together are kept together, else
+  the largest face; the median across samples; centred across, `HEAD_AT`
+  0.4 down (headroom); stops at the picture's edge; the shot's mirror and
+  quarter turns applied to the point. Faces on under `MIN_SEEN` 0.3 of its
+  samples, no Vision (not a Mac) or a shot filled by hand (the preview
+  shows it centred) → the middle, and the note says how many were kept on
+  people. Only the other-frame version aims; preview has no crop to match.
+  On six real vertical clips cut wide, every aimed crop kept the face where
+  the middle showed a neck. Numbers are priors. `tests/test_aim.py`
+  (a person left / right of centre centred, the middle crop as control,
+  headroom, turned shots, the note).
+  **Captions off faces** (2026-10-24, the user: "move any caption that
+  would sit over a face, using the same face boxes as the crop"): a
+  version's captions are laid out again for its size, so they could land
+  on the person the crop just centred. `export.face_areas` maps the same
+  face boxes into the version's frame shot by shot (crop at its aim, or the
+  picture between bars), `GET /api/export/{jid}/faces` (versions only: an
+  export in the edit's own frame keeps the captions the preview showed),
+  and the browser's `overlayDraw.faceShifts` slides each caption up or down
+  (never sideways: the alignment is the look's) to the nearest place clear
+  of every face on screen at any moment it's shown (`FACE_MARGIN` 0.02 of
+  the short side), else the place that covers least, inside the safe area
+  (the frame for words placed by hand); one shift for its whole time on
+  screen, so words don't jump at a cut. The count rides on the start
+  request (`moved`) into the export's notes. Priors. `tests/test_aim.py`
+  (each face area against where the person is in the rendered file),
+  `faceShifts.test.ts`; `design/eval/2026-10-24-captions-off-faces.png`
+  (before / after, a stand-in face on the synthetic test shoot).
 - **Watch, then Fine-tune** (2026-10-18, `App.tsx` `watching`): a made or
   remixed video opens as the video, full-size, with four chips under it —
   music (the bed switch), length (`LengthButton`), look (cycles the looks
@@ -549,6 +714,41 @@ The promise to a user is therefore *not* "this will be beautiful." It is
   `media.to_sdr` so they look like the phone showed them; measurement frames
   are untouched. `tests/test_hdr.py`.
 
+- **The vlog grammar** (`web/backend/vlog.py`; 2026-10-19, after the creator
+  watched a made video: "the cut is too random, not those pretty vlogs on
+  YouTube"). A tall or wide Make, when no reel is being copied, is cut like
+  a vlog, not a reel: `make.PRIOR` holds 3–6 s a shot (hook 3 s), no speed
+  ramp, no flash, only the hook pushes; the picker refuses shots filmed
+  under 2.5 s (`select.choose(min_s)`) and a vlog that lands under 90% of
+  its length asks for more moments once. Picks are regrouped into *scenes*
+  (`brief.spots`: a place, twenty minutes; at most 7), each stop sequenced
+  wide → medium → close from face area + detail labels, look-alikes apart,
+  ending on a detail or a face; folded scenes keep the day's order. Holds
+  follow stillness (`activity` < 15 ×1.5, > 40 ×0.7, clamped 1.5–7 s), cut
+  in before the action (`select.window`). Shorts are unchanged. Judged on
+  the one real shoot (42 clips: 27 shots of 0.6–3.9 s in 45-min sessions →
+  20 shots of 2.6–6.8 s in 7 scenes, 73 s of the 90 asked: the footage is
+  short). Every number is a prior. Then, the same day, the rest of the plan:
+  **continuity** (`vlog.flow`: inside one stop, among the orders that keep
+  wide → medium → close, the one the joins checker scores smoothest, with
+  look-alikes apart and the scene still ending on a detail or a face;
+  never across stops, so the day's order holds) and the smoother's nudge
+  onto movement runs after a vlog Make as its own "Smoother cuts" turn
+  (user decision 2026-10-19: Make is the machine's own edit, so this is
+  not cutfix; it still never touches a hand-cut edit); **phrases**
+  (`vlog.phrase`: the hook on a whole beat, every scene a whole number of
+  two- or four-bar phrases, shots inside a scene where the action ends,
+  not on the beat; the closing shot takes the slack); **natural sound**
+  (the vlog's own sound at 1.0, music at `vlog.MUSIC_GAIN` 0.5 settling to
+  `SETTLE` 0.6 of that inside each scene via the bed's duck list, so it
+  rises at a scene change; `set_join carry_out` inside a scene = L cuts);
+  **one word per scene** (`POST /api/scenes/{beat}/verdict {keep|cut|
+  longer}` from the Watch screen; cut and longer are one undoable turn
+  each, every word is a `scene_verdict` event on the project with the
+  scene's labels and holds — the calibration record — and `habits.derive`
+  reads cut / longer as removed / held; `launchlog.summary` counts them).
+  Tested in `tests/test_vlog.py` and the wide Make in `test_make.py`.
+
 - From montage-vlog-compiler (MIT; see NOTICE), four pieces:
   - **Evidence levels** (`cutgrammar/evidence.py`): every finding names
     what it rests on — meta / still / motion / audio. A finding whose
@@ -744,10 +944,32 @@ The promise to a user is therefore *not* "this will be beautiful." It is
   from the index (no pixel decode). Story marks rough cuts (! + numbers on
   hover); each turn gets a second look in chat. The place axis now gives a
   return visit its own chapter in day order. Thresholds are priors.
+  **Check my cut** (2026-10-24, the user: "timestamped notes on my own
+  hand edit, from the cut checks you already have, report only"; idea from
+  Eddie AI's feedback mode, `design/research/09-competitors-2026-10.md`;
+  `web/backend/cutnotes.py`, `POST /api/cutnotes`, `CutNotes.tsx` under
+  Smoother cuts in the Edit tab with nothing clicked). The same per-cut
+  findings (`seams.check`, now carrying each finding's numbers as `data`)
+  and caption findings (`overlays.check`), as a list in edit order: the
+  time, "Cut from shot 4 to 5" or the caption's first words, what's off in
+  plain words with the numbers ("much brighter at the cut (40 → 200 on a
+  0–255 scale)"), and "Usually helps: …" in words only. A click plays
+  through the cut from 1.5 s before (a caption: shows it); after any later
+  turn the list says the edit changed since. Checks the media couldn't
+  support are listed as not checked; the report says its limits are first
+  guesses. Never an op, no model, free; each check is a `cut_check` event
+  on the project (turn, notes, which checks fired) for calibration. Works
+  on any edit, hand-cut or made. `tests/test_cutnotes.py` (a bright shot
+  gives one note at its cut with the built-in numbers, an evenly lit one
+  none, moving the shot moves the note; captions; through the API, nothing
+  changes).
 - **Smoother cuts** (`web/backend/smooth.py`, P3-1/P3-2). Only when asked,
   one undoable turn: beam search over join roughness + filming-order
   penalty inside a part (move_shot), and window nudges ≤2 s onto movement,
-  never onto a word (trim). Never runs by default — that would be cutfix.
+  never onto a word (trim). Never runs by default on a hand-cut edit — that
+  would be cutfix. The one exception (2026-10-19, vlog.py step 5): the
+  nudge alone runs after a vlog *Make*, as its own turn, because that edit
+  is the machine's to begin with.
 - **Looks** (`web/backend/looks.py`, `looks/*.json`, P3-3). The spec's 7
   vibes as dated records: type + motion, and since 2026-10-10 (plan step 1)
   the picture too — `grade` (relative to the footage: warmth, black floor /

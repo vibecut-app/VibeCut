@@ -242,6 +242,8 @@ export type Session = {
   // Music by default (backend/bed.py): the pick runs in the background and lands as a turn.
   // what the creator's habits did to the last Make (habits.py), for the one line and its Undo
   habits?: { id: string; text: string }[]
+  // "Which do you like better?" after Make (backend prefer.py): which card of how many, while any are left
+  prefer?: { at: number; of: number; deck: number; on: number | null } | null
   bed: { stage: 'looking' | 'done' | 'nothing' | 'error'; why: string; source: string; done: number; total: number; elapsed: number } | null
   // The edit's sound as one track (backend/audiomix.py) -- what preview plays and export writes.
   mix: { key: string; audio: string; joins: JoinInfo[]; transitions: Trans[]; bars: number } | null
@@ -269,7 +271,7 @@ export type ExportJob = {
   id: string; stage: 'waiting' | 'shots' | 'joining' | 'finishing' | 'done' | 'error' | 'cancelled'
   done: number; of: number; progress: number; error: string | null; file: string | null; path: string | null
   size: { w: number; h: number }; total: number; overlays: number; music: boolean; elapsed: number
-  style?: string | null; notes?: string[]
+  style?: string | null; notes?: string[]; alt?: boolean   // a version in the other frame
 }
 
 // What edits teach -- only once the creator has sorted them.
@@ -335,3 +337,19 @@ export type SeamFinding = { key: string; label: string; value: number | null; un
 export type Seam = { after: string; before: string; at: number; verdict: 'ok' | 'warn' | 'bad'; findings: SeamFinding[] }
 // What a turn did to the cuts: a second look, shown under it.
 export type Review = { kind: 'worse' | 'better'; text: string; after?: string; at?: number; verdict?: string }
+// Check my cut (backend cutnotes.py): timestamped notes on the edit, report only.
+export type CutNote = { t: number; at: string; kind: 'cut' | 'caption'; verdict: 'warn' | 'bad'; title: string
+  lines: string[]; helps: string[]; after?: string; overlay?: string; checks: string[] }
+export type CutReport = { headline: string; notes: CutNote[]; checked: { cuts: number; captions: number }
+  unchecked: string[]; priors: string; turn: number | null }
+
+// A card after Make (backend prefer.py): two versions of the video one change
+// apart, each as the shots that play in its window and the sound they play with.
+export type PreferSide = { items: SeqItemLike[]; start: number; end: number; audio: string | null; poster: string | null }
+export type SeqItemLike = {
+  key: string; kind: 'shot' | 'gap'; shot_id: string | null; clip_id: string | null
+  src_start: number; src_end: number; seq_start: number; seq_end: number
+  beat_id: string; beat_title: string; n: number | null; speed?: number; rotate?: number; fill?: boolean
+  mirror?: boolean; punch?: number
+}
+export type PreferCard = { id: number; ask: string; at: number; of: number; sides: PreferSide[] }

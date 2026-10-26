@@ -1,6 +1,7 @@
 // On-device Vision pass over shot thumbnails. Nothing leaves the machine.
 //
 //   vibevision img1.jpg img2.jpg ...   -> one JSON object per line on stdout
+//   vibevision --faces | --text | --text2 a.jpg ...   (see below)
 //
 // Gives the index what numpy can't: what is in the frame (labels, faces),
 // an embedding to cluster by subject, and Apple's aesthetics score as the
@@ -93,10 +94,21 @@ struct TextOut: Encodable {
     let items: [TextItem]
 }
 
-func words(_ path: String) async -> TextOut {
+// `vibevision --text2 a.jpg ...`: the same, read by the accurate recogniser
+// with language detection. Fast reads Latin script only; a Korean,
+// Japanese or Chinese caption needs accurate. Slower, so only the taste
+// collector asks for it.
+func words(_ path: String, accurate: Bool = false) async -> TextOut {
     let url = URL(fileURLWithPath: path)
     var req = RecognizeTextRequest()
-    req.recognitionLevel = .fast
+    if accurate {
+        let langs = ["en-US", "ko-KR", "ja-JP", "zh-Hans", "zh-Hant", "fr-FR", "es-ES"]
+        req.recognitionLevel = .accurate
+        req.automaticallyDetectsLanguage = true
+        req.recognitionLanguages = langs.map { Locale.Language(identifier: $0) }
+    } else {
+        req.recognitionLevel = .fast
+    }
     req.usesLanguageCorrection = false
     let found = (try? await req.perform(on: url)) ?? []
     return TextOut(path: path, items: found.compactMap { obs in
@@ -110,13 +122,14 @@ func words(_ path: String) async -> TextOut {
 
 var args = Array(CommandLine.arguments.dropFirst())
 let enc = JSONEncoder()
-if args.first == "--text" {
+if args.first == "--text" || args.first == "--text2" {
+    let accurate = args.first == "--text2"
     args.removeFirst()
     // One frame at a time: text recognition deadlocked when a task group
     // ran 18 requests at once (2026-10-18, 0% CPU, never returned); the
     // Python side chunks and parallelises across processes instead.
     for p in args {
-        let r = await words(p)
+        let r = await words(p, accurate: accurate)
         if let d = try? enc.encode(r), let s = String(data: d, encoding: .utf8) { print(s) }
         fflush(stdout)
     }
