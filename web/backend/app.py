@@ -1040,21 +1040,46 @@ class BriefReq(BaseModel):
     said: str = ""
 
 
-def _summaries() -> list[dict]:
+def _summaries(stale: list[str] | None = None) -> list[dict]:
     cur = PROJECT["p"]
     out = []
     for p in pj.list_all():
         if cur is not None and p.id == cur.id:
             out.append(cur.summary(CLIPS, SESSION.board))
         else:
+            if stale is not None and pj.stale(p):
+                stale.append(p.id)
             out.append(p.summary())
     return out
 
 
+# Projects saved before Home showed the made video get its picture and
+# length filled once, in the background (projects.refresh_snapshot).
+FILL: dict = {"running": False, "tried": set()}
+
+
+def _fill(ids: list[str]) -> None:
+    for pid in ids:
+        try:
+            pj.refresh_snapshot(pid)
+        except Exception as e:  # noqa: BLE001 -- the card keeps its clip's picture
+            print(f"[recent] couldn't fill {pid}: {e}", flush=True)
+    FILL["running"] = False
+
+
 @app.get("/api/projects")
 def api_projects() -> dict:
-    return {"projects": _summaries(), "open": PROJECT["p"].id if PROJECT["p"] else None,
-            "capabilities": _capabilities()}
+    stale: list[str] = []
+    out = {"projects": _summaries(stale), "open": PROJECT["p"].id if PROJECT["p"] else None,
+           "capabilities": _capabilities()}
+    todo = [pid for pid in stale if pid not in FILL["tried"]]
+    if todo and not FILL["running"]:
+        FILL["running"] = True
+        FILL["tried"].update(todo)
+        threading.Thread(target=_fill, args=(todo,), daemon=True).start()
+    # Home asks again while this is non-zero, to show the filled cards
+    out["filling"] = len(todo) + (1 if FILL["running"] and not todo else 0)
+    return out
 
 
 @app.post("/api/projects")

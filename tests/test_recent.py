@@ -65,6 +65,7 @@ def through_api() -> None:
     from tests.test_projects import TMP as PTMP, clip, wait
     from web.backend import app as backend
     from web.backend import covers, export
+    from web.backend import projects as pj
     a = clip(PTMP / "rv-a.mp4", 6, "0xff8a1e", "0x2a3440", "'325+40*sin(t)'", "2026-09-20T08:10:00")
     b = clip(PTMP / "rv-b.mp4", 7, "0x1ec8ff", "0x203028", "'120+30*t'", "2026-09-20T11:05:00")
     with TestClient(backend.app) as c:
@@ -150,6 +151,29 @@ def through_api() -> None:
         check("a bad id is a 404", c.get("/api/projects/nope/poster").status_code == 404
               and c.post("/api/projects/nope/share").status_code == 404)
         backend._close_project()
+
+        # a video saved before cards had the edit's picture: filled once, in the background
+        before = row()
+        path = pj.DIR / f"{pid}.json"
+        rec = json.loads(path.read_text())
+        rec["snapshot"].pop("poster"), rec["snapshot"].pop("seconds")
+        rec["exports"][0]["path"] += ".gone"        # not exported any more, so the card shows the edit
+        path.write_text(json.dumps(rec))
+        r = c.get("/api/projects").json()
+        old = next(p for p in r["projects"] if p["id"] == pid)
+        check("an older video lists with no picture of its edit, and Home is told to ask again",
+              old["poster"] is None and r["filling"] >= 1, json.dumps({"poster": old["poster"], "filling": r["filling"]}))
+        for _ in range(120):
+            if not r["filling"]:
+                break
+            time.sleep(0.25)
+            r = c.get("/api/projects").json()
+        new = next(p for p in r["projects"] if p["id"] == pid)
+        check("… then its first shot and length are filled from its own log", new["poster"] == before["poster"]
+              and new["seconds"] == before["seconds"] and r["filling"] == 0,
+              json.dumps({k: new[k] for k in ("poster", "seconds")}))
+        check("… without moving it in Home's order", abs(new["updated"] - old["updated"]) < 1e-6)
+        check("… and only once", c.get("/api/projects").json()["filling"] == 0)
 
 
 def main() -> int:

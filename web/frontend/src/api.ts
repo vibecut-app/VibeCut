@@ -31,7 +31,8 @@ export type ChatEstimate = { on: boolean; provider: ChatProvider; model: string 
 // A chat answer: the session, or (after Stop) the session unchanged and what the dropped answer cost.
 export type ChatResult = Session & { stopped?: boolean; stop_cost?: number | null }
 
-export type ProjectList = { projects: ProjectMeta[]; open: string | null; capabilities: Capabilities }
+export type ProjectList = { projects: ProjectMeta[]; open: string | null; capabilities: Capabilities
+  filling?: number }   // older videos whose picture and length are being filled in
 export type Opened = { project: ProjectMeta; session: Session }
 
 export type AIState = { available: boolean; on: boolean; model: string }

@@ -179,11 +179,46 @@ def save(project: Project) -> None:
     """Atomic: a crash mid-write never leaves a half project behind."""
     with _lock:
         project.updated = time.time()
-        DIR.mkdir(parents=True, exist_ok=True)
-        p = _path(project.id)
-        tmp = p.with_suffix(".tmp")
-        tmp.write_text(json.dumps(asdict(project)))
-        os.replace(tmp, p)
+        _write(project)
+
+
+def _write(project: Project) -> None:
+    DIR.mkdir(parents=True, exist_ok=True)
+    p = _path(project.id)
+    tmp = p.with_suffix(".tmp")
+    tmp.write_text(json.dumps(asdict(project)))
+    os.replace(tmp, p)
+
+
+def stale(project: Project) -> bool:
+    """Saved before its snapshot carried the made video's first shot and
+    length (Home's recent videos): it has an edit, the snapshot doesn't."""
+    return "seconds" not in (project.snapshot or {}) and bool(project.turns)
+
+
+def refresh_snapshot(pid: str) -> bool:
+    """Fill a closed project's picture and length from its own log, once:
+    its clips from the cache, its turns replayed (a chosen story is kept in
+    the log, so no proposals are needed). Leaves `updated` alone, so Home's
+    order stays the creator's, and gives way to any save made meanwhile."""
+    pr = load(pid)
+    if not stale(pr):
+        return False
+    clips, _ = restore_clips(pr)
+    s = restore_session(pr)
+    try:
+        s.replay(bd.Catalog.from_clips(list(clips.values())), lambda direction: None)
+        board = s.board
+    except Exception:  # noqa: BLE001 -- a log this copy can't replay keeps the clip's picture
+        board = None
+    snap = snapshot_of(clips, board)
+    with _lock:
+        cur = load(pid)
+        if cur.updated != pr.updated or not stale(cur):
+            return False
+        cur.snapshot = {**(cur.snapshot or {}), "poster": snap["poster"], "seconds": snap["seconds"]}
+        _write(cur)
+    return True
 
 
 def create(name: str = "") -> Project:

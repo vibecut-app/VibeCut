@@ -31,9 +31,15 @@ export function Projects() {
   // the first name on their profile, the one behind the avatar.
   const hello = mine.split(/\s+/)[0]
 
-  const load = () => api.projects().then((r) => { setList(r.projects); setError(null) })
-    .catch((e) => setError((e as Error).message))
-  useEffect(() => { load() }, [])
+  // Videos saved before Home showed them get their picture filled in the
+  // background; ask again until that's done.
+  const again = useRef<number | undefined>(undefined)
+  const load = () => api.projects().then((r) => {
+    setList(r.projects); setError(null)
+    window.clearTimeout(again.current)
+    if (r.filling) again.current = window.setTimeout(load, 2500)
+  }).catch((e) => setError((e as Error).message))
+  useEffect(() => { load(); return () => window.clearTimeout(again.current) }, [])
 
   const open = async (p: ProjectMeta) => {
     try { await api.openProject(p.id); go({ kind: 'project', id: p.id, view: 'story' }) }
@@ -135,7 +141,11 @@ function Card({ p, onOpen, onShare, onRename, onDelete }: {
 }) {
   const [menu, setMenu] = useState(false)
   const v = p.video ?? null
-  const pic = v?.poster ?? p.poster ?? p.cover
+  // the next picture when one can't be read (a clip whose index was cleared)
+  const pics = [v?.poster, p.poster, p.cover].filter((x): x is string => !!x)
+  const [miss, setMiss] = useState(0)
+  useEffect(() => setMiss(0), [pics.join('|')])
+  const pic = pics[miss] ?? null
   const seconds = v?.seconds ?? p.seconds ?? null
   const line = v?.at ? `Exported ${ago(v.at)}`
     : p.clips ? `${p.clips} clip${p.clips === 1 ? '' : 's'} · ${ago(p.updated)}` : 'No clips yet'
@@ -145,7 +155,7 @@ function Card({ p, onOpen, onShare, onRename, onDelete }: {
         <div className={cx('relative aspect-video w-full overflow-hidden', pic ? 'bg-black' : 'bg-raised')}>
           {pic ? <>
             <img src={pic} alt="" aria-hidden className="absolute inset-0 size-full scale-110 object-cover opacity-60 blur-xl" />
-            <img src={pic} alt="" className="relative size-full object-contain" />
+            <img src={pic} alt="" onError={() => setMiss((m) => m + 1)} className="relative size-full object-contain" />
           </> : null}
           <span className="absolute left-2 top-2 rounded-md bg-black/70 px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-100">{STAGE_WORDS[p.stage]}</span>
           {seconds ? <span className="absolute bottom-2 right-2 rounded bg-black/70 px-1.5 text-[12px] tabular-nums text-zinc-100">{dur(seconds)}</span> : null}

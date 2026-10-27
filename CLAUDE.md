@@ -91,6 +91,9 @@ The promise to a user is therefore *not* "this will be beautiful." It is
   Share opens the project (the words, credit and cover are read from it) and
   takes the export up again from its record when the job is gone after a
   restart (`recent.revive`), then shows the video and the same Share box.
+  Videos saved before this get their first shot and length filled once in
+  the background from their own log (`projects.refresh_snapshot`, keeps
+  `updated`); a picture that won't load falls back to the next one.
   Footage has no preview panel: an opened stack is a vertical column on its own side (Kept left, Left out right), the other stack shrinks opposite as the drop target; a clicked clip plays in place with a "Move to …" button (no double-click). See `web/README.md`.
   **The edit screen** (sarah, 2026-10-16: "change the layout to this
   reference photo", same colours; `App.tsx` frames view, `Inspector.tsx`,
