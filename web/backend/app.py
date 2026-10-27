@@ -1103,6 +1103,55 @@ def api_project_rename(pid: str, req: ProjectReq) -> dict:
     return {"project": pr.summary()}
 
 
+@app.get("/api/projects/{pid}/poster")
+def api_project_poster(pid: str) -> FileResponse:
+    """The picture on a video's card at Home: a frame of its export (recent.py)."""
+    from . import recent
+    cur = PROJECT["p"]
+    try:
+        pr = cur if cur is not None and cur.id == pid else pj.load(pid)
+    except pj.ProjectError as e:
+        raise HTTPException(404, str(e)) from e
+    v = recent.video_of(pr.exports)
+    if v is None:
+        raise HTTPException(404, "not exported")
+    try:
+        return FileResponse(recent.poster(v[1]), media_type="image/jpeg")
+    except ValueError as e:
+        raise HTTPException(500, str(e)) from e
+
+
+@app.post("/api/projects/{pid}/share")
+def api_project_share(pid: str) -> dict:
+    """Share from Home: the video's export, ready for the Share box. The
+    project is opened, because the words to post with, the music credit
+    and the cover are read from it; an export from an earlier run of the
+    app is taken up again from its record (recent.revive)."""
+    from . import recent
+    if PROJECT["p"] is None or PROJECT["p"].id != pid:
+        _save()
+        try:
+            _open_project(pid)
+        except pj.ProjectError as e:
+            raise HTTPException(404, str(e)) from e
+    pr = PROJECT["p"]
+    v = recent.video_of(pr.exports)
+    if v is None:
+        raise HTTPException(409, "Its exported file isn't where it was saved any more. Open it and export it again.")
+    rec = v[1]
+    job = export.JOBS.get(rec.get("job") or "")
+    if job is None or job.stage != "done" or job.path != rec["path"]:
+        with LOCK:
+            if not rec.get("job"):
+                rec["job"] = uuid.uuid4().hex[:10]
+            try:
+                items = timeline.build(SESSION.board, CLIPS, _track())["items"] if SESSION.board else []
+            except Exception:  # noqa: BLE001 -- clips gone since: the file still shares
+                items = []
+            job = recent.revive(rec, items, dict(CLIPS))
+    return job.public()
+
+
 @app.delete("/api/projects/{pid}")
 def api_project_delete(pid: str) -> dict:
     """Removes the project record only -- never a clip, never an export."""
@@ -2919,6 +2968,8 @@ def api_export_status(jid: str) -> dict:
         live = [t for t in SESSION.turns if not t.undone]
         pr.exports.append({"job": jid, "file": pub["file"], "path": pub["path"], "at": time.time(),
                            "seconds": pub["total"], "size": pub["size"], "music": pub["music"],
+                           # the hook's middle: the frame Home shows for it (recent.py)
+                           "poster_t": next(iter(covers.candidates(job.items)), None),
                            "overlays": pub["overlays"], "bytes": os.path.getsize(pub["path"]) if pub["path"] and os.path.isfile(pub["path"]) else None,
                            # for launchlog.py: how it was made and what it cost
                            "elapsed": pub["elapsed"], "style": pub.get("style"), "alt": pub.get("alt", False),

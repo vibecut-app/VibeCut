@@ -23,7 +23,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 from . import board as bd
-from . import indexer
+from . import indexer, recent
 from .workflow import Workflow
 
 DIR = indexer.CACHE / "projects"
@@ -77,11 +77,15 @@ class Project:
         return {
             "id": self.id, "name": self.name, "created": self.created, "updated": self.updated,
             "clips": n_clips, "duration": snap.get("duration"), "cover": snap.get("cover"),
+            # the made video before it's exported: its first shot and its length
+            "poster": snap.get("poster"), "seconds": snap.get("seconds"),
             "stage": stage_of(self.workflow.get("state", "intake"), bool(snap.get("board")), bool(self.exports), n_clips,
                               bool(self.brief)),
             "edits": edited, "exports": len(self.exports),
             "board": snap.get("board"),
             "last_export": self.exports[-1] if self.exports else None,
+            # the exported video Home shows and shares (recent.py)
+            "video": recent.public(self.id, self.exports),
         }
 
 
@@ -92,8 +96,21 @@ def snapshot_of(clips: dict[str, dict], board: dict | None) -> dict:
         if c.get("shots"):
             cover = f"/api/thumbs/{c['id']}/{c['shots'][0]['thumb']}"
             break
+    poster = seconds = None
+    if board:
+        entries = [e for b in board["beats"] for e in b["shots"]]
+        seconds = round(sum(bd.seq_dur(e) for e in entries), 1)
+        for e in entries:
+            if bd.is_gap(e) or not e.get("id"):
+                continue
+            cid, _, idx = e["id"].partition(":")
+            s = next((s for s in (clips.get(cid) or {}).get("shots", []) if str(s.get("index")) == idx), None)
+            if s and s.get("thumb"):
+                poster = f"/api/thumbs/{cid}/{s['thumb']}"
+                break
     return {"duration": round(sum(c.get("duration", 0.0) for c in cs), 1), "cover": cover,
-            "board": {"name": board["name"], "parts": len(board["beats"])} if board else None}
+            "board": {"name": board["name"], "parts": len(board["beats"])} if board else None,
+            "poster": poster, "seconds": seconds}
 
 
 def stage_of(state: str, has_board: bool, exported: bool, n_clips: int, has_brief: bool = False) -> str:
