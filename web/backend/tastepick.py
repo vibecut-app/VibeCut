@@ -114,6 +114,7 @@ def copy_plan(plan: sel.Plan) -> sel.Plan:
     """A plan the variants may re-cut: new Picks, the same Shots (their
     embeddings are never copied). See map/make.md, mutation hazards."""
     return dataclasses.replace(plan, hook=[dataclasses.replace(p) for p in plan.hook],
+                               teaser=[dataclasses.replace(p) for p in plan.teaser],
                                sessions=[[dataclasses.replace(p) for p in s] for s in plan.sessions],
                                titles=list(plan.titles), notes=list(plan.notes))
 
@@ -153,7 +154,8 @@ def _wide_first(plan: sel.Plan) -> None:
 
 
 def _runner_up(plan: sel.Plan) -> sel.Pick | None:
-    hook = {p.shot.id for p in plan.hook}
+    # not a shot the teaser already glimpses (make.teaser): it would play twice in a row
+    hook = {p.shot.id for p in plan.hook} | {p.shot.id for p in plan.teaser}
     heroes = [p for s in plan.sessions for p in s if p.role == "hero" and p.shot.id not in hook]
     return max(heroes, key=lambda p: p.score) if heroes else None
 
@@ -248,8 +250,7 @@ def _refit(clips: dict[str, dict], plan: sel.Plan, fp: dict, mx: dict | None, en
         p = plan.sessions[-1][-1]
         if p.shot.end - p.shot.start >= end * period - 1e-3:
             p.start, p.end, p.short = sel.window(clips, p.shot, end * period)
-    hook_s = sum(p.duration for p in plan.hook) or fp["hook_s"]
-    vmx["in"] = round(max(0.0, vmx["drop"] - hook_s), 3)
+    vmx["in"] = round(max(0.0, vmx["drop"] - make.opening_s(plan, fp)), 3)
     if vmx["in"] + plan.duration > vmx["track"].duration:
         return False
     return vmx
@@ -292,7 +293,7 @@ def build(spec: dict | list[dict], raw: sel.Plan, clips: dict[str, dict], fp: di
     vmx = _refit(clips, plan, fp, mx, next((s["end"] for s in specs if s.get("end")), None), fmt, talking)
     if vmx is False:
         return None
-    ops = make.ops(plan, fp, vmx, fmt, look, about, talking, lines=lines)
+    ops = make.ops(plan, fp, vmx, fmt, look, about, talking, lines=lines, clips=clips)
     return plan, vmx, ops
 
 

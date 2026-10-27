@@ -327,7 +327,7 @@ def music(clips: dict[str, dict], plan: sel.Plan, fp: dict, pace: str, own: list
     source = "given"
     if pool is None:
         pool, source = bed.candidates(pace, own, progress)
-    hook_s = sum(p.duration for p in plan.hook) or fp["hook_s"]
+    hook_s = opening_s(plan, fp)
     # the top few, best first (songs.py): the first goes under the video, the
     # rest are the Music panel's swaps; the look and the creator's past picks lean it
     from . import songs
@@ -337,7 +337,7 @@ def music(clips: dict[str, dict], plan: sel.Plan, fp: dict, pace: str, own: list
         mx["others"] = ranked[1:]
         fit_beat(plan, clips, fp, fmt, mx["period"], talking)
         hold_ending(clips, plan, mx["period"], end_beats(fp, mx["period"]))
-        hook_s = sum(p.duration for p in plan.hook) or hook_s
+        hook_s = opening_s(plan, fp)
         mx["in"] = round(max(0.0, mx["drop"] - hook_s), 3)
     return mx, source
 
@@ -385,9 +385,123 @@ def words(plan: sel.Plan, about: str, taste: str = "", ask=None, fp: dict | None
     return [(f"{arrived[i]}{PLACE_SEP}{g}" if arrived[i] and g else g) or plain[i] for i, g in enumerate(got)]
 
 
+# A teaser (2026-10-26, the side-by-side against two travel vlogs: both open
+# on a reason to keep watching -- Seoul on a "preview" of later moments,
+# Tokyo on why she went -- while ours opened on "A day in my life" over the
+# first shot). Rule-based: one glimpse from each of up to TEASE_N later
+# stops, its strongest moment that isn't someone talking (a word cut short
+# reads as a mistake), in the day's order, before the hook; the title and
+# the music's drop come in after it. A glimpse uses seconds of its shot
+# outside the ones the body shows where the shot was filmed long enough,
+# else the middle of them (a preview shows what's coming). [priors]
+TEASE_N = 5          # glimpses at most
+TEASE_MIN = 3        # fewer later stops than this: no teaser (two glimpses aren't a preview)
+TEASE_S = 1.0        # a glimpse's length before the beat fit (about two beats)
+TEASE_ROOM_S = 0.6   # the least a side of the shot must have spare to give a glimpse its own seconds
+
+
+def teaser(plan: sel.Plan, fmt: str, fp: dict, talking: set[str] | None = None) -> int:
+    """Put a teaser on a vlog's plan (`plan.teaser`); returns how many
+    glimpses. A short already opens on its hook and the drop; a copied reel
+    opens the way the reel does."""
+    plan.teaser = []
+    if not is_vlog(fmt, fp) or not plan.hook:
+        return 0
+    talking = talking or set()
+    later = []
+    for si, sess in enumerate(plan.sessions):
+        if si == 0:
+            continue                       # the first stop plays straight after the title
+        quiet = [p for p in sess if p.shot.id not in talking]
+        if quiet:
+            later.append((si, max(quiet, key=lambda p: (float(getattr(p.shot, "worth", None) or 0.0), p.score))))
+    if len(later) < TEASE_MIN:
+        return 0
+    if len(later) > TEASE_N:               # spread across the day, not its first hours
+        step = (len(later) - 1) / (TEASE_N - 1)
+        later = [later[round(i * step)] for i in range(TEASE_N)]
+    for si, p in later:
+        lo, hi = float(p.shot.start), float(p.shot.end)
+        before, after = p.start - lo, hi - p.end
+        if max(before, after) >= TEASE_ROOM_S:
+            room = (lo, p.start) if before >= after else (p.end, hi)
+        else:
+            room = (p.start, p.end)
+        mid = (room[0] + room[1]) / 2
+        a = max(room[0], min(mid - TEASE_S / 2, room[1] - TEASE_S))
+        plan.teaser.append(sel.Pick(p.shot, "teaser", round(a, 3), round(min(room[1], a + TEASE_S), 3), p.score,
+                                    "a glimpse of what's coming", si, room=room))
+    plan.notes.append(f"Opens on {len(plan.teaser)} glimpses of what's coming, then the title.")
+    return len(plan.teaser)
+
+
+def opening_s(plan: sel.Plan, fp: dict | None = None) -> float:
+    """Where the opening ends -- the music's drop goes there: after a
+    teaser, else after the hook."""
+    if plan.teaser:
+        return sum(p.duration for p in plan.teaser)
+    return sum(p.duration for p in plan.hook) or float((fp or {}).get("hook_s") or 0.0)
+
+
+def fill_ops(plan: sel.Plan, clips: dict[str, dict] | None, fmt: str) -> list[dict]:
+    """Shots filmed the other way to the frame fill it, the crop kept on the
+    people in them (aim.py), as `set_shot {fill, aim}` -- board state, so the
+    preview draws the crop the export renders. The side-by-side of 2026-10-26:
+    a wide Make of her 41 vertical clips showed every shot as a strip between
+    black bars, two thirds of the picture empty, against two filled 16:9
+    vlogs; the crop that follows people already existed, but only for the
+    one-click other-frame version. A shot with nobody found in it keeps the
+    middle (no `aim`)."""
+    if not clips:
+        return []
+    from . import aim as am, export
+    size = export.frame_size([], clips, fmt)
+    W, H = size["w"], size["h"]
+    tall = H > W
+    todo = []
+    for p in plan.picks:
+        c = clips.get(p.shot.clip_id)
+        if not c:
+            continue
+        w, h = c.get("width") or 0, c.get("height") or 0
+        if not (w and h):
+            try:
+                d = export._display(c["path"])
+                w, h = d["w"], d["h"]
+            except Exception:  # noqa: BLE001 -- a size we can't read is left as it is
+                continue
+        if (h > w) != tall:
+            todo.append((p, c, w, h))
+    if not todo:
+        return []
+    found = am.boxes(list({c["id"]: c for _, c, _, _ in todo}.values()))
+    keys = {id(p): remix.teaser_key(p, i) for i, p in enumerate(plan.teaser)}   # a teaser glimpse has its own entry
+    out, seen = [], set()
+    for p, c, w, h in todo:
+        k_ = keys.get(id(p), p.shot.id)
+        if k_ in seen:
+            continue
+        seen.add(k_)
+        k = max(W / w, H / h)
+        faces = found.get(c["id"])
+        win = (W / (k * w), H / (k * h))
+        it = {"src_start": p.start, "src_end": p.end}
+        at = am.aim(it, c, faces, win) if faces else None
+        if am.cuts_face(it, c, faces, win, at):
+            # filling would cut a head off (a close selfie is taller than the window): the whole
+            # picture instead, over a blur of itself -- no bars, no one cut
+            out.append({"op": "set_shot", "shot": k_, "backdrop": "blur"})
+            continue
+        op = {"op": "set_shot", "shot": k_, "fill": True}
+        if at:
+            op["aim"] = list(at)
+        out.append(op)
+    return out
+
+
 def ops(plan: sel.Plan, fp: dict, mx: dict | None, fmt: str, look: str | None, about: str,
         talking: set[str], name: str = "Your video", lines: list[str] | None = None,
-        chapters: list[dict] | None = None) -> list[dict]:
+        chapters: list[dict] | None = None, clips: dict[str, dict] | None = None) -> list[dict]:
     """Everything the turn applies: the board, the bed, the look, the words.
     `chapters` (story.py): the plan's chapters, which then carry the words --
     a designed title and a plain line under it each -- instead of a clock
@@ -401,6 +515,8 @@ def ops(plan: sel.Plan, fp: dict, mx: dict | None, fmt: str, look: str | None, a
     if chapters:
         board["structure"] = f"Told in {len(chapters)} chapters, each a setup, its steps and a payoff — " + remix.describe(fp)
     out: list[dict] = [{"op": "choose_option", "option": "made", "snapshot": board}]
+    # before the hook's split, so both halves of it keep the crop
+    out.extend(fill_ops(plan, clips, fmt))
     if mx:
         lv = LEVELS.get(fmt, LEVELS["tall"])
         m = {"op": "set_music", "track": mx["track"].id, "in": mx["in"], "gain": lv["gain"], "original": lv["original"],
@@ -452,7 +568,7 @@ def ops(plan: sel.Plan, fp: dict, mx: dict | None, fmt: str, look: str | None, a
     for c in remix.captions(plan, title, None, hold_s=hold, with_title=with_title, phrases=lines, clock=False):
         if c["kind"] == "title":
             out.append({"op": "add_overlay", "kind": "title", "text": c["text"], "sub": c.get("sub", ""),
-                        "anchor": {"to": "edit"}, "at": 0.0, "dur": round(c["end"] - c["start"], 2), "anim": "rise"})
+                        "anchor": {"to": "edit"}, "at": round(c["start"], 2), "dur": round(c["end"] - c["start"], 2), "anim": "rise"})
         elif c["kind"] == "scene":
             # a vlog's words sit low, as in the good vlogs (12% of their words' time at the top, house.py)
             sub, _, text = c["text"].rpartition(PLACE_SEP)
@@ -619,6 +735,7 @@ def start(clips: dict[str, dict], cut, fmt: str, pace: str, look: str | None, ab
             talking = tempo.talking(list(clips.values()), pool)
             if plan is None:
                 plan = moments(clips, cut, fp, judge, taste, bias, fmt, talking)
+                teaser(plan, fmt, fp, talking)   # a vlog opens on glimpses of what's coming (AI chapters plan their own)
             if not plan.picks:
                 raise ValueError("none of the clips had a moment worth keeping — add more footage")
             if not chapters and not is_vlog(fmt, fp):
@@ -643,7 +760,7 @@ def start(clips: dict[str, dict], cut, fmt: str, pace: str, look: str | None, ab
             lines = None if chapters else words(plan, about, taste, words_ask, fp, found, phrasing)
             # only a writer's lines are "written": place and time of day are the plain fallback
             wrote = bool(lines) and lines != plain_lines(plan, found)
-            made = ops(plan, fp, mx, fmt, look, about, talking, lines=lines, chapters=chapters)
+            made = ops(plan, fp, mx, fmt, look, about, talking, lines=lines, chapters=chapters, clips=clips)
             picked = deck = None
             if raw is not None:
                 job.line = "Weighing a few cuts…"

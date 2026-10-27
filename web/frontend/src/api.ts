@@ -217,6 +217,8 @@ export const api = {
     j<YouTubePost>(post(`/api/export/${id}/youtube`, req)),
   youtubePostStatus: (pid: string) => j<YouTubePost>(fetch(`/api/youtube/posts/${pid}`)),
   youtubePostStop: (pid: string) => j<YouTubePost>(post(`/api/youtube/posts/${pid}/stop`, {})),
+  // where the creator posts (the profile's "Where you share"): it sets the default frame (brief.frame_for)
+  postTo: (platforms: string[]) => j<{ post_to: string[]; format: string | null; why: string | null }>(post('/api/post-to', { platforms })),
   captionVoice: () => j<CaptionVoice>(fetch('/api/captions/voice')),
   captionLine: (text: string, remove = false) => j<CaptionVoice>(post('/api/captions/lines', { text, remove })),
   captionRule: (id: string, on: boolean) => j<CaptionVoice>(post(`/api/captions/rules/${encodeURIComponent(id)}`, { on })),

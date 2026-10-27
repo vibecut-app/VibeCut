@@ -424,6 +424,14 @@ def phrase(plan: sel.Plan, clips: dict, period: float, fp: dict | None = None,
     within the hold clamp, and what's left goes to the closing shot. Talk to
     the lens keeps its sentence. Shots inside a scene fall where the action
     ends, not on a beat."""
+    # a teaser's glimpses (make.teaser): each a whole number of beats, quick, inside the seconds it was
+    # given -- so the drop, at the teaser's end, lands on a beat
+    for p in plan.teaser:
+        beats = max(1, int(round(p.duration / period)))
+        lo, hi = p.room or (p.shot.start, p.shot.end)
+        want = min(beats * period, hi - lo)
+        p.start = round(max(lo, min(p.start, hi - want)), 3)
+        p.end = round(p.start + want, 3)
     for p in plan.hook:
         beats = max(2, int(round(p.duration / period)))
         p.start, p.end, p.short = sel.window(clips, p.shot, beats * period)
@@ -480,7 +488,7 @@ def swells(plan: sel.Plan) -> list[list[float]]:
     SETTLE of its gain; around each scene change it is at full. Talking
     ducks (bed.ducks) sit under these; the mixer takes the quieter."""
     out: list[list[float]] = []
-    t = sum(p.duration for p in plan.hook)
+    t = sum(p.duration for p in plan.teaser) + sum(p.duration for p in plan.hook)
     for sess in plan.sessions:
         if not sess:
             continue

@@ -68,6 +68,7 @@ class Pick:
     why: str
     session: int = 0
     short: bool = False             # filmed shorter than the pace asked for
+    room: tuple[float, float] | None = None   # a teaser glimpse: the source seconds it may use (make.teaser)
 
     @property
     def duration(self) -> float:
@@ -81,10 +82,12 @@ class Plan:
     titles: list[str]
     notes: list[str] = field(default_factory=list)
     dropped_dup: int = 0
+    # a vlog's teaser (make.teaser): glimpses of later moments before the hook and the title
+    teaser: list[Pick] = field(default_factory=list)
 
     @property
     def picks(self) -> list[Pick]:
-        return self.hook + [p for s in self.sessions for p in s]
+        return self.teaser + self.hook + [p for s in self.sessions for p in s]
 
     @property
     def duration(self) -> float:

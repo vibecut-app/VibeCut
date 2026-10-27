@@ -515,6 +515,11 @@ _NOT_SAVED = ("/api/projects", "/api/upload", "/api/locate", "/api/polish", "/ap
 
 # My resources stand apart too: the profile page renames and deletes them with no video open.
 _NO_PROJECT_OK += ("/api/resources",)
+# So do the profile page's own answers: where you post, and your caption voice (not the
+# Captions switch, /api/captions, which changes the video)
+_PROFILE_ONLY = ("/api/post-to", "/api/captions/voice", "/api/captions/lines", "/api/captions/rules")
+_NO_PROJECT_OK += _PROFILE_ONLY
+_NOT_SAVED += _PROFILE_ONLY
 
 
 @app.middleware("http")
@@ -1454,13 +1459,39 @@ def api_brief_setup() -> dict:
         share = _portrait_share()
         remembered = defaults.get()
         vs = vibes.choices()          # a remembered pick that's gone (a deleted recipe) isn't shown as picked
-        return {"format": remembered.get("format") or brief.suggest_format(share, marks["max"]),
+        # where they post sets the frame (brief.frame_for); asked once, then a pick in the setup wins
+        posted = brief.frame_for(remembered.get("post_to"), share, marks["max"])
+        return {"format": remembered.get("format") or (posted[0] if posted else None) or brief.suggest_format(share, marks["max"]),
+                "post_to": remembered.get("post_to"), "ask_post": not remembered.get("post_to"),
+                "post_why": posted[1] if posted and not remembered.get("format") else None,
                 "suggested": brief.suggest_format(share, marks["max"]), "remembered": remembered,
                 "music": remembered.get("music", "on") != "off", "portrait_share": round(share, 2),
                 "formats": [{"key": k, "label": v, "seconds": round(brief.length_for(k, marks, _vlog_reach()))} for k, v in brief.FORMATS.items()],
                 "look": (_direction() or {}).get("style", {}).get("look") or remembered.get("look") or "cozy",
                 "vibes": vs, "vibe": remembered.get("vibe") if any(v["id"] == remembered.get("vibe") for v in vs) else None,
                 "looks": looks.public(), "about": about}
+
+
+class PostToReq(BaseModel):
+    platforms: list[str]
+
+
+@app.post("/api/post-to")
+def api_post_to(req: PostToReq) -> dict:
+    """Where the creator posts (the profile's "Where you share"), asked once
+    in the setup or tapped on the profile page. It becomes the default frame:
+    the remembered frame is set to what it asks for when the footage is open
+    (the setup), else cleared so the next setup works it out."""
+    got = [p for p in brief.PLATFORMS if p in req.platforms]
+    if [p for p in req.platforms if p not in brief.PLATFORMS]:
+        raise HTTPException(422, f"platforms are {', '.join(brief.PLATFORMS)}")
+    with LOCK:
+        frame = None
+        if got and CLIPS:
+            marks = brief.length_marks(_usable_s(), pitch.guess(list(CLIPS.values())) or "")
+            frame = brief.frame_for(got, _portrait_share(), marks["max"])
+        defaults.note(post_to=got or None, format=frame[0] if frame else None)
+    return {"post_to": got, "format": frame[0] if frame else None, "why": frame[1] if frame else None}
 
 
 class BriefAutoReq(BaseModel):
@@ -3630,7 +3661,7 @@ def api_music_trend(req: TrendReq) -> dict:
             if not any(x.id == t.id for x in musiclib.STATE["tracks"]):
                 musiclib.STATE["tracks"].append(t)
             items = SESSION.board.get("beats", [])
-            hook_s = next((float(e["end"]) - float(e["start"]) for bt in items for e in bt.get("shots", []) if not e.get("gap")), 2.0)
+            hook_s = bd.opening_s(SESSION.board) or 2.0      # a teaser, else the first shot
             fp = bed.fingerprint(copy.deepcopy(SESSION.board), CATALOG["cat"], None)
             fp = {**fp, "bpm": (float(t.bpm) * 0.8, float(t.bpm) * 1.25)}
             got = remix.rank_from([t], fp, min(need_s, max(4.0, t.duration - 9.0)), hook_s, 1)

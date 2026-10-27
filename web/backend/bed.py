@@ -82,7 +82,8 @@ def fingerprint(board: dict, cat, pace: str | None) -> dict:
         energy = np.interp(np.linspace(0, 1, ENERGY_POINTS), x, e)
     else:
         energy = np.linspace(0.3, 1.0, ENERGY_POINTS)   # one part: assume it builds, as music does
-    first = next((s["end"] - s["start"] for bt in board["beats"] for s in bt["shots"] if not s.get("gap")), 1.5)
+    from . import board as bd
+    first = bd.opening_s(board) or 1.5      # a teaser, else the first shot: where the drop lands
     rise = float(energy[-ENERGY_POINTS // 4:].mean() - energy[:ENERGY_POINTS // 4].mean())
     return {
         "bpm": PACE_BPM[pace], "pace": pace,

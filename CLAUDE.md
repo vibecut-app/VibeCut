@@ -450,6 +450,50 @@ The promise to a user is therefore *not* "this will be beautiful." It is
   samples, no Vision (not a Mac) or a shot filled by hand (the preview
   shows it centred) → the middle, and the note says how many were kept on
   people. Only the other-frame version aims; preview has no crop to match.
+  **And a Make fills too** (2026-10-26, the user after the side-by-side
+  against two 16:9 travel vlogs: a wide Make of her 41 vertical clips was
+  68% black side bars, theirs 0–3%): `make.fill_ops` gives every shot filmed
+  the other way to the frame `set_shot {fill, aim}` on the Make turn
+  (before the hook's split; tastepick's versions too), the point from the
+  same `aim.aim`; nobody found → fill, the middle. `aim` is a shot field
+  (`board.SHOT_FX`, dropped when the shot is turned or mirrored by hand,
+  never saved into My resources), so the export's `_fit` cuts it and the
+  preview draws the same window (`aimView.aimPosition` → CSS
+  object-position; checked in the app: 63.7% down, as the export). On her
+  day: 26 of 26 shots filled, 12 aimed at people, bars 68% → 0%. A wide
+  window shows ~⅓ of a vertical picture's height, so close selfies lose the
+  top of the head. `tests/test_fill_aim.py`, `aimView.test.ts`.
+  **Never a face cut** (2026-10-26, the user: "if it's wide it will cut the
+  face out, which is not what we want"): `aim.cuts_face` checks the whole
+  head, not just its centre — the main faces' boxes grown by `HAIR` 0.4 of
+  their height above and `CHIN` 0.15 below, inside the window export._fit
+  cuts, on ≥ `CUT_SHARE` of the shot's samples with a face (`CUT_TOL`
+  0.04). Where it would cut, Make sets `set_shot {backdrop: "blur"}`
+  instead of fill: the whole picture over a blurred, darkened copy of
+  itself covering the frame (export: `split` → small `gblur` →
+  `colorchannelmixer`, `BACKDROP_SCALE / SIGMA / DIM`; the player: a small
+  `canvas[data-backdrop]` behind the video drawn each paint with the same
+  numbers, `aimView.drawBackdrop`; a test checks the two sets agree). A
+  version in the other frame leaves it alone. On her day: 23 filled, 8
+  over their blur, none cut. Priors.
+  **A teaser opening** (`make.teaser`, 2026-10-26, the user after the
+  side-by-side: both references open on a reason to keep watching, Seoul
+  on a "preview" of later moments; ours opened on "A day in my life" over
+  the first shot): a vlog (tall / wide, no copied reel) with ≥ `TEASE_MIN`
+  3 later stops opens on one glimpse from each of up to `TEASE_N` 5,
+  spread over the day — the stop's strongest moment that isn't someone
+  talking, in the day's order, never the first stop — then the hook with
+  the title (now `at` the teaser's end) and the music's drop at the
+  teaser's end (`make.opening_s`, `board.opening_s`: the bed's
+  fingerprint, the song swap and tastepick's refit all use it). A glimpse
+  uses seconds of its shot the body doesn't show when there's
+  `TEASE_ROOM_S` 0.6 to spare (`Pick.room`), else the middle of the body's;
+  `vlog.phrase` makes each a whole number of beats inside that room. On the
+  board it is its own first part, `board.TEASER_BEAT` "Coming up", entries
+  keyed `{id}~t{n}` and marked `teaser`, which `brief.repeat_ops` never
+  drops or keeps against; tastepick's other opening never picks a shot the
+  teaser shows (`_runner_up`). AI chapters plan their own opening. On her
+  day: 5 glimpses × 1.26 s, title at 6.3 s. `tests/test_teaser.py`. Priors.
   On six real vertical clips cut wide, every aimed crop kept the face where
   the middle showed a neck. Numbers are priors. `tests/test_aim.py`
   (a person left / right of centre centred, the middle crop as control,
@@ -731,6 +775,23 @@ The promise to a user is therefore *not* "this will be beautiful." It is
   (`caption_ops` takes a look id, and dresses the video even with no
   captions). `tests/test_format.py`. `StyleQuestions.tsx` stays only for
   the chat's first message.
+  **Where you post sets the frame** (2026-10-27, the user: "ask where I
+  post once and remember it, so the default frame matches"; the
+  side-by-side of 2026-10-26 had her upright day offered a 60 s Short while
+  the vlogs she wanted were 15-minute YouTube videos). Until it's known the
+  popup asks "Where will you post it?" — YouTube / TikTok, Reels or Shorts /
+  Both — one tap, `POST /api/post-to {platforms}` (the profile's "Where you
+  share" names, `brief.PLATFORMS`), kept as `defaults` `post_to` and written
+  into the browser's profile too. `brief.frame_for`: any YouTube → wide
+  (with the others, the vertical is the Share box's one click); TikTok /
+  Instagram only → a short with little footage, else a vertical vlog; the
+  answer sets the remembered frame at once (said beside "Which frame?":
+  "as you post on YouTube"); a pick made in the popup still wins next time.
+  The profile page's pills save the same answer (and clear the remembered
+  frame, so the next setup works it out). The profile page's own answers
+  (`/api/post-to`, `/api/captions/voice|lines|rules`) work with no video
+  open (`_PROFILE_ONLY`; caption memory's profile card was refused without
+  one before); the Captions switch still needs one. `tests/test_post_to.py`.
 - **Style questions** (`web/backend/brief.py`, `StyleQuestions.tsx`,
   `web/frontend/src/brief.ts`): straight after Footage's "Looks good" (no
   "What's this video about?" box since 2026-10-06, sarah; the description is

@@ -32,7 +32,9 @@ from .indexer import CACHE
 
 SETTINGS = CACHE / "settings.json"
 KEYS = ("format", "look", "music", "caption_template", "caption_enter", "vibe", "sfx",
-        "makes", "pace", "transition", "captions")
+        "makes", "pace", "transition", "captions", "post_to")
+# post_to: where the creator posts, the profile's "Where you share" (brief.PLATFORMS);
+# asked once in the setup, it sets the default frame (brief.frame_for)
 ASKED = ("made", "skipped")
 _lock = threading.Lock()
 

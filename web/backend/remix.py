@@ -365,8 +365,19 @@ def quantise(plan: sel.Plan, clips: dict[str, dict], period: float) -> None:
 # the board and its words
 # --------------------------------------------------------------------------
 
+def teaser_key(p: sel.Pick, i: int) -> str:
+    """A teaser glimpse's board key: its shot appears again later in the edit."""
+    return f"{p.shot.id}~t{i}"
+
+
 def board_of(plan: sel.Plan, fp: dict, name: str) -> dict:
     beats = []
+    if plan.teaser:
+        # glimpses of what's coming: the same shots as later in the edit, so each has its own key and
+        # the mark the repeat check leaves alone (brief.repeat_ops)
+        beats.append({"id": bd.TEASER_BEAT, "title": "Coming up", "detail": "quick moments from later in the day",
+                      "shots": [{"id": p.shot.id, "key": teaser_key(p, i), "start": p.start, "end": p.end, "teaser": True}
+                                for i, p in enumerate(plan.teaser)]})
     if plan.hook:
         beats.append({"id": "r0", "title": "Hook", "detail": "the day's strongest moment, first",
                       "shots": [{"id": p.shot.id, "start": p.start, "end": p.end} for p in plan.hook]})
@@ -390,13 +401,15 @@ def captions(plan: sel.Plan, title: str | None, sub: str | None, hold_s: float |
     knows. `hold_s`: how long a stop's line stays (a reference's own hold);
     `with_title`: a reel with no words at the top gets no title."""
     out = []
-    t = 0.0
-    hook_end = sum(p.duration for p in plan.hook)
+    # a vlog's teaser (make.teaser) plays first, wordless; the title comes in with the hook, on the drop
+    tease = sum(p.duration for p in plan.teaser)
+    t = tease
+    hook_end = tease + sum(p.duration for p in plan.hook)
     first = next((p.shot.when for p in plan.picks if p.shot.when), None)
     if plan.hook and with_title:
         out.append({"kind": "title", "text": title or TAG_TEXT,
                     "sub": sub or (first.strftime("%A, %B %-d") if first else ""),
-                    "start": 0.0, "end": hook_end, "anim": "pop"})
+                    "start": round(tease, 3), "end": hook_end, "anim": "pop"})
         t = hook_end
     total = plan.duration
     if total > hook_end + 1:
