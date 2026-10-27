@@ -9,6 +9,7 @@ import { Icon, type IconName } from './icons'
 import { CaptionAnimations, CaptionStyles, Transitions } from './StyleBars'
 import { EffectTiles } from './Effects'
 import { effectName } from '../effectView'
+import { TONES, type Tone } from '../tone'
 import { lineLabel, lineName } from '../overlayDraw'
 import type { LineLook, LineRole } from '../types'
 
@@ -18,7 +19,8 @@ import type { LineLook, LineRole } from '../types'
 // clicked caption's words, then one style and entrance for every caption),
 // Effects (the clicked shot's effect, else every shot's; the transition at a cut),
 // Audio (the shot's or a sound strip's volume and fades, and the music),
-// Adjust (the look) and Graphic animations (graphics.py: pieces drawn over
+// Adjust (Brightness / Contrast / Saturation of the clicked shot, else every
+// shot, tone.py; then the look) and Graphic animations (graphics.py: pieces drawn over
 // the video, Graphics.tsx). Clicking something on the timeline opens its tab.
 // Every change is one undoable turn, sent when a slider is let go.
 
@@ -93,6 +95,11 @@ export function Inspector(p: {
   allEffect: { effect: string | null; amount: number; thumb: string | null }
   onEffect: (patch: { effect?: string | null; effect_amount?: number }, all: boolean, label: string) => void
   onLook: (id: string, name: string) => void
+  /** the clicked shot's Brightness / Contrast / Saturation, else every shot's (`mixed`: they differ) */
+  tone: { values: Required<Tone>; mixed: boolean }
+  onTone: (patch: Tone, all: boolean, label: string) => void
+  /** a slider held: the value under the hand, drawn on the picture before it's sent */
+  onToneLive: (patch: Tone | null, all: boolean) => void
   /** "Save to My resources": what's on the video now, kept in the folder (signed out: the sign-in card) */
   onSave: (kind: ResourceKind, why: string | null) => void
   /** what can be saved right now: null = ready, else what to do first (App works it out, for the folder too) */
@@ -114,7 +121,7 @@ export function Inspector(p: {
   return (
     <aside className="flex min-h-0 min-w-0 flex-1 flex-col">
       <nav className="flex shrink-0 gap-0.5 border-b border-line px-2 pt-2" role="tablist">
-        {TABS.filter((t) => t.id !== 'adjust' || p.looks?.all.length).map((t) => (
+        {TABS.map((t) => (
           <button key={t.id} type="button" role="tab" aria-selected={p.tab === t.id} onClick={() => p.onTab(t.id)}
                   // a two-word name (Graphic animations) goes on two tighter lines
                   className={cx('-mb-px flex min-w-0 flex-1 flex-col items-center gap-1 rounded-t-lg border-b-2 px-1 pb-2 pt-2 text-center font-serif',
@@ -151,6 +158,10 @@ export function Inspector(p: {
               <Segmented options={[['off', 'Forwards'], ['on', 'Backwards']]} value={shot.reverse ? 'on' : 'off'}
                          onPick={(v) => (v === 'on') !== !!shot.reverse && p.onFix({ reverse: v === 'on' }, v === 'on' ? `Shot ${shot.n} plays backwards` : `Shot ${shot.n} plays forwards again`)} />
             </Line>
+            {/* stable.py: shaky handheld footage held steady, cropped in just enough to hide the moving edges */}
+            <Slider label="Stabilise" value={Math.round((shot.stabilize ?? 0) * 100)} min={0} max={100} step={10} unit="%"
+                    show={(v) => v ? `${v}%` : 'Off'}
+                    onCommit={(v) => p.onFix({ stabilize: v / 100 }, v ? `You steadied shot ${shot.n} (${v}%)` : `Shot ${shot.n} is as shaky as filmed again`)} />
           </>}
           <Line label="Rotate">
             <IconChip label="Turn left" icon="turnL" onClick={() => p.onFix({ rotate: ((shot.rotate ?? 0) + 270) % 360 }, `You turned shot ${shot.n} left`)} />
@@ -170,7 +181,7 @@ export function Inspector(p: {
             <Chip onClick={p.onSplit}><Icon name="split" size={17} /> Split at the playhead</Chip>
             <Chip onClick={p.onDuplicate} title="The same shot again, right after this one (⌘D)"><Icon name="copy" size={17} /> Duplicate</Chip>
             {!shot.freeze && <Chip onClick={p.onFreeze} title="Hold the frame under the playhead for 3 seconds"><Icon name="freeze" size={17} /> Freeze frame</Chip>}
-            <Chip onClick={p.onCopyFx} title="Keep this shot's speed, turn, crop, effect and sound settings (⌥⌘C)"><Icon name="adjust" size={17} /> Copy settings</Chip>
+            <Chip onClick={p.onCopyFx} title="Keep this shot's speed, turn, crop, colour, effect and sound settings (⌥⌘C)"><Icon name="adjust" size={17} /> Copy settings</Chip>
             <Chip onClick={() => p.onPasteFx?.()} disabled={!p.onPasteFx} title="Give this shot the settings you copied (⌥⌘V)"><Icon name="paste" size={17} /> Paste settings</Chip>
             <SaveChip what="settings" ready={!p.saveWhy.shot} onClick={() => p.onSave('shot', p.saveWhy.shot)} />
             <Chip danger onClick={p.onDelete}><Icon name="trash" size={17} /> Delete</Chip>
@@ -271,7 +282,22 @@ export function Inspector(p: {
 
         {p.tab === 'graphics' && p.graphics}
 
-        {p.tab === 'adjust' && p.looks && (
+        {p.tab === 'adjust' && (
+          <Section title={shot ? `Colour of shot ${shot.n}` : 'Colour of every shot'}>
+            {!shot && p.tone.mixed && <Hint>Your shots have their own colour. A slider here sets it on every shot.</Hint>}
+            <ToneSliders key={shot?.key ?? 'all'} tone={p.tone.values}
+                         onLive={(patch) => p.onToneLive(patch, !shot)}
+                         onCommit={(f, v, name) => p.onTone({ [f]: v }, !shot,
+                           `${shot ? `Shot ${shot.n}'s` : 'Every shot’s'} ${name.toLowerCase()} ${v ? `${v > 0 ? '+' : '−'}${Math.round(Math.abs(v) * 100)}` : 'back to as filmed'}`)} />
+            <div className="flex flex-wrap gap-2 pt-1">
+              {shot && <Chip onClick={() => p.onTone(p.tone.values, true, `Every shot now has shot ${shot.n}'s colour`)}>Use for every shot</Chip>}
+              {(p.tone.mixed && !shot ? true : Object.values(p.tone.values).some((x) => x)) &&
+                <Chip onClick={() => p.onTone({ brightness: 0, contrast: 0, saturation: 0 }, !shot,
+                  shot ? `Shot ${shot.n}'s colour is back to as filmed` : 'Every shot’s colour is back to as filmed')}>Back to as filmed</Chip>}
+            </div>
+          </Section>
+        )}
+        {p.tab === 'adjust' && !!p.looks?.all.length && (
           <Section title="Look">
             <div className="flex flex-col gap-2">
               {p.looks.all.map((l) => (
@@ -532,8 +558,10 @@ function IconChip({ icon, label, onClick }: { icon: IconName; label: string; onC
 }
 
 /** A labelled slider with its value beside it; one turn when let go. */
-export function Slider({ label, value, min, max, step, unit, disabled, onCommit }: {
+export function Slider({ label, value, min, max, step, unit, disabled, show, onCommit }: {
   label: string; value: number; min: number; max: number; step: number; unit: string; disabled?: boolean
+  /** how the value reads beside it, when not the number and its unit */
+  show?: (v: number) => string
   onCommit: (v: number) => void
 }) {
   const [drag, setDrag] = useState<number | null>(null)
@@ -549,8 +577,40 @@ export function Slider({ label, value, min, max, step, unit, disabled, onCommit 
       <span className="w-24 shrink-0 font-serif text-[16px] text-zinc-100">{label}</span>
       <input type="range" min={min} max={max} step={step} value={v} disabled={disabled} className="min-w-0 flex-1 accent-[#1f5f8b]"
              onChange={(e) => setDrag(Number(e.target.value))} onPointerUp={commit} onKeyUp={commit} />
-      <Value>{Math.round(v * 100) / 100}{unit}</Value>
+      <Value>{show ? show(Math.round(v * 100) / 100) : `${Math.round(v * 100) / 100}${unit}`}</Value>
     </label>
+  )
+}
+
+// Brightness, Contrast, Saturation: -100..100 around the shot as filmed, the
+// picture following the hand while the slider is held, one turn when let go.
+function ToneSliders({ tone, onLive, onCommit }: {
+  tone: Required<Tone>
+  onLive: (patch: Tone | null) => void
+  onCommit: (f: keyof Tone, v: number, name: string) => void
+}) {
+  const [drag, setDrag] = useState<{ f: keyof Tone; v: number } | null>(null)
+  return (
+    <div className="space-y-3">
+      {TONES.map(([f, name]) => {
+        const v = drag?.f === f ? drag.v : Math.round(tone[f] * 100)
+        const commit = () => {
+          if (drag?.f !== f) return
+          setDrag(null)
+          if (Math.abs(drag.v / 100 - tone[f]) > 1e-6) onCommit(f, drag.v / 100, name)
+          else onLive(null)
+        }
+        return (
+          <label key={f} className="flex items-center gap-3">
+            <span className="w-24 shrink-0 font-serif text-[16px] text-zinc-100">{name}</span>
+            <input type="range" min={-100} max={100} step={1} value={v} className="min-w-0 flex-1 accent-[#1f5f8b]"
+                   onChange={(e) => { const x = Number(e.target.value); setDrag({ f, v: x }); onLive({ [f]: x / 100 }) }}
+                   onPointerUp={commit} onKeyUp={commit} />
+            <Value>{v > 0 ? `+${v}` : v < 0 ? `−${-v}` : '0'}</Value>
+          </label>
+        )
+      })}
+    </div>
   )
 }
 

@@ -57,3 +57,20 @@ test('a held frame shows its one frame the whole time', () => {
   assert.equal(toMedia(f, 7.9), 42)
   assert.equal(toSource(f, 6.5), 43.5)    // a cut at the playhead still splits its length
 })
+
+test('a steadied shot: the file is its span with 1.5 s either side, tools still get source time', () => {
+  const s: SeqItem = { ...item(9, 10, 14), src_start: 101, src_end: 105, stabilize: 0.6 }
+  assert.equal(mediaUrl(s), '/api/steady/c?a=101&b=105&s=0.6')
+  assert.equal(toSource(s, 11), 102)
+  assert.equal(toMedia(s, 10), 1.5)        // the span starts 1.5 s into the steady file
+  assert.equal(fromMedia(s, 3.5), 12)
+  assert.equal(mediaEnd(s), 5.5)
+  // filmed from the clip's first second: the file starts at 0
+  const early: SeqItem = { ...s, src_start: 0.5, src_end: 3 }
+  assert.equal(toMedia(early, 10), 0.5)
+  // backwards too: the steady span reversed, mapped as a reversed shot
+  const back: SeqItem = { ...s, reverse: true }
+  assert.equal(mediaUrl(back), '/api/steady/c?a=101&b=105&s=0.6&rev=1')
+  assert.equal(toMedia(back, 11), 1)
+  assert.equal(mediaEnd(back), 4)
+})

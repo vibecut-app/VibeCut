@@ -73,12 +73,14 @@ FREEZE_S = 3.0        # a freeze frame's length when none is asked for (CapCut's
 FREEZE_MAX = 30.0
 SPEEDS = (0.25, 4.0)           # the slowest and fastest a shot may play
 SHOT_FX = ("speed", "gain", "mute", "rotate", "fill", "mirror", "fade_in", "fade_out",
-           "punch", "effect", "effect_amount", "reverse")
+           "punch", "effect", "effect_amount", "reverse",
+           # the Adjust tab's three sliders (tone.py) and Stabilise (stable.py)
+           "brightness", "contrast", "saturation", "stabilize")
 PUNCH_MAX = 0.25     # a push into (or out of) the frame over the shot, as a share of its size
 # effect: one of effects.KINDS (Shake, Glitch, VHS...), picked in the Effects tab
 FX_PLAIN = {"speed": 1.0, "gain": 1.0, "mute": False, "rotate": 0, "fill": False, "mirror": False,
             "fade_in": 0.0, "fade_out": 0.0, "punch": 0.0, "effect": None, "effect_amount": 1.0,
-            "reverse": False}
+            "reverse": False, "brightness": 0.0, "contrast": 0.0, "saturation": 0.0, "stabilize": 0.0}
 FADE_MAX = 5.0   # a shot's own sound fading in or out, seconds
 
 FRAME = 1 / 30  # sequence frame; the smallest piece a cut or trim may leave
@@ -317,6 +319,15 @@ def _shot_fx(b: dict, op: dict) -> None:
         if is_freeze(e) and op["reverse"]:
             raise OpError("a held frame looks the same backwards")
         e["reverse"] = bool(op["reverse"])
+    for f in ("brightness", "contrast", "saturation"):
+        if f in op:
+            from . import tone
+            e[f] = tone.clamp(op[f])
+    if "stabilize" in op:
+        from . import stable
+        if is_freeze(e) and op["stabilize"]:
+            raise OpError("a held frame doesn't move, so there's nothing to steady")
+        e["stabilize"] = stable.clamp(op["stabilize"])
     for f, plain in FX_PLAIN.items():
         if f in e and e[f] == plain:
             del e[f]
@@ -325,7 +336,7 @@ def _shot_fx(b: dict, op: dict) -> None:
 def _freeze(b: dict, op: dict) -> None:
     """Hold the frame at source time `at` of a shot for `dur` seconds, cut in
     where it plays (CapCut's Freeze). The held frame keeps the shot's turn,
-    mirror and fill, plays no sound, and is a shot of its own after that."""
+    mirror, fill and colour, plays no sound, and is a shot of its own after that."""
     beat, i = _where(b, op.get("shot"))
     e = beat["shots"][i]
     if is_gap(e):
@@ -340,7 +351,7 @@ def _freeze(b: dict, op: dict) -> None:
     dur = max(FRAME, min(FREEZE_MAX, float(op.get("dur") or FREEZE_S)))
     hold = {"key": op.get("key") or _fresh_key(b, f"{e['id']}#{int(round(at * 1000))}"), "id": e["id"],
             "start": round(at, 3), "end": round(at + dur, 3), "freeze": True,
-            **{f: e[f] for f in ("rotate", "fill", "mirror") if f in e}}
+            **{f: e[f] for f in ("rotate", "fill", "mirror", "brightness", "contrast", "saturation") if f in e}}
     op["key"], op["dur"] = hold["key"], round(dur, 3)
     if off < FRAME / 2:
         pos = i                               # at the moment it starts playing: before it
@@ -350,6 +361,11 @@ def _freeze(b: dict, op: dict) -> None:
         _split(b, key(e), at)
         pos = i + 1
     beat["shots"].insert(pos, hold)
+
+
+def _tone_line(f: str, y: float) -> str:
+    from . import tone
+    return tone.describe(f, y)
 
 
 def _effect_name(k) -> str:
@@ -1003,6 +1019,10 @@ def _describe_sound(a: dict | None, b: dict | None) -> list[dict]:
                         # Make's motion on the beat; a describe without it raised on "Make my video again"
                         "punch": lambda: ("Shot pushes in" if y > 0 else "Shot pulls out") if y else "Shot holds still",
                         "reverse": lambda: "Shot plays backwards" if y else "Shot plays forwards again",
+                        "brightness": lambda: _tone_line(f, y),
+                        "contrast": lambda: _tone_line(f, y),
+                        "saturation": lambda: _tone_line(f, y),
+                        "stabilize": lambda: f"Shot held steady ({round(y * 100)}%)" if y else "Shot no longer steadied",
                         }[f]()
                 lines.append({"kind": "sound" if f in ("gain", "mute", "fade_in", "fade_out") else "trimmed", "beat": bt["id"],
                               "shot": key(s), "text": text})

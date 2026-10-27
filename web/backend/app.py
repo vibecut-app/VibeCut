@@ -36,7 +36,7 @@ from . import projects as pj
 from . import audiomix, bed, brief, captionmem, cloud, cutnotes, defaults, habits, make, recipes, vibes, vlog, tempo, ink, moment, cut, export, looks, pitch, seams, selfcheck, smooth, sound, subtitles, places, indexer, llm, locate, musiclib, oai, overlays, reference, remix, share, covers, postcopy, speech, story, storyboard, talk, timeline, vision, voiceover, youtube
 from .preferences import PreferenceError, Preferences
 from .workflow import GATE, Workflow, WorkflowError
-from . import graphics, resources, reverse, transitions
+from . import graphics, resources, reverse, stable, transitions
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
@@ -3568,6 +3568,22 @@ def api_reversed(clip_id: str, a: float, b: float) -> FileResponse:
         p = reverse.reversed_span(c["path"], a, b)
     except (subprocess.CalledProcessError, ValueError, OSError) as e:
         raise HTTPException(500, f"couldn't play that shot backwards: {e}") from e
+    return FileResponse(p, media_type="video/mp4",
+                        headers={"Cache-Control": "public, max-age=31536000, immutable"})
+
+
+@app.get("/api/steady/{clip_id}")
+def api_steady(clip_id: str, a: float, b: float, s: float, rev: int = 0) -> FileResponse:
+    """A shot held steady for the player (stable.py, as export): a small copy
+    of the span with footage past both ends, or, backwards, just the span.
+    The first ask makes it, so the picture waits a moment the first time."""
+    c = CLIPS.get(clip_id)
+    if not c or not 0 <= a < b or b - a > 600 or not 0 < s <= 1:
+        raise HTTPException(404)
+    try:
+        p = (stable.steady_reversed(c["path"], a, b, s) if rev else stable.steady_span(c["path"], a, b, s)[1])
+    except (subprocess.CalledProcessError, ValueError, OSError) as e:
+        raise HTTPException(500, f"couldn't steady that shot: {e}") from e
     return FileResponse(p, media_type="video/mp4",
                         headers={"Cache-Control": "public, max-age=31536000, immutable"})
 

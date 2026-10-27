@@ -977,6 +977,29 @@ The promise to a user is therefore *not* "this will be beautiful." It is
   `set_music volume` (1 = as placed, ≤2) folded into the gain by
   `export.music_spec`; with `level` the loudnorm still levels the whole
   mix, so on a short it mostly moves the balance.
+- **Colour adjust and Stabilise** (sarah, 2026-10-27: "build colori adjust
+  and stabilize"; `tests/test_adjust.py`, `tone.test.ts`). Both are
+  `set_shot` fields, kept through a cut and by Copy / Paste settings.
+  **Adjust tab**: Brightness / Contrast / Saturation sliders, -100..100
+  (`brightness` / `contrast` / `saturation`, -1..1 on the entry), on the
+  clicked shot, else every shot; Use for every shot, Back to as filmed; the
+  picture follows the hand while a slider is held (`transport.setToneLive`),
+  one turn when let go; the look stays below. They are the browser's own
+  CSS filters (`tone.ts` in `transport.paint`, also on the held-frame
+  canvas) and export copies the same sums in ffmpeg (`tone.chain`: lutrgb
+  then CSS saturate's matrix in colorchannelmixer, before fades and the
+  look's LUT), within 1 of 255 on known colours. Ends (`BRIGHT` 0.4,
+  `CONTRAST` 0.5, `SATURATE` 1; -100 = black and white) are priors. A held
+  frame keeps the colour. **Stabilise** (Edit tab slider, Off..100%,
+  `stabilize` 0..1): `stable.py` runs vidstabdetect + vidstabtransform
+  (optzoom: cropped just enough to hide the moving edges) over the span
+  with `PAD` 1.5 s either side (a dissolve's handles), strength = how much
+  of the camera's path is smoothed (`SMOOTH_S` 0.25–1.5 s, priors), for
+  the player (`/api/steady`, 540p, made on first ask, so the shot waits a
+  moment the first time) and export (output size); backwards = the steady
+  span reversed. Hardware decode on the Mac. Not on a held frame. On a
+  synthetic shaky pan: 4.7 px of shake → 0.7 (30%) / 0.4 (100%), the pan kept.
+  Not yet judged on her footage.
 - **My resources** (`web/backend/resources.py`, `/api/resources`,
   `Resources.tsx`; sarah, 2026-10-19: "a resources folder so i can save my
   own animations or templates forever", on the left rail, in the profile,
