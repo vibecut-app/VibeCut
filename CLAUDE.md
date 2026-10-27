@@ -997,9 +997,12 @@ The promise to a user is therefore *not* "this will be beautiful." It is
   of the camera's path is smoothed (`SMOOTH_S` 0.25–1.5 s, priors), for
   the player (`/api/steady`, 540p, made on first ask, so the shot waits a
   moment the first time) and export (output size); backwards = the steady
-  span reversed. Hardware decode on the Mac. Not on a held frame. On a
-  synthetic shaky pan: 4.7 px of shake → 0.7 (30%) / 0.4 (100%), the pan kept.
-  Not yet judged on her footage.
+  span reversed. Hardware decode on the Mac. Not on a held frame. An ffmpeg
+  without vid.stab (Homebrew's slim one) gets the same in numpy: phase
+  correlation for the picture's shift, the path smoothed, each frame's
+  window moved against it (`MAX_ZOOM` 1.2), sideways / up-down only, no
+  tilt. On a synthetic shaky pan: 4.7 px of shake → 0.7 / 0.4 (vid.stab,
+  30% / 100%), 0.6 / 0.3 (numpy), the pan kept. Not yet judged on her footage.
 - **My resources** (`web/backend/resources.py`, `/api/resources`,
   `Resources.tsx`; sarah, 2026-10-19: "a resources folder so i can save my
   own animations or templates forever", on the left rail, in the profile,

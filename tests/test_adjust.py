@@ -191,8 +191,25 @@ def main() -> int:
           f"colour {chroma(plain):.0f} -> {chroma(grey):.0f}")
     check("…as filmed, the export is the clip's own colour", abs(plain[9, 4] - [210, 120, 60]).max() < 12, str(plain[9, 4]))
 
-    print("stabilise: a shaky clip held steady")
     raw_shake, raw_pan = shake(S, 640, 360)
+    ways = ([True] if stable.has_vidstab() else []) + [False]
+    for vidstab in ways:
+        stable._vidstab = vidstab
+        steady_checks(s, cat, mk, clips, S, raw_shake, raw_pan, "vid.stab" if vidstab else "numpy, no vid.stab")
+
+    print()
+    if failures:
+        print(f"{len(failures)} failed: {', '.join(failures)}")
+        return 1
+    print("all checks passed")
+    return 0
+
+
+def steady_checks(s, cat, mk, clips, S: Path, raw_shake: float, raw_pan: float, how: str) -> None:
+    def fix(k: str, **kw):
+        return s.add({"kind": "direct", "text": "fix", "ops": [{"op": "set_shot", "shot": k, **kw}]}, cat, mk)
+
+    print(f"stabilise ({how}): a shaky clip held steady")
     f0, strong = stable.steady_span(str(S), 1.0, 4.0, 1.0, 360)
     _, light = stable.steady_span(str(S), 1.0, 4.0, 0.3, 360)
     (s_shake, s_pan), (l_shake, l_pan) = shake(strong, 640, 360), shake(light, 640, 360)
@@ -208,27 +225,20 @@ def main() -> int:
     fwd, rev = frames(strong, 64, 36)[..., 0], frames(back, 64, 36)[..., 0]
     check("backwards: the steady span's frames, last first", len(rev) == 90
           and np.abs(rev[10] - fwd[30 + 89 - 10]).mean() < 6, f"{len(rev)} frames")
-    plain_s = TMP / "plain_s.mov"
+    plain_s = TMP / f"plain_s_{len(how)}.mov"
     job = export.create(timeline.layout(s.board), clips, "t", None, want="wide")
     job.size = {"w": 640, "h": 360}
     export._shot(job, job.items[1], plain_s)
     t = fix("S:0", stabilize=0.7)
     job = export.create(timeline.layout(s.board), clips, "t", None, want="wide")
     job.size = {"w": 640, "h": 360}
-    steady_s = TMP / "steady_s.mov"
+    steady_s = TMP / f"steady_s_{len(how)}.mov"
     export._shot(job, job.items[1], steady_s)
     s.toggle(t.id, cat, mk)
     e_plain, e_steady = shake(plain_s, 640, 360)[0], shake(steady_s, 640, 360)[0]
     n = len(frames(steady_s, 16, 9))
     check("export: the steadied shot shakes less, same length", e_steady < e_plain / 3 and n == len(frames(plain_s, 16, 9)),
           f"{e_plain:.2f} -> {e_steady:.2f} px, {n} frames")
-
-    print()
-    if failures:
-        print(f"{len(failures)} failed: {', '.join(failures)}")
-        return 1
-    print("all checks passed")
-    return 0
 
 
 if __name__ == "__main__":
