@@ -298,7 +298,18 @@ export class Transport {
   }
 
   /** The bed that follows the playhead: the mix if it plays, else the plain music. */
+  // While a voiceover records, the edit plays without its sound, so the
+  // microphone hears only the voice (iMovie's "Mute project").
+  silent = false
+
   private bed(rate: number): HTMLAudioElement | null {
+    if (this.silent) {
+      if (this.video) this.video.muted = true
+      if (this.back) this.back.muted = true
+      this.mix?.pause()
+      this.audio?.pause()
+      return null
+    }
     const useMix = rate === 1 && this.mixUsable()
     if (this.video) this.video.muted = useMix
     if (this.back) this.back.muted = true   // the waiting (or leaving) picture never speaks

@@ -250,7 +250,14 @@ export function Inspector(p: {
           ) : <Hint>Transitions go between two shots. Your edit has no cuts yet.</Hint>}
         </>}
 
-        {p.tab === 'audio' && (p.strip ? (
+        {p.tab === 'audio' && (p.strip?.voice ? (
+          <Section title="Your voice">
+            <Hint>Recorded over your video. The music goes quieter while you talk. Drag the strip on the timeline to move it.</Hint>
+            <SoundLines gain={p.strip.gain} mute={p.strip.mute} fadeIn={p.strip.fade_in ?? 0} fadeOut={p.strip.fade_out ?? 0}
+                        onFix={(x, what) => p.onStrip(x, `You ${what} on your voice`)} />
+            <div className="pt-1"><Chip danger onClick={p.onStripDelete}><Icon name="trash" size={17} /> Delete this recording</Chip></div>
+          </Section>
+        ) : p.strip ? (
           <Section title={`Sound of shot ${p.strip.n ?? ''}`}>
             <Hint>It sits on its own strip under the picture. Drag the strip on the timeline to move it.</Hint>
             <SoundLines gain={p.strip.gain} mute={p.strip.mute} fadeIn={p.strip.fade_in ?? 0} fadeOut={p.strip.fade_out ?? 0}

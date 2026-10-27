@@ -147,7 +147,8 @@ def build(board: dict | None, clips: dict[str, dict], track: music.Track | None)
 
 def audio_lane(board: dict | None, items: list[dict]) -> dict:
     """Sound taken off shots (board.extract_audio), as the timeline draws it:
-    a strip under the picture at its place, and which shots now play silent."""
+    a strip under the picture at its place, and which shots now play silent;
+    and the creator's recorded voice (board.add_voice), one strip per take."""
     snd = (board or {}).get("sound") or {}
     num = {it["key"]: it["n"] for it in items}
     strips = [{"id": x["id"], "at": x["at"], "dur": round((x["end"] - x["start"]) / (x.get("speed") or 1.0), 4), "gain": x["gain"],
@@ -155,4 +156,8 @@ def audio_lane(board: dict | None, items: list[dict]) -> dict:
                "src_start": x["start"], "n": num.get(x["from"]),
                "fade_in": x.get("fade_in", 0.0), "fade_out": x.get("fade_out", 0.0)}
               for x in snd.get("strips") or []]
-    return {"strips": strips, "off": [k for k in snd.get("off") or [] if k in num]}
+    # the creator's recorded voice (mic.py), numbered in the order recorded
+    voice = [{"id": x["id"], "at": x["at"], "dur": x["dur"], "gain": x["gain"], "mute": x["mute"], "n": i + 1,
+              "voice": True, "fade_in": x.get("fade_in", 0.0), "fade_out": x.get("fade_out", 0.0)}
+             for i, x in enumerate(snd.get("voice") or [])]
+    return {"strips": strips, "voice": voice, "off": [k for k in snd.get("off") or [] if k in num]}
