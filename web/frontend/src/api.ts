@@ -31,7 +31,8 @@ export type ChatEstimate = { on: boolean; provider: ChatProvider; model: string 
 // A chat answer: the session, or (after Stop) the session unchanged and what the dropped answer cost.
 export type ChatResult = Session & { stopped?: boolean; stop_cost?: number | null }
 
-export type ProjectList = { projects: ProjectMeta[]; open: string | null; capabilities: Capabilities }
+export type ProjectList = { projects: ProjectMeta[]; open: string | null; capabilities: Capabilities
+  filling?: number }   // older videos whose picture and length are being filled in
 export type Opened = { project: ProjectMeta; session: Session }
 
 export type AIState = { available: boolean; on: boolean; model: string }
@@ -105,6 +106,8 @@ export const api = {
   projects: () => j<ProjectList>(fetch('/api/projects')),
   createProject: (name: string) => j<Opened>(post('/api/projects', { name })),
   openProject: (id: string) => j<Opened>(post(`/api/projects/${id}/open`, {})),
+  // its exported video, ready for the Share box (opens the project)
+  shareProject: (id: string) => j<ExportJob>(post(`/api/projects/${id}/share`, {})),
   closeProject: () => j<{ projects: ProjectMeta[]; open: null }>(post('/api/projects/close', {})),
   renameProject: (id: string, name: string) =>
     j<{ project: ProjectMeta }>(fetch(`/api/projects/${id}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name }) })),

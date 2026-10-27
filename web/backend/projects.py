@@ -23,7 +23,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 from . import board as bd
-from . import indexer
+from . import indexer, recent
 from .workflow import Workflow
 
 DIR = indexer.CACHE / "projects"
@@ -77,11 +77,15 @@ class Project:
         return {
             "id": self.id, "name": self.name, "created": self.created, "updated": self.updated,
             "clips": n_clips, "duration": snap.get("duration"), "cover": snap.get("cover"),
+            # the made video before it's exported: its first shot and its length
+            "poster": snap.get("poster"), "seconds": snap.get("seconds"),
             "stage": stage_of(self.workflow.get("state", "intake"), bool(snap.get("board")), bool(self.exports), n_clips,
                               bool(self.brief)),
             "edits": edited, "exports": len(self.exports),
             "board": snap.get("board"),
             "last_export": self.exports[-1] if self.exports else None,
+            # the exported video Home shows and shares (recent.py)
+            "video": recent.public(self.id, self.exports),
         }
 
 
@@ -92,8 +96,21 @@ def snapshot_of(clips: dict[str, dict], board: dict | None) -> dict:
         if c.get("shots"):
             cover = f"/api/thumbs/{c['id']}/{c['shots'][0]['thumb']}"
             break
+    poster = seconds = None
+    if board:
+        entries = [e for b in board["beats"] for e in b["shots"]]
+        seconds = round(sum(bd.seq_dur(e) for e in entries), 1)
+        for e in entries:
+            if bd.is_gap(e) or not e.get("id"):
+                continue
+            cid, _, idx = e["id"].partition(":")
+            s = next((s for s in (clips.get(cid) or {}).get("shots", []) if str(s.get("index")) == idx), None)
+            if s and s.get("thumb"):
+                poster = f"/api/thumbs/{cid}/{s['thumb']}"
+                break
     return {"duration": round(sum(c.get("duration", 0.0) for c in cs), 1), "cover": cover,
-            "board": {"name": board["name"], "parts": len(board["beats"])} if board else None}
+            "board": {"name": board["name"], "parts": len(board["beats"])} if board else None,
+            "poster": poster, "seconds": seconds}
 
 
 def stage_of(state: str, has_board: bool, exported: bool, n_clips: int, has_brief: bool = False) -> str:
@@ -162,11 +179,46 @@ def save(project: Project) -> None:
     """Atomic: a crash mid-write never leaves a half project behind."""
     with _lock:
         project.updated = time.time()
-        DIR.mkdir(parents=True, exist_ok=True)
-        p = _path(project.id)
-        tmp = p.with_suffix(".tmp")
-        tmp.write_text(json.dumps(asdict(project)))
-        os.replace(tmp, p)
+        _write(project)
+
+
+def _write(project: Project) -> None:
+    DIR.mkdir(parents=True, exist_ok=True)
+    p = _path(project.id)
+    tmp = p.with_suffix(".tmp")
+    tmp.write_text(json.dumps(asdict(project)))
+    os.replace(tmp, p)
+
+
+def stale(project: Project) -> bool:
+    """Saved before its snapshot carried the made video's first shot and
+    length (Home's recent videos): it has an edit, the snapshot doesn't."""
+    return "seconds" not in (project.snapshot or {}) and bool(project.turns)
+
+
+def refresh_snapshot(pid: str) -> bool:
+    """Fill a closed project's picture and length from its own log, once:
+    its clips from the cache, its turns replayed (a chosen story is kept in
+    the log, so no proposals are needed). Leaves `updated` alone, so Home's
+    order stays the creator's, and gives way to any save made meanwhile."""
+    pr = load(pid)
+    if not stale(pr):
+        return False
+    clips, _ = restore_clips(pr)
+    s = restore_session(pr)
+    try:
+        s.replay(bd.Catalog.from_clips(list(clips.values())), lambda direction: None)
+        board = s.board
+    except Exception:  # noqa: BLE001 -- a log this copy can't replay keeps the clip's picture
+        board = None
+    snap = snapshot_of(clips, board)
+    with _lock:
+        cur = load(pid)
+        if cur.updated != pr.updated or not stale(cur):
+            return False
+        cur.snapshot = {**(cur.snapshot or {}), "poster": snap["poster"], "seconds": snap["seconds"]}
+        _write(cur)
+    return True
 
 
 def create(name: str = "") -> Project:
