@@ -3650,7 +3650,9 @@ def api_reversed(clip_id: str, a: float, b: float) -> FileResponse:
 
 @app.get("/api/thumbs/{clip_id}/{name}")
 def api_thumb(clip_id: str, name: str) -> FileResponse:
-    if clip_id not in CLIPS or "/" in name or not name.endswith(".jpg"):
+    # Any indexed clip, not only the open video's: Home's cards show other videos' shots.
+    if not (clip_id in CLIPS or (len(clip_id) == 12 and all(ch in "0123456789abcdef" for ch in clip_id))) \
+            or "/" in name or "\\" in name or name.startswith(".") or not name.endswith(".jpg"):
         raise HTTPException(404)
     p = indexer.clip_dir(clip_id) / name
     if not p.exists():

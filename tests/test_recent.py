@@ -121,6 +121,10 @@ def through_api() -> None:
         check("an empty project has nothing to share", c.post(f"/api/projects/{other}/share").status_code == 409)
         rows = {p["id"]: p for p in c.get("/api/projects").json()["projects"]}
         check("… and no picture of a video", rows[other]["video"] is None and rows[other]["poster"] is None)
+        check("another video's shots still show on Home while this one is open",
+              c.get(rows[pid]["poster"]).status_code == 200 and c.get(rows[pid]["cover"]).status_code == 200)
+        check("… but only real thumbnails", c.get("/api/thumbs/..%2F..%2Fx/a.jpg").status_code == 404
+              and c.get(rows[pid]["poster"].rsplit("/", 1)[0] + "/nope.jpg").status_code == 404)
         j = c.post(f"/api/projects/{pid}/share")
         jj = j.json()
         check("Share from Home opens the video and takes its export up again", j.status_code == 200
