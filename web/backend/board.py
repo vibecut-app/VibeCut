@@ -53,7 +53,10 @@ OVERLAY_OPS = ("add_overlay", "edit_overlay", "drop_overlay", "overlay_style")
 # A shot's own sound taken off onto its own strip under the picture (the
 # "extract audio" every editor has): then it can be moved, made louder or
 # quieter, muted or deleted on its own. From the timeline, never chat.
-SOUND_OPS = ("extract_audio", "edit_audio", "drop_audio")
+# A voiceover (mic.py): the creator's own voice recorded over the playing
+# edit, on its own strip like the extracted ones, changed and deleted the same
+# way (edit_audio / drop_audio). From the Record button, never chat.
+SOUND_OPS = ("extract_audio", "edit_audio", "drop_audio", "add_voice")
 OPS = OPS + SOUND_OPS
 # Graphic animations drawn over the footage (graphics.py): same log, same
 # undo, anchored like captions. From the Graphic animations tab, never chat.
@@ -363,6 +366,19 @@ def _sound_op(b: dict, op: dict, kind: str, new_id) -> None:
     place in the edit (sequence seconds), like an unlinked audio clip: it
     stays where it was put when shots before it change."""
     snd = b.setdefault("sound", {"off": [], "strips": []})
+    if kind == "add_voice":
+        # the board keeps the recording's name only; mic.path_of finds the file
+        f = str(op.get("voice") or "")
+        if not (8 <= len(f) <= 32 and all(ch in "0123456789abcdef" for ch in f)):
+            raise OpError("no such recording")
+        dur = float(op.get("dur") or 0.0)
+        if dur <= 0:
+            raise OpError("the recording is empty")
+        sid = op.get("id") or new_id()
+        op["id"] = sid
+        snd.setdefault("voice", []).append({"id": sid, "file": f, "at": round(max(0.0, float(op.get("at") or 0.0)), 3),
+                                            "dur": round(dur, 3), "gain": 1.0, "mute": False})
+        return
     if kind == "extract_audio":
         k = op.get("shot")
         beat, i = _where(b, k)
@@ -384,12 +400,13 @@ def _sound_op(b: dict, op: dict, kind: str, new_id) -> None:
                 strip[f] = e[f]
         snd["strips"].append(strip)
         return
-    strip = next((x for x in snd["strips"] if x["id"] == op.get("audio")), None)
+    voice = snd.get("voice") or []
+    strip = next((x for x in snd["strips"] + voice if x["id"] == op.get("audio")), None)
     if strip is None:
         raise OpError(f"no sound strip {op.get('audio')!r}")
     if kind == "drop_audio":
         # Like any editor: deleting the strip leaves the shot silent. Undo brings it back.
-        snd["strips"].remove(strip)
+        (voice if strip in voice else snd["strips"]).remove(strip)
         return
     if "gain" in op:
         strip["gain"] = round(max(0.0, min(AUDIO_GAIN_MAX, float(op["gain"]))), 3)
@@ -1024,6 +1041,24 @@ def _describe_sound(a: dict | None, b: dict | None) -> list[dict]:
                               if y.get(f) else f"Sound strip no longer fades {word}"})
         if x["at"] != y["at"]:
             lines.append({"kind": "sound", "text": f"Moved a sound strip {'later' if y['at'] > x['at'] else 'earlier'} by {abs(y['at'] - x['at']):.2f}s"})
+    va = {x["id"]: x for x in (a.get("sound") or {}).get("voice", [])}
+    vb = {x["id"]: x for x in (b.get("sound") or {}).get("voice", [])}
+    for i in vb.keys() - va.keys():
+        lines.append({"kind": "sound", "text": f"Recorded {vb[i]['dur']:.1f}s of your voice at {int(vb[i]['at'] // 60)}:{int(vb[i]['at'] % 60):02d}"})
+    for i in va.keys() - vb.keys():
+        lines.append({"kind": "sound", "text": "Deleted a recording of your voice"})
+    for i in va.keys() & vb.keys():
+        x, y = va[i], vb[i]
+        if x["mute"] != y["mute"]:
+            lines.append({"kind": "sound", "text": "Muted your voice" if y["mute"] else "Unmuted your voice"})
+        if x["gain"] != y["gain"]:
+            lines.append({"kind": "sound", "text": f"Your voice's volume {round(x['gain'] * 100)}% → {round(y['gain'] * 100)}%"})
+        for f, word in (("fade_in", "in"), ("fade_out", "out")):
+            if x.get(f, 0) != y.get(f, 0):
+                lines.append({"kind": "sound", "text": f"Your voice fades {word} over {y.get(f, 0):g}s"
+                              if y.get(f) else f"Your voice no longer fades {word}"})
+        if x["at"] != y["at"]:
+            lines.append({"kind": "sound", "text": f"Moved your voice {'later' if y['at'] > x['at'] else 'earlier'} by {abs(y['at'] - x['at']):.2f}s"})
     if (a.get("music") or None) != (b.get("music") or None):
         m, m0 = b.get("music") or {}, a.get("music") or {}
         only_volume = {k: v for k, v in m.items() if k != "volume"} == {k: v for k, v in m0.items() if k != "volume"}

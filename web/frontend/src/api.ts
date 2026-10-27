@@ -161,6 +161,13 @@ export const api = {
   suggestions: () => j<{ suggestions: string[]; source: string }>(fetch('/api/brief/suggestions')),
   questions: (message: string) => j<{ questions: StyleQuestion[]; tailored: boolean }>(post('/api/brief/questions', { message })),
   ops: (ops: Record<string, unknown>[], label: string) => j<Session>(post('/api/ops', { ops, label })),
+  /** a voiceover take from the Record button: on its own strip where recording started, one undoable turn */
+  recordVoice: (take: Blob, at: number) => {
+    inFlight++
+    savers.forEach((f) => f())
+    return j<Session>(fetch(`/api/voice?at=${at.toFixed(3)}`, { method: 'POST', headers: { 'content-type': take.type || 'audio/webm' }, body: take })
+      .finally(() => { inFlight--; savers.forEach((f) => f()) }))
+  },
   length: () => j<LengthSlider & { current: number }>(fetch('/api/length')),
   setLength: (seconds: number) => j<Session & { length_note: string }>(post('/api/length', { seconds })),
   smooth: (order: boolean, nudge: boolean) => j<Session>(post('/api/smooth', { order, nudge })),

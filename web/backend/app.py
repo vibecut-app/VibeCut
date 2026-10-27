@@ -27,6 +27,7 @@ import numpy as np
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
+from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel
 
 from cutgrammar import grade
@@ -36,7 +37,7 @@ from . import projects as pj
 from . import audiomix, bed, brief, captionmem, cloud, cutnotes, defaults, habits, make, recipes, vibes, vlog, tempo, ink, moment, cut, export, looks, pitch, seams, selfcheck, smooth, sound, subtitles, places, indexer, llm, locate, musiclib, oai, overlays, reference, remix, share, covers, postcopy, speech, story, storyboard, talk, timeline, vision, voiceover, youtube
 from .preferences import PreferenceError, Preferences
 from .workflow import GATE, Workflow, WorkflowError
-from . import graphics, resources, reverse, transitions
+from . import graphics, mic, resources, reverse, transitions
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
@@ -2559,6 +2560,30 @@ def api_ops(req: OpsReq) -> dict:
             _from_profile(False)
             _bed_start()
         return _session()
+
+
+@app.post("/api/voice")
+async def api_voice(request: Request, at: float = 0.0) -> dict:
+    """A take from the Record button (mic.py): saved as WAV, then on its own
+    strip where recording started, as one undoable turn, like CapCut's."""
+    data = await request.body()
+    kind = request.headers.get("content-type", "")
+    suffix = next((x for k, x in (("ogg", ".ogg"), ("mp4", ".mp4"), ("aac", ".m4a"), ("wav", ".wav")) if k in kind), ".webm")
+
+    def land() -> dict:
+        try:
+            vid, dur = mic.save(data, suffix)
+        except mic.MicError as e:
+            raise HTTPException(400, str(e)) from e
+        with LOCK:
+            if not SESSION.board:
+                raise HTTPException(409, "There's no video to record over yet")
+            t = max(0.0, at)
+            SESSION.add({"kind": "direct", "text": f"You recorded your voice at {int(t // 60)}:{int(t % 60):02d}",
+                         "ops": [{"op": "add_voice", "voice": vid, "at": round(t, 3), "dur": dur}]},
+                        CATALOG["cat"], _make_proposals)
+            return _session()
+    return await run_in_threadpool(land)
 
 
 # --------------------------------------------------------------------------

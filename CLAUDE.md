@@ -943,6 +943,23 @@ The promise to a user is therefore *not* "this will be beautiful." It is
   Deleting leaves the shot silent; a cut through a silenced shot keeps both
   pieces silent. Preview and export hear it through the same mixer.
   `tests/test_extract_audio.py`.
+- **Voiceover** (sarah, 2026-10-27: "build voiceover"; `web/backend/mic.py`,
+  `/api/voice`, `board.add_voice`, the timeline's Record button, `App.tsx`
+  `startRecording`). CapCut / iMovie's convention whole: Record (next to
+  Split / Delete) → 3-2-1 over the preview → the edit plays from the playhead
+  without its sound (`transport.silent`, iMovie's "Mute project") while the
+  browser records the mic (echo cancel, noise suppression) → Stop, Space,
+  Escape or the end of the video puts the take on its own orange strip in a
+  Voice row of the Audio lane where recording started, one undoable turn.
+  The take is saved once as 48 kHz WAV under `$VIBECUT_CACHE/voice/`; the
+  board keeps its id, place and level (`sound.voice`), and it is moved,
+  levelled (0–200%), faded, muted and deleted like an extracted strip
+  (`edit_audio` / `drop_audio`). The mixer (preview and export alike) places
+  it and ducks the music to `VOICE_DUCK` 0.3 where the voice is heard
+  (`mic.speaking`: a level gate, pauses under 0.6 s bridged), back up in the
+  pauses. Nothing is transcribed and nothing leaves the computer; this is not
+  the script-led voiceover proposal (`voiceover.py`). Not from chat. Priors.
+  `tests/test_mic.py`.
 - **Shot bar** (`ShotBar.tsx`; `board.set_shot`, fields `speed` / `gain` /
   `mute` / `rotate` / `fill` / `mirror` / `fade_in` / `fade_out` on the
   entry, kept through a cut except the fade on the cut side; sarah,

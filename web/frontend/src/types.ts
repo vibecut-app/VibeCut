@@ -136,9 +136,10 @@ export type TimelineData = { fps: number; total: number; items: SeqItem[]; targe
   frame?: { w: number; h: number }
   // Sound taken off shots onto its own strips (backend board.extract_audio): where each
   // sits in the edit, its level, and which shots now play silent.
-  audio?: { strips: SoundStrip[]; off: string[] } }
+  audio?: { strips: SoundStrip[]; off: string[]; voice?: SoundStrip[] } }
+/** a shot's sound taken off onto its own strip, or (voice) a take recorded with the Record button */
 export type SoundStrip = { id: string; at: number; dur: number; gain: number; mute: boolean
-  clip_id: string; shot: string; src_start: number; n: number | null; fade_in: number; fade_out: number }
+  clip_id?: string; shot?: string; src_start?: number; n: number | null; fade_in: number; fade_out: number; voice?: boolean }
 
 // Words on screen. Anchored to the edit, its end, a part or a shot; the
 // server resolves each to sequence time (start/end) for drawing.
