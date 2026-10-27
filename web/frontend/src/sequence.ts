@@ -28,6 +28,10 @@ export type SeqItem = {
   effect_amount?: number   // its Strength, 1 = 100%
   reverse?: boolean  // plays backwards (backend reverse.py makes the file the player shows)
   freeze?: boolean   // a held frame: shows src_start for the whole span (board freeze_frame)
+  brightness?: number   // the Adjust tab's sliders, -1..1 (backend tone.py; tone.ts draws them)
+  contrast?: number
+  saturation?: number
+  stabilize?: number    // held steady, 0..1 (backend stable.py makes the file the player shows)
 }
 
 /** Index of the item under t (binary search). The very end belongs to the
@@ -52,28 +56,39 @@ export function toSource(item: SeqItem, t: number): number {
   return item.reverse ? item.src_end - d : item.src_start + d
 }
 
-/** The file the player shows for an item: the clip, or its span made backwards. */
+// A steadied shot plays a file of its span held steady, with this much
+// footage either side for a dissolve (backend stable.PAD and stable.base).
+export const STEADY_PAD = 1.5
+const steady = (item: SeqItem) => !!item.stabilize && !item.freeze
+
+/** Source time at the start of the file the player shows. */
+function fileStart(item: SeqItem): number {
+  return steady(item) && !item.reverse ? Math.max(0, Math.round((item.src_start - STEADY_PAD) * 1000) / 1000) : 0
+}
+
+/** The file the player shows for an item: the clip, its span made
+ *  backwards, or held steady (and backwards). */
 export function mediaUrl(item: SeqItem): string {
-  return item.reverse
-    ? `/api/reversed/${item.clip_id}?a=${item.src_start}&b=${item.src_end}`
-    : `/api/video/${item.clip_id}`
+  const span = `${item.clip_id}?a=${item.src_start}&b=${item.src_end}`
+  if (steady(item)) return `/api/steady/${span}&s=${item.stabilize}${item.reverse ? '&rev=1' : ''}`
+  return item.reverse ? `/api/reversed/${span}` : `/api/video/${item.clip_id}`
 }
 
 /** Time in that file at edit time t (a held frame: always its one frame). */
 export function toMedia(item: SeqItem, t: number): number {
   if (item.freeze) return item.src_start
   const d = (t - item.seq_start) * (item.speed ?? 1)
-  return item.reverse ? d : item.src_start + d
+  return item.reverse ? d : item.src_start - fileStart(item) + d
 }
 
 /** Edit time when that file is at `ct`. */
 export function fromMedia(item: SeqItem, ct: number): number {
-  return item.seq_start + (item.reverse ? ct : ct - item.src_start) / (item.speed ?? 1)
+  return item.seq_start + (item.reverse ? ct : ct + fileStart(item) - item.src_start) / (item.speed ?? 1)
 }
 
 /** Where the item's part of that file ends. */
 export function mediaEnd(item: SeqItem): number {
-  return item.reverse ? item.src_end - item.src_start : item.src_end
+  return item.reverse ? item.src_end - item.src_start : item.src_end - fileStart(item)
 }
 
 /** "21.3", "0:21.3", "1:02:03.5", or SMPTE "00:00:21:09" -> seconds.

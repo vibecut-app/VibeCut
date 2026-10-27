@@ -9,6 +9,7 @@ import type { Target } from './snap'
 import { hideStill, settleStill, swapSource } from './hold'
 import { blendLook, dissolveAfter, mixAt, preloadAt, veilAt, type Pic, type TransMap } from './joinView'
 import { effectAt, noise, tuneSvg, NO_FX, type FxLook } from './effectView'
+import { toneFilter, type Tone } from './tone'
 
 export function createStore<T>(initial: T) {
   let v = initial
@@ -207,6 +208,14 @@ export class Transport {
     if (this.back) this.back.muted = true
   }
 
+  // While an Adjust slider is held, the values under the hand, drawn before
+  // they are sent: on the shots in `keys`, or every shot (null).
+  private toneLive: { keys: Set<string> | null; tone: Tone } | null = null
+  setToneLive(keys: string[] | null, tone: Tone | null) {
+    this.toneLive = tone ? { keys: keys && new Set(keys), tone } : null
+    this.paint(phStore.get())
+  }
+
   /** Which picture is on top, how see-through, and the dip veil, at t. */
   private paint(t: number) {
     const v = this.video, b = this.back
@@ -229,22 +238,31 @@ export class Transport {
       tuneSvg(fx)
       return fx
     }
+    // each shot's own Brightness / Contrast / Saturation (tone.ts), as export grades it
+    const toneOf = (it: SeqItem | undefined): string => {
+      if (!it || it.kind !== 'shot' || this.lent) return ''
+      const live = this.toneLive
+      return toneFilter(live && (!live.keys || live.keys.has(it.key)) ? live.tone : it)
+    }
     let topFx = NO_FX
-    const put = (el: HTMLVideoElement, z: string, p: Pic | null, opacity: number, fx: FxLook) => {
+    const put = (el: HTMLVideoElement, z: string, p: Pic | null, opacity: number, fx: FxLook, tone: string) => {
       el.style.zIndex = z
       el.style.opacity = String(p ? p.opacity : opacity)
       el.style.translate = p?.translate ?? ''
       el.style.scale = p?.scale ?? ''
-      el.style.filter = [p?.filter ?? '', fx.filter].join(' ').trim()
+      el.style.filter = [p?.filter ?? '', tone, fx.filter].join(' ').trim()
       el.style.transform = [fx.transform, el.dataset.dress ?? ''].join(' ').trim()
     }
     for (const el of [v, b]) {
       if (!el) continue
-      if (el === top) { topFx = fxOf(el); put(el, '2', look?.in ?? null, 1, topFx) }
-      else if (el === under) put(el, '1', look?.out ?? null, 1, fxOf(el))
-      else put(el, '0', null, 0, NO_FX)
+      if (el === top) { topFx = fxOf(el); put(el, '2', look?.in ?? null, 1, topFx, toneOf(shown(el))) }
+      else if (el === under) put(el, '1', look?.out ?? null, 1, fxOf(el), toneOf(shown(el)))
+      else put(el, '0', null, 0, NO_FX, '')
     }
     const stage = this.veil?.parentElement
+    // the frame held over the picture while a jump loads is the shot at the playhead
+    const still = stage?.querySelector<HTMLCanvasElement>('canvas[data-hold]')
+    if (still) still.style.filter = toneOf(this.items[k0])
     const tint = stage?.querySelector<HTMLDivElement>('[data-fx-tint]')
     const grain = stage?.querySelector<HTMLDivElement>('[data-fx-grain]')
     if (tint) tint.style.background = topFx.tint
@@ -448,7 +466,7 @@ export const transport = new Transport()
 /** The other half of a cut, straight after: the same file runs on, no seek. */
 function seamless(it: SeqItem, nx: SeqItem): boolean {
   return it.kind === 'shot' && nx.kind === 'shot' && nx.clip_id === it.clip_id
-    && !it.reverse && !nx.reverse && !it.freeze && !nx.freeze
+    && !it.reverse && !nx.reverse && !it.freeze && !nx.freeze && !it.stabilize && !nx.stabilize
     && Math.abs(nx.src_start - it.src_end) < 0.02 && (nx.speed ?? 1) === (it.speed ?? 1)
     && (nx.rotate ?? 0) === (it.rotate ?? 0) && !!nx.fill === !!it.fill
 }

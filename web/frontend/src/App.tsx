@@ -29,6 +29,7 @@ import { Shelf } from './components/Shelf'
 import { SmoothButton, Story, type PlayItem, type Selection } from './components/Story'
 import { CutNotes } from './components/CutNotes'
 import { Timeline, type Marks } from './components/Timeline'
+import { TONES, toneOf } from './tone'
 import { Inspector, Slider, type InspectorTab, type JoinPick } from './components/Inspector'
 import { PreviewBar, type FrameChoice } from './components/PreviewBar'
 import { Handle, useLayout } from './components/Split'
@@ -71,11 +72,11 @@ const shortDate = (iso: string | null | undefined) => {
 const r3 = (x: number) => Math.round(x * 1000) / 1000
 // a shot's own settings (backend board.SHOT_FX) and their defaults, for Copy / Paste settings
 const FX_PLAIN = { speed: 1, gain: 1, mute: false, rotate: 0, fill: false, mirror: false, fade_in: 0, fade_out: 0,
-  punch: 0, effect: null, effect_amount: 1, reverse: false } as const
+  punch: 0, effect: null, effect_amount: 1, reverse: false, brightness: 0, contrast: 0, saturation: 0, stabilize: 0 } as const
 const FX_KEYS = Object.keys(FX_PLAIN) as (keyof typeof FX_PLAIN)[]
 // anything off its default is worth saving to My resources (the effect's strength alone isn't)
 const SHOT_SETTINGS = FX_KEYS.filter((k) => k !== 'effect_amount').map((k) => [k, FX_PLAIN[k]] as const)
-const SEEN_FX = ['rotate', 'fill', 'mirror', 'effect', 'effect_amount']   // what a held frame can take
+const SEEN_FX = ['rotate', 'fill', 'mirror', 'effect', 'effect_amount', 'brightness', 'contrast', 'saturation']   // what a held frame can take
 const pick = (o: Record<string, unknown>, keys: string[]) => Object.fromEntries(Object.entries(o).filter(([k]) => keys.includes(k)))
 
 type Queue = { source: string; items: PlayItem[]; index: number }
@@ -186,7 +187,8 @@ export default function App({ id, view }: { id: string; view: 'story' | 'frames'
     transport.attach(videoRef.current, backRef.current, veilRef.current)
     return () => { live = false; transport.stop() }
   }, [id])
-  useEffect(() => { transport.setItems(tl.items, tl.total) }, [tl])
+  // the new edit carries what an Adjust slider was showing by hand
+  useEffect(() => { transport.setItems(tl.items, tl.total); transport.setToneLive(null, null) }, [tl])
   // Music by default is picked in the background (online it can take a
   // minute); poll until it lands as a turn, then offer Undo for it.
   const bedStage = session?.bed?.stage
@@ -1362,6 +1364,8 @@ export default function App({ id, view }: { id: string; view: 'story' | 'frames'
     && (x.effect_amount ?? 1) === (shotItems[0].effect_amount ?? 1))
   const allEffect = { effect: same ? shotItems[0].effect ?? null : null, amount: same ? shotItems[0].effect_amount ?? 1 : 1,
                       thumb: shotThumb(shotItems[0]) }
+  // ...and the Adjust tab every shot's colour, if they all share one
+  const sameTone = shotItems.every((x) => TONES.every(([f]) => (x[f] ?? 0) === (shotItems[0][f] ?? 0)))
   // what can be saved to My resources right now (the tabs' Save buttons and the folder's): null = ready
   const st = ovData.style
   const shotSel = selItem?.kind === 'shot' ? selItem : null
@@ -1383,7 +1387,7 @@ export default function App({ id, view }: { id: string; view: 'story' | 'frames'
       : shotSel ? `Shot ${shotSel.n} has no effect yet: pick one in the Effects tab, then save it` : 'Click a shot and pick an effect first (Effects tab), then save it',
     shot: !shotSel ? 'Click a shot on the timeline first'
       : SHOT_SETTINGS.some(([k, plain]) => shotSel[k] != null && shotSel[k] !== plain) ? null
-        : `Shot ${shotSel.n} is as filmed: change its speed, turn, crop, effect or sound first, then save it`,
+        : `Shot ${shotSel.n} is as filmed: change its speed, turn, crop, colour, effect or sound first, then save it`,
     song: session?.music ? null : 'There’s no music under this video',
     graphic: artSel ? null : art.length ? 'Click a graphic animation on the picture or the timeline first'
       : 'Put a graphic animation on your video first (Graphic animations tab), then save it',
@@ -1453,6 +1457,12 @@ export default function App({ id, view }: { id: string; view: 'story' | 'frames'
                onJoin={(op, label) => run([{ op: 'set_transition', ...(op.all || !pickedJoin ? {} : { shot: pickedJoin.after }), ...op }], label)}
                onLook={(id, name) => run([{ op: 'set_look', look: id }], `The video now has the ${name} look`)}
                allEffect={allEffect}
+               tone={{ values: toneOf(shotSel ?? (sameTone ? shotItems[0] : undefined) ?? {}), mixed: !shotSel && !sameTone }}
+               onTone={async (patch, all, label) => {
+                 const keys = all ? shotItems.map((x) => x.key) : shotSel ? [shotSel.key] : []
+                 if (keys.length && !(await run(keys.map((k) => ({ op: 'set_shot', shot: k, ...patch })), label))) transport.setToneLive(null, null)
+               }}
+               onToneLive={(patch, all) => transport.setToneLive(all || !shotSel ? null : [shotSel.key], patch)}
                onSave={saveResource} saveWhy={saveWhy} graphics={graphicsTab}
                onEffect={(patch, all, label) => {
                  const keys = all ? tl.items.filter((x) => x.kind === 'shot').map((x) => x.key) : selItem ? [selItem.key] : []
