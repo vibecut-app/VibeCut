@@ -101,7 +101,7 @@ def main() -> int:
         # the job: online had a track, but too short for this edit
         ov.OpenverseSource.list = lambda self: [fake_track("/online/short.mp3", 100.0, 30.0)]
         picked = []
-        bed.pick = lambda fp, pool, need: ({"track": pool[0]} if pool[0].duration > need else None)
+        bed.pick = lambda fp, pool, need, look=None: ({"track": pool[0]} if pool[0].duration > need else None)
         bed.ops = lambda board, cat, mx, talking: ([{"op": "set_music", "track": mx["track"].id}], {"shots": 0})
         bed.fingerprint = lambda board, cat, pace: {"pace": "balanced", "hook_s": 2.0}
         bed.say = lambda mx, report, source, talking: source

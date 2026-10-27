@@ -184,12 +184,22 @@ def create(items: list[dict], clips: dict[str, dict], name: str, music: str | No
     if look and not os.path.isfile(look.get("lut", "")):
         raise ValueError("the borrowed look's file is gone — apply the style again")
     size = frame_size(sp, clips, want)
+    guide_note = None
+    if mix and mix.get("guide"):
+        # a trending sound is a guide to cut by, licensed for use inside the
+        # platforms' apps: it never goes into a file (trend.py)
+        from . import musiclib, trend
+        t = musiclib.find(mix.get("track"))
+        guide_note = trend.note(t.title if t else "the sound", float(mix.get("in") or 0.0))
+        music, mix = None, None
     if crop:
         sp = cover_mismatched(sp, clips, size)
     job = Job(id=uuid.uuid4().hex[:10], items=sp, clips=clips, size=size,
               total=sum(s["frames"] for s in sp) / FPS, name=_safe_name(name), music=music, style=style,
               mix=mix, joins=joins, sound=sound)
     job.alt = crop
+    if guide_note:
+        job.notes.append(guide_note)
     job.dir.mkdir(parents=True, exist_ok=True)
     (job.dir / "frames").mkdir(exist_ok=True)
     JOBS[job.id] = job
@@ -218,7 +228,9 @@ def cover_mismatched(items: list[dict], clips: dict[str, dict], size: dict) -> l
             w, h = h, w
         # `refit`: filled for this version, so its crop is aimed (aim_refits),
         # unlike a shot filled by hand, which keeps the middle the preview shows
-        out.append({**it, "fill": True, "refit": True, "shown": [w, h]} if w and h and (h > w) != tall and not it.get("fill") else it)
+        # a shot already over its blur (Make's face check) keeps its whole picture in the version too
+        out.append({**it, "fill": True, "refit": True, "shown": [w, h]}
+                   if w and h and (h > w) != tall and not it.get("fill") and not it.get("backdrop") else it)
     return out
 
 
@@ -405,8 +417,13 @@ def _ff(args: list[str], job: Job, total_s: float | None = None, base: float = 0
         raise RuntimeError((err or "").strip().splitlines()[-1] if err and err.strip() else "ffmpeg failed")
 
 
+BACKDROP_SCALE = 8      # the blur behind a whole picture is drawn this many times smaller...
+BACKDROP_SIGMA = 10     # ...blurred this much at that size (the preview's canvas does the same: aimView.BACKDROP)
+BACKDROP_DIM = 0.8      # ...and darkened, so the picture in front reads first [priors]
+
+
 def _fit(size: dict, style: dict | None = None, fades: str = "", fill: bool = False,
-         at: list[float] | None = None) -> str:
+         at: list[float] | None = None, backdrop: str | None = None) -> str:
     w, h = size["w"], size["h"]
     look = (style or {}).get("look")
     # The grade goes on the picture before padding, so bars stay black, and
@@ -423,6 +440,13 @@ def _fit(size: dict, style: dict | None = None, fades: str = "", fill: bool = Fa
                  f":'clip({at[1]:.4f}*ih-{h * aim.HEAD_AT:.1f},0,ih-{h})'")
     fit = (f"scale={w}:{h}:force_original_aspect_ratio=increase:flags=bicubic,{crop}" if fill
            else f"scale={w}:{h}:force_original_aspect_ratio=decrease:flags=bicubic")
+    if backdrop == "blur" and not fill:
+        # the whole picture in front of a blurred, darkened copy of itself that covers the frame
+        sw, sh = max(2, w // BACKDROP_SCALE // 2 * 2), max(2, h // BACKDROP_SCALE // 2 * 2)
+        fit = (f"split[bdbg][bdfg];[bdbg]scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h},"
+               f"scale={sw}:{sh},gblur=sigma={BACKDROP_SIGMA},"
+               f"colorchannelmixer=rr={BACKDROP_DIM}:gg={BACKDROP_DIM}:bb={BACKDROP_DIM},scale={w}:{h}:flags=bicubic[bdb];"
+               f"[bdfg]{fit}[bdf];[bdb][bdf]overlay=(W-w)/2:(H-h)/2")
     chain = (f"{fit},{fades}{grade}"
              f"pad={w}:{h}:(ow-iw)/2:(oh-ih)/2:black,setsar=1,fps={FPS}")
     bar = _bar(size, style)
@@ -586,7 +610,7 @@ def _shot(job: Job, it: dict, out: Path, tr: dict | None = None) -> None:
     # A span that runs to the very end of its file can decode a frame or two
     # short; hold the last frame so every shot is exactly its frame count.
     args = [*src, "-map", "0:v:0", *amap, "-vf",
-            head + turn + retime + _fit(size, job.style, vfade, bool(it.get("fill")), it.get("aim"))
+            head + turn + retime + _fit(size, job.style, vfade, bool(it.get("fill")), it.get("aim"), it.get("backdrop"))
             + effects.chain(it.get("effect"), float(it.get("effect_amount") or 1.0), size, tr["head"] / FPS, it["frames"], FPS)
             + punch
             + f",tpad=stop_mode=clone:stop_duration={d + 1 if it.get('freeze') else 1:.4f}", *common]

@@ -7,8 +7,8 @@
 - Scenes follow places and time (a new one 200 m or 25 minutes on), at
   most MAX_SCENES.
 - Stillness: a still shot holds longer than a walk, within the clamp.
-- A tall or wide Make takes the vlog prior (3-6 s), no ramp, no flash, no
-  push on every bar; a short is unchanged.
+- A tall or wide Make takes the house style (house.py), no ramp, no flash,
+  no push on every bar; a short is unchanged.
 
     python tests/test_vlog.py
 """
@@ -99,7 +99,11 @@ def main() -> int:
     rep = vlog.breathe(plan3, clips, fp)
     ds, dk = plan3.sessions[0][0].duration, plan3.sessions[0][1].duration
     check("the still shot holds longer than the walk, both within the clamp", ds > dk and vlog.MIN_HOLD_S <= dk < ds <= vlog.MAX_HOLD_S, f"{ds:.1f} vs {dk:.1f}")
-    check("a vlog's shots are 3-6 s a shot", fp["median_s"] == 4.0 and make.fingerprint("wide", "calm", 90.0)["median_s"] == 5.5 and make.fingerprint("short", "fast", 60.0)["median_s"] == 0.7)
+    from web.backend import house
+    hs = house.measured("long")
+    check("a vlog's shots follow the house style (house.py), calm a little longer; a short keeps its reel tempo",
+          abs(fp["median_s"] - hs["shot_s"]) < 1e-6 and make.fingerprint("wide", "calm", 90.0)["median_s"] > fp["median_s"]
+          and make.fingerprint("short", "fast", 60.0)["median_s"] == 0.7, f"{fp['median_s']} vs house {hs['shot_s']}")
 
     print("a vlog's motion is quiet")
     hook = pick(shot("h:0", 0, {"sky": 0.9}, when=t0, dur=6.0)); hook.end = 3.0; hook.duration if False else None

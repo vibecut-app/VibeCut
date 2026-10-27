@@ -2,12 +2,15 @@ import { useEffect, useRef, useState } from 'react'
 import { api, type AIEstimate, type AIState, type VibeJob } from '../api'
 import { Button, Dialog, inputCls } from '../ui'
 import { AISwitch } from './AISwitch'
+import { loadProfile, saveProfile } from '../profile'
 
 // The two picks before anything is cut (plan of 2026-10-10, step 2): the
 // frame the video is for, and the look of the whole thing. Everything else
 // is read from the footage. Defaults come from the server; one button.
 export type SetupData = {
   format: string; suggested?: string; portrait_share: number
+  // where the creator posts (brief.frame_for): asked once, here, until it's known
+  post_to?: string[] | null; ask_post?: boolean; post_why?: string | null
   remembered?: { format?: string; look?: string; music?: string; vibe?: string }   // what was picked last time (defaults.py)
   music?: boolean
   // "Cut it like": your saved recipes (recipes.py), the library's vibes and your own learnt reels (vibes.py);
@@ -22,6 +25,15 @@ export type SetupData = {
 
 const GLYPH: Record<string, string> = { short: 'h-7 w-4', tall: 'h-7 w-4', wide: 'h-4 w-7' }
 
+// The one question about where the video goes (2026-10-26: her day was offered a 60 s vertical Short
+// while the vlogs she wanted hers to look like were 15-minute YouTube videos). Platforms as the
+// profile's "Where you share" names them.
+const POST_TO: { label: string; platforms: string[] }[] = [
+  { label: 'YouTube', platforms: ['YouTube'] },
+  { label: 'TikTok, Reels or Shorts', platforms: ['TikTok', 'Instagram'] },
+  { label: 'Both', platforms: ['TikTok', 'Instagram', 'YouTube'] },
+]
+
 export function Setup({ data, busy, progress, onDone, onCancel, ai, estimate, onAI, onReload }: {
   data: SetupData | null
   ai?: AIState | null; estimate?: AIEstimate | null   // the AI switch, and what this edit would cost with it on
@@ -33,6 +45,21 @@ export function Setup({ data, busy, progress, onDone, onCancel, ai, estimate, on
   onCancel: () => void
 }) {
   const [format, setFormat] = useState<string | null>(null)
+  const [posted, setPosted] = useState<{ label: string; why: string | null } | null>(null)
+  const [postErr, setPostErr] = useState<string | null>(null)
+  const answerPost = async (o: { label: string; platforms: string[] }) => {
+    setPostErr(null)
+    try {
+      const r = await api.postTo(o.platforms)
+      if (r.format) setFormat(r.format)
+      setPosted({ label: o.label, why: r.why })
+      // the profile page shows the same answer under "Where you share"
+      try {
+        const { profile } = loadProfile(window.localStorage)
+        saveProfile(window.localStorage, { ...profile, platforms: o.platforms as typeof profile.platforms })
+      } catch { /* kept on the server either way */ }
+    } catch (e) { setPostErr((e as Error).message) }
+  }
   const [look, setLook] = useState<string | null>(null)
   const [music, setMusic] = useState<boolean | null>(null)
   const [vibe, setVibe] = useState<string | null | undefined>(undefined)   // undefined = not touched
@@ -117,9 +144,29 @@ export function Setup({ data, busy, progress, onDone, onCancel, ai, estimate, on
             </p>
           </div>
         )}
+        {data?.ask_post && (
+          <div>
+            <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted">Where will you post it?
+              <span className="ml-2 font-normal normal-case tracking-normal">asked once; change it on your profile</span></div>
+            <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Where you post">
+              {POST_TO.map((o) => (
+                <button key={o.label} type="button" role="radio" aria-checked={posted?.label === o.label} disabled={busy}
+                        onClick={() => answerPost(o)}
+                        className={`rounded-xl border px-2 py-2.5 text-center font-serif text-[14px] leading-tight ${posted?.label === o.label ? 'border-accent bg-raised text-zinc-100' : 'border-line text-zinc-400 hover:text-zinc-200'}`}>
+                  {o.label}
+                </button>
+              ))}
+            </div>
+            {postErr && <p className="mt-1 text-[11px] text-amber-300" role="alert">{postErr}</p>}
+          </div>
+        )}
         <div>
           <div className="mb-1.5 flex items-baseline gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted">Which frame?
             {asWhat('format', format !== null) && <span className="font-normal normal-case tracking-normal">{asWhat('format', false)}{data?.suggested && data.suggested !== fmt ? ` · the footage suggests ${data.suggested}` : ''}</span>}
+            {/* the frame where they post asks for, said once it set the default */}
+            {(posted?.why ?? (format === null && !last?.format ? data?.post_why : null)) && (
+              <span className="font-normal normal-case tracking-normal">{posted?.why ?? data?.post_why}</span>
+            )}
           </div>
           <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Frame">
             {(data?.formats ?? []).map((f, i) => (

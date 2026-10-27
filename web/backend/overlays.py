@@ -103,7 +103,12 @@ STYLE_FIELDS = ("font", "color", "accent", "captions", "backing", "template", "e
 PICKED = ("template", "enter", "text_color", "typeface", "outline", "shadow", "backdrop", "thick")   # never come from a look, so need no marking
 
 TEXT_MAX = 140
-EDITABLE = ("text", "sub", "pos", "size", "anim", "dur", "place", "look", "lines")
+EDITABLE = ("text", "sub", "pos", "size", "anim", "dur", "place", "look", "lines", "unsure")
+# Subtitles of what's said carry `heard: True` (so the Captions switch knows
+# which kind is on) and, where the recogniser doubted a word, `unsure`: those
+# words, for the creator to check. Retyping the words clears the doubt;
+# `unsure: []` says they sound right as they are.
+UNSURE_MAX = 12
 # One line of a group tuned on its own (sarah, 2026-10-20: a chapter title and
 # the line under it are "a group of captions" she tunes independently, like
 # CapCut's grouped text). "main" is the title or the words, "sub" the line
@@ -233,6 +238,11 @@ def clean_fields(patch: dict, kind: str) -> dict:
         if patch["anim"] not in ANIMS:
             raise OverlayError(f"animation must be one of {', '.join(ANIMS)}")
         out["anim"] = patch["anim"]
+    if "unsure" in patch:
+        v = patch["unsure"]
+        if v is not None and (not isinstance(v, list) or not all(isinstance(x, str) for x in v)):
+            raise OverlayError("unsure is a list of words")
+        out["unsure"] = [x.strip()[:40] for x in (v or []) if x.strip()][:UNSURE_MAX]
     if "dur" in patch:
         d = patch["dur"]
         if d is not None:
@@ -397,6 +407,10 @@ def add(b: dict, op: dict, new_id) -> None:
          "anchor": dict(op["anchor"]), "at": round(max(0.0, float(op["at"])), 3), **fields}
     if kind == "caption":
         o["pos"] = "bottom"     # captions follow the one caption position
+        if op.get("heard"):
+            o["heard"] = True
+    if not o.get("unsure"):
+        o.pop("unsure", None)
     if kind == "heading":
         o.setdefault("look", "spaced")    # thin, white, spaced capitals: the day-vlog chapter title
     if kind != "chapters" and not o["text"]:
@@ -430,6 +444,10 @@ def edit(b: dict, op: dict) -> None:
         fields.pop("pos", None)
     if not fields and "anchor" not in op:
         raise OverlayError("nothing to change")
+    if "text" in fields or not fields.get("unsure", True):
+        # retyped, or checked and found right: the doubt is gone
+        o.pop("unsure", None)
+        fields.pop("unsure", None)
     if "lines" in fields:
         # one line's look merges into what it had; a field set to None goes
         lines = dict(o.get("lines") or {})

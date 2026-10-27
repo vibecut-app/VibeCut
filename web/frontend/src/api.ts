@@ -2,6 +2,14 @@ import type { SetupData } from './components/Setup'
 import type { FaceArea } from './overlayDraw'
 import type { CaptionVoice, Habit, Capabilities, GraphicPiece, ProfileStart, StickerKind, Resource, ResourceFolder, ResourceKind, StartPicks, CutData, CutReport, ExportJob, Job, LengthSlider, LookFit, PrefClass, Project, ProjectMeta, RefCard, RefJob, RefSummary, Session, StyleAnswers, StyleQuestion, TalkState } from './types'
 
+// songs to swap between (songs.py), transition sounds (sfx.py), a trending sound as a guide (trend.py)
+export type Song = { id: string; title: string; duration: number; bpm: number; in: number; credit: string | null; why: string; audio: string; in_use: boolean; score: number | null }
+export type TrendJob = { id: string; stage: 'fetching' | 'reading' | 'done' | 'error'; error: string | null; title: string | null; bpm: number | null; elapsed: number }
+export type SongOptions = {
+  status: 'none' | 'looking' | 'ready'; songs: Song[]; why: string | null; rebuilds: boolean; sfx: number
+  sounds: { id: string; title: string; dur: number }[]; trend: TrendJob | null; can_link: boolean
+}
+
 export type MomentInfo = { header: string; key: string; llm: boolean; provider: ChatProvider
   estimate: { tokens_in: number; usd: [number, number] } }
 export type MomentAnswer = { reply: string; choices: string[]; ops: Record<string, unknown>[]
@@ -153,8 +161,13 @@ export const api = {
   makeStatus: (id: string) => j<MakeJob>(fetch(`/api/make/${id}`)),
   format: (format: string) => j<Session>(post('/api/format', { format })),
   pile: (clip: string, into: boolean) => j<Session>(post('/api/pile', { clip, into })),
-  captions: (on: boolean) => j<Session>(post('/api/captions', { on })),
+  captions: (on: boolean, mode?: 'describe' | 'subtitles') => j<Session>(post('/api/captions', mode ? { on, mode } : { on })),
   bed: (on: boolean) => j<Session>(post('/api/bed', { on })),
+  songs: () => j<SongOptions>(fetch('/api/music/options')),
+  swapSong: (trackId: string) => j<Session>(post('/api/music/swap', { track_id: trackId })),
+  sfx: (on: boolean) => j<Session>(post('/api/sfx', { on })),
+  trend: (source: string) => j<TrendJob>(post('/api/music/trend', { source })),
+  trendStatus: (id: string) => j<TrendJob & { session: Session | null }>(fetch(`/api/music/trend/${id}`)),
   musicVolume: (volume: number) => j<Session>(post('/api/music/volume', { volume })),   // 1 = as placed
   pace: (pace: string) => j<Session>(post('/api/pace', { pace })),
   guess: () => j<{ about: string }>(fetch('/api/brief/guess')),
@@ -204,6 +217,8 @@ export const api = {
     j<YouTubePost>(post(`/api/export/${id}/youtube`, req)),
   youtubePostStatus: (pid: string) => j<YouTubePost>(fetch(`/api/youtube/posts/${pid}`)),
   youtubePostStop: (pid: string) => j<YouTubePost>(post(`/api/youtube/posts/${pid}/stop`, {})),
+  // where the creator posts (the profile's "Where you share"): it sets the default frame (brief.frame_for)
+  postTo: (platforms: string[]) => j<{ post_to: string[]; format: string | null; why: string | null }>(post('/api/post-to', { platforms })),
   captionVoice: () => j<CaptionVoice>(fetch('/api/captions/voice')),
   captionLine: (text: string, remove = false) => j<CaptionVoice>(post('/api/captions/lines', { text, remove })),
   captionRule: (id: string, on: boolean) => j<CaptionVoice>(post(`/api/captions/rules/${encodeURIComponent(id)}`, { on })),

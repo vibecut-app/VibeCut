@@ -183,7 +183,8 @@ def propose(script: dict, shots: list[sb.Shot], best_t: dict[str, float]) -> dic
                      "against the voice before trusting a cut.",
         "text_only": "No recording yet, so each line's length is guessed from its words "
                      "(expect it to be off by 15% or so). Record it and bring the subtitles.",
-    }[script["timing"]]]
+        "measured": "Timed from a measurement of the recording — trust it.",
+    }.get(script["timing"], "No timing information available.")]
     if gaps:
         notes.append(f"{short} of {n} lines aren't (fully) shown by anything on the shelf. They're "
                      "left as gaps of the right length — not covered with something unrelated.")

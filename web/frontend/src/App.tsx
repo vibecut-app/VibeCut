@@ -22,6 +22,7 @@ import { PreferCards } from './components/PreferCards'
 import type { OverlayEdit } from './components/OverlayCanvas'
 import { Menu, SwapPicker, type MenuItem } from './components/Menus'
 import { Music } from './components/Music'
+import { SongPicker } from './components/SongPicker'
 import type { ClassifyReq } from './components/Remember'
 import { Resources, type SaveWhy } from './components/Resources'
 import { ProfileAsk, type Picks as ProfilePicks } from './components/ProfileAsk'
@@ -34,7 +35,7 @@ import { PreviewBar, type FrameChoice } from './components/PreviewBar'
 import { Handle, useLayout } from './components/Split'
 import { GraphicAnimations, type GraphicPatch } from './components/Graphics'
 import { PIECES } from './graphicDraw'
-import type { Graphic, GraphicPiece } from './types'
+import type { Graphic, GraphicPiece, CaptionsMode } from './types'
 import { Icon, type IconName } from './components/icons'
 import { lineName } from './overlayDraw'
 import type { LineRole } from './types'
@@ -1314,14 +1315,19 @@ export default function App({ id, view }: { id: string; view: 'story' | 'frames'
   )
 
   // ---- the edit screen's pieces ------------------------------------------------
-  const toggleCaptions = async () => {
-    try { const r = await api.captions(!ovData.items.length); setSession(r); offerUndo(r) }
+  // The Captions switch: Off / Describe / Subtitles. One undoable turn; what
+  // can't be done (no recogniser on this machine, nobody talking) is said
+  // where the switch is and nothing changes.
+  const captionsMode: CaptionsMode = ovData.mode ?? (ovData.items.length ? 'describe' : 'off')
+  const setCaptions = async (mode: CaptionsMode) => {
+    if (mode === captionsMode) return
+    try { const r = await api.captions(mode !== 'off', mode === 'off' ? undefined : mode); setSession(r); offerUndo(r) }
     catch (e) { note((e as Error).message) }
   }
   const looking = session?.bed?.stage === 'looking'
   const musicNode = session?.board ? (
     <div className="space-y-3">
-      <p className="font-serif text-[16px] leading-snug text-zinc-100">
+      <p className="font-serif text-[16px] leading-snug text-zinc-100 [overflow-wrap:anywhere]">
         {looking ? `Finding a song${session.bed?.source ? ` from ${session.bed.source}` : ''}…${session.bed?.total ? ` ${session.bed.done}/${session.bed.total}` : ''}`
           : session.music ? <>Playing under the video: <b className="font-medium">{session.music.title}</b></> : 'No music under this video.'}
       </p>
@@ -1395,7 +1401,7 @@ export default function App({ id, view }: { id: string; view: 'story' | 'frames'
                extracted={!!selItem && !!tl.audio?.off.includes(selItem.key)}
                strip={selStrip}
                join={pickedJoin ? joinAt(pickedJoin) : allJoins[0] ? joinAt(allJoins[0]) : null} joinPicked={!!pickedJoin}
-               style={ovData.style} captionsOn={!!ovData.items.length} captionThumb={shotThumb(capUnder)}
+               style={ovData.style} captionsMode={captionsMode} captionsToCheck={ovData.items.filter((o) => o.unsure?.length)} captionThumb={shotThumb(capUnder)}
                captionSample={capText.length > 20 ? capText.slice(0, Math.max(10, capText.lastIndexOf(' ', 20))) : capText}
                caption={ovSel ?? null}
                onCaptionEdit={(patch, label) => ovSel && run([{ op: 'edit_overlay', overlay: ovSel.id, ...patch }], label)}
@@ -1448,7 +1454,7 @@ export default function App({ id, view }: { id: string; view: 'story' | 'frames'
                onExtract={() => selItem && run([{ op: 'extract_audio', shot: selItem.key }], `You took the sound off shot ${selItem.n}`)}
                onStrip={(patch, label) => selStrip && run([{ op: 'edit_audio', audio: selStrip.id, ...patch }], label)}
                onStripDelete={() => { if (!selStrip) return; run([{ op: 'drop_audio', audio: selStrip.id }], `You deleted the sound of shot ${selStrip.n ?? ''}`); setSelAudio(null) }}
-               onCaptions={toggleCaptions}
+               onCaptions={setCaptions} onCaptionPick={(id) => setSelOverlay(id)}
                onCaptionStyle={(patch, label) => run([{ op: 'overlay_style', ...patch }], label)}
                onJoin={(op, label) => run([{ op: 'set_transition', ...(op.all || !pickedJoin ? {} : { shot: pickedJoin.after }), ...op }], label)}
                onLook={(id, name) => run([{ op: 'set_look', look: id }], `The video now has the ${name} look`)}
@@ -1499,7 +1505,10 @@ export default function App({ id, view }: { id: string; view: 'story' | 'frames'
     {panelHead('Music')}
     <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 pb-4">
       {musicNode}
-      {session?.board && <Music board={session.board} inUse={session.music?.id ?? null} onSession={setSession} />}
+      {session && <SongPicker session={session} note={note}
+                              onSession={(r, undoable) => { setSession(r); if (undoable) offerUndo(r) }} />}
+      {session?.board && <Music board={session.board} inUse={session.music?.id ?? null} onSession={setSession}
+                                folderOnly={!!session.music} />}
     </div>
   </> : side === 'chat' ? <>
     <div className="flex min-h-0 flex-1 flex-col [&>aside]:min-h-0 [&>aside]:flex-1 [&>aside]:border-r-0">{chat}</div>

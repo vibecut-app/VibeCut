@@ -92,6 +92,8 @@ export function Player({ videoRef, backRef, veilRef, bars, segment, label, gap, 
         <div className="absolute overflow-hidden bg-black" style={staged
           ? { left: stage.left, top: stage.top, width: stage.w, height: stage.h }
           : { inset: 0 }}>
+          {/* the blur behind a whole picture where filling the frame would cut a face (transport.paint) */}
+          <canvas data-backdrop className="pointer-events-none absolute inset-0 size-full" style={{ zIndex: 0, visibility: 'hidden' }} />
           <video
             ref={videoRef}
             className={`absolute inset-0 size-full object-contain ${gap ? 'invisible' : ''}`}
