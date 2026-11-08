@@ -1,5 +1,8 @@
 # VibeCut — working notes for Claude
 
+Start with @CLAUDE.team.md: how the team works, the security and money
+rules, sarah's Mac and where things stand. This file is the product's notes.
+
 Read this before touching anything. It carries the decisions that are
 already made, so they don't get relitigated every session.
 
