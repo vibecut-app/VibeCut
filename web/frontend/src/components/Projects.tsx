@@ -4,20 +4,19 @@ import { fromDataTransfer, fromInput, handOff, handOffRefs, mergePicked, type Pi
 import { bytes, dur } from '../format'
 import { loadProfile } from '../profile'
 import { go } from '../router'
-import type { ProjectMeta } from '../types'
+import type { ExportJob, ProjectMeta } from '../types'
 import { ago, Button, Confirm, cx, Dialog, Field, inputCls, Notice, Wordmark } from '../ui'
+import { SharePanel } from './SharePanel'
 
 // Home: every video you're making, and where each one stands. A new video
 // starts from its clips, not from a name (sarah, 2026-10-06: "just be able to
 // drag or select clips, then a confirm create button"): drop or pick clips,
 // look at what's picked, Create. It's named from the day it was filmed.
+// Under the box, your recent videos (sarah, 2026-10-27), so a return visit
+// opens on what you made: each as its own picture, with Open and Share.
 
-const STAGE_WORDS: Record<ProjectMeta['stage'], { label: string; next: string }> = {
-  footage: { label: 'Footage', next: 'Add your clips' },
-  brief: { label: 'Getting ready', next: 'Keep going' },
-  cut: { label: 'Getting ready', next: 'Keep going' },
-  story: { label: 'Editing', next: 'Keep editing' },
-  exported: { label: 'Exported', next: 'Open it' },
+const STAGE_WORDS: Record<ProjectMeta['stage'], string> = {
+  footage: 'Footage', brief: 'Getting ready', cut: 'Getting ready', story: 'Editing', exported: 'Exported',
 }
 
 export function Projects() {
@@ -25,15 +24,22 @@ export function Projects() {
   const [error, setError] = useState<string | null>(null)
   const [rename, setRename] = useState<ProjectMeta | null>(null)
   const [remove, setRemove] = useState<ProjectMeta | null>(null)
+  const [sharing, setSharing] = useState<ProjectMeta | null>(null)
   const mine = (() => { try { return loadProfile(window.localStorage).profile.name.trim() } catch { return '' } })()
   const initial = mine.charAt(0).toUpperCase() || '☺'
   // Home talks to the person (sarah: "hello, Sarah, like talk to the user"):
   // the first name on their profile, the one behind the avatar.
   const hello = mine.split(/\s+/)[0]
 
-  const load = () => api.projects().then((r) => { setList(r.projects); setError(null) })
-    .catch((e) => setError((e as Error).message))
-  useEffect(() => { load() }, [])
+  // Videos saved before Home showed them get their picture filled in the
+  // background; ask again until that's done.
+  const again = useRef<number | undefined>(undefined)
+  const load = () => api.projects().then((r) => {
+    setList(r.projects); setError(null)
+    window.clearTimeout(again.current)
+    if (r.filling) again.current = window.setTimeout(load, 2500)
+  }).catch((e) => setError((e as Error).message))
+  useEffect(() => { load(); return () => window.clearTimeout(again.current) }, [])
 
   const open = async (p: ProjectMeta) => {
     try { await api.openProject(p.id); go({ kind: 'project', id: p.id, view: 'story' }) }
@@ -104,14 +110,19 @@ export function Projects() {
           {list === null ? (
             <p className="mt-10 font-serif text-[17px] text-zinc-200">Loading…</p>
           ) : list.length === 0 ? null : (
-            <div className="mt-6 grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">
-              {list.map((p) => <Card key={p.id} p={p} onOpen={() => open(p)} onRename={() => setRename(p)} onDelete={() => setRemove(p)} />)}
-            </div>
+            <section className="mt-10" aria-labelledby="recent-title">
+              <h2 id="recent-title" className="font-serif text-[24px] text-zinc-100">Your recent videos</h2>
+              <div className="mt-4 grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">
+                {list.map((p) => <Card key={p.id} p={p} onOpen={() => open(p)} onShare={() => setSharing(p)}
+                                       onRename={() => setRename(p)} onDelete={() => setRemove(p)} />)}
+              </div>
+            </section>
           )}
 
         </div>
       </main>
 
+      {sharing && <ShareVideo p={sharing} onClose={() => setSharing(null)} />}
       {rename && <RenameProject p={rename} onClose={() => setRename(null)} onDone={() => { setRename(null); load() }} />}
       {remove && (
         <Confirm title={`Delete “${remove.name}”?`} action="Delete the project" danger onNo={() => setRemove(null)}
@@ -122,35 +133,71 @@ export function Projects() {
   )
 }
 
-function Card({ p, onOpen, onRename, onDelete }: { p: ProjectMeta; onOpen: () => void; onRename: () => void; onDelete: () => void }) {
-  const w = STAGE_WORDS[p.stage]
+// One video: its picture (a frame of the export, else the edit's first shot,
+// else its first clip), its length, and two ways on. A tall video sits whole
+// over a blurred copy of itself rather than cropped to a band.
+function Card({ p, onOpen, onShare, onRename, onDelete }: {
+  p: ProjectMeta; onOpen: () => void; onShare: () => void; onRename: () => void; onDelete: () => void
+}) {
   const [menu, setMenu] = useState(false)
+  const v = p.video ?? null
+  // the next picture when one can't be read (a clip whose index was cleared)
+  const pics = [v?.poster, p.poster, p.cover].filter((x): x is string => !!x)
+  const [miss, setMiss] = useState(0)
+  useEffect(() => setMiss(0), [pics.join('|')])
+  const pic = pics[miss] ?? null
+  const seconds = v?.seconds ?? p.seconds ?? null
+  const line = v?.at ? `Exported ${ago(v.at)}`
+    : p.clips ? `${p.clips} clip${p.clips === 1 ? '' : 's'} · ${ago(p.updated)}` : 'No clips yet'
   return (
     <article className="group relative flex flex-col overflow-hidden rounded-xl border border-line bg-panel transition-colors hover:border-zinc-600">
-      <button type="button" onClick={onOpen} className="block text-left">
-        <div className="relative aspect-video w-full bg-black">
-          {p.cover ? <img src={p.cover} alt="" className="size-full object-cover" />
-            : <div className="grid size-full place-items-center text-[12px] text-zinc-600">No clips yet</div>}
-          <span className="absolute left-2 top-2 rounded-md bg-black/70 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-200">{w.label}</span>
-          {p.duration ? <span className="absolute bottom-2 right-2 rounded bg-black/70 px-1 text-[10px] tabular-nums text-zinc-200">{dur(p.duration)}</span> : null}
-        </div>
-        <div className="px-3 pb-3 pt-2.5">
-          <h3 className="truncate font-serif text-[17px] text-zinc-100">{p.name}</h3>
-          <p className="mt-0.5 truncate text-[11px] text-muted">
-            {p.clips ? `${p.clips} clip${p.clips === 1 ? '' : 's'}` : 'Empty'}{p.board ? ` · ${p.board.parts} parts` : ''}{p.exports ? ` · exported ${p.exports}×` : ''} · {ago(p.updated)}
-          </p>
-          <p className="mt-2 text-[12px] text-accent">{w.next} →</p>
+      <button type="button" onClick={onOpen} aria-label={`Open ${p.name}`} className="block text-left">
+        <div className={cx('relative aspect-video w-full overflow-hidden', pic ? 'bg-black' : 'bg-raised')}>
+          {pic ? <>
+            <img src={pic} alt="" aria-hidden className="absolute inset-0 size-full scale-110 object-cover opacity-60 blur-xl" />
+            <img src={pic} alt="" onError={() => setMiss((m) => m + 1)} className="relative size-full object-contain" />
+          </> : null}
+          <span className="absolute left-2 top-2 rounded-md bg-black/70 px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-100">{STAGE_WORDS[p.stage]}</span>
+          {seconds ? <span className="absolute bottom-2 right-2 rounded bg-black/70 px-1.5 text-[12px] tabular-nums text-zinc-100">{dur(seconds)}</span> : null}
         </div>
       </button>
+      <div className="flex flex-1 flex-col px-3 pb-3 pt-2.5">
+        <h3 className="truncate font-serif text-[18px] text-zinc-100">{p.name}</h3>
+        <p className="mt-0.5 truncate font-serif text-[15px] text-zinc-300">{line}</p>
+        <div className="mt-3 flex gap-2">
+          <Button variant="primary" onClick={onOpen}>Open</Button>
+          {v && <Button onClick={onShare}>Share</Button>}
+        </div>
+      </div>
       <button type="button" aria-label="Project options" onClick={() => setMenu((m) => !m)}
               className="absolute right-2 top-2 grid size-7 place-items-center rounded-md bg-black/60 text-zinc-200 opacity-0 hover:bg-black/80 focus:opacity-100 group-hover:opacity-100">⋯</button>
       {menu && (
         <div className="absolute right-2 top-10 z-10 w-40 rounded-lg border border-line bg-panel p-1 shadow-xl" onMouseLeave={() => setMenu(false)}>
-          <button type="button" onClick={() => { setMenu(false); onRename() }} className="block w-full rounded-md px-2.5 py-1.5 text-left text-[12px] text-zinc-100 hover:bg-raised">Rename</button>
-          <button type="button" onClick={() => { setMenu(false); onDelete() }} className="block w-full rounded-md px-2.5 py-1.5 text-left text-[12px] text-rose-200 hover:bg-rose-500/10">Delete…</button>
+          <button type="button" onClick={() => { setMenu(false); onRename() }} className="block w-full rounded-md px-2.5 py-1.5 text-left font-serif text-[15px] text-zinc-100 hover:bg-raised">Rename</button>
+          <button type="button" onClick={() => { setMenu(false); onDelete() }} className="block w-full rounded-md px-2.5 py-1.5 text-left font-serif text-[15px] text-rose-200 hover:bg-rose-500/10">Delete…</button>
         </div>
       )}
     </article>
+  )
+}
+
+// Share straight from Home: the video plays at the top so it's the right
+// one, then the same Share box as after an export (download, Photos, the
+// share sheet, each platform checked against the file).
+function ShareVideo({ p, onClose }: { p: ProjectMeta; onClose: () => void }) {
+  const [job, setJob] = useState<ExportJob | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  useEffect(() => { api.shareProject(p.id).then(setJob, (e) => setError((e as Error).message)) }, [p.id])
+  const tall = !!job && job.size.h > job.size.w
+  return (
+    <Dialog title={`Share “${p.name}”`} onClose={onClose} width={520}>
+      {job ? <>
+        <video src={`/api/export/${job.id}/file`} poster={p.video?.poster} controls playsInline preload="metadata"
+               className={cx('mx-auto block rounded-lg bg-black', tall ? 'h-[36vh] max-h-[340px]' : 'w-full')} />
+        <SharePanel job={job} caption={p.name} />
+      </> : error ? <Notice tone="bad">{error}</Notice>
+        : <p className="font-serif text-[17px] text-zinc-200">Getting it ready…</p>}
+    </Dialog>
   )
 }
 

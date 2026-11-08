@@ -38,7 +38,13 @@ export type ProjectMeta = {
   clips: number; duration: number | null; cover: string | null
   stage: 'footage' | 'brief' | 'cut' | 'story' | 'exported'
   edits: number; exports: number; board: { name: string; parts: number } | null; last_export: ExportRecord | null
+  // the made video before it's exported: its first shot and its length
+  poster?: string | null; seconds?: number | null
+  // the exported video Home shows and shares (backend recent.py); null when none is left on disk
+  video?: RecentVideo | null
 }
+export type RecentVideo = { n: number; file: string; seconds: number | null; size: { w: number; h: number } | null
+  at: number | null; alt: boolean; poster: string }
 export type ExportRecord = { job: string; file: string; path: string; at: number; seconds: number; size: { w: number; h: number }
   music: boolean; overlays: number; bytes: number | null
   // launch tracking (backend/launchlog.py): the one question after an export, and what it cost
