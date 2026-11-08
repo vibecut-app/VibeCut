@@ -5,6 +5,7 @@
 // instead of the whole app.
 import { useSyncExternalStore } from 'react'
 import { fromMedia, locate, mediaEnd, mediaUrl, toMedia, toSource, type SeqItem } from './sequence'
+import { aimPosition, drawBackdrop } from './aimView'
 import type { Target } from './snap'
 import { hideStill, settleStill, swapSource } from './hold'
 import { blendLook, dissolveAfter, mixAt, preloadAt, veilAt, type Pic, type TransMap } from './joinView'
@@ -245,6 +246,13 @@ export class Transport {
       else put(el, '0', null, 0, NO_FX)
     }
     const stage = this.veil?.parentElement
+    // a whole picture over a blur of itself (board backdrop): the blur, drawn from the picture on top
+    const backdrop = (stage ?? top?.parentElement)?.querySelector<HTMLCanvasElement>('canvas[data-backdrop]')
+    if (backdrop) {
+      const it = top ? shown(top) : undefined
+      const on = !!top && !this.lent && it?.kind === 'shot' && it.backdrop === 'blur' && drawBackdrop(backdrop, top)
+      backdrop.style.visibility = on ? 'visible' : 'hidden'
+    }
     const tint = stage?.querySelector<HTMLDivElement>('[data-fx-tint]')
     const grain = stage?.querySelector<HTMLDivElement>('[data-fx-grain]')
     if (tint) tint.style.background = topFx.tint
@@ -451,7 +459,9 @@ function seamless(it: SeqItem, nx: SeqItem): boolean {
     && !it.reverse && !nx.reverse && !it.freeze && !nx.freeze
     && Math.abs(nx.src_start - it.src_end) < 0.02 && (nx.speed ?? 1) === (it.speed ?? 1)
     && (nx.rotate ?? 0) === (it.rotate ?? 0) && !!nx.fill === !!it.fill
+    && JSON.stringify(nx.aim ?? null) === JSON.stringify(it.aim ?? null)
 }
+
 
 /** The shot menu's turn and fill on the picture, as export draws them
  *  (export._fit): the whole turned picture inside the frame, or covering it. */
@@ -461,6 +471,9 @@ export function dress(el: HTMLVideoElement | null, it: SeqItem | null | undefine
   const fill = it?.kind === 'shot' && !!it.fill
   const flip = it?.kind === 'shot' && it.mirror ? ' scaleX(-1)' : ''   // export mirrors before turning
   let transform = flip.trim(), fit = fill ? 'cover' : ''
+  // a filled shot Make aimed at its people (board aim): the same crop the export cuts
+  let position = fill && !r && it?.kind === 'shot'
+    ? aimPosition(it.aim, el.clientWidth, el.clientHeight, el.videoWidth, el.videoHeight) : ''
   if (r) {
     fit = 'contain'
     const W = el.clientWidth || 1, H = el.clientHeight || 1
@@ -479,6 +492,7 @@ export function dress(el: HTMLVideoElement | null, it: SeqItem | null | undefine
     x.dataset.dress = transform   // paint() puts the shot's effect in front of it
     x.style.transform = transform
     x.style.objectFit = fit
+    x.style.objectPosition = position
     if (push) {
       x.style.setProperty('--push-from', String(push > 0 ? 1 : 1 - push))
       x.style.setProperty('--push-to', String(push > 0 ? 1 + push : 1))

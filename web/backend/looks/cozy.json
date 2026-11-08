@@ -67,7 +67,8 @@
     "between": "swipe",
     "within": "cut",
     "dur": 0.3,
-    "open": true,
-    "close": true
+    "open": false,
+    "close": false,
+    "why": "2026-10-24: 2 of the 25 good long vlogs open from black and none ends on it (taste/descriptions); the taste model counted Cozy's fade-in against every edit"
   }
 }
