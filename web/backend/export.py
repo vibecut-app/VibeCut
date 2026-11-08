@@ -47,7 +47,7 @@ from pathlib import Path
 
 from cutgrammar import media
 
-from . import aim, audiomix, effects, indexer
+from . import aim, audiomix, effects, indexer, tone
 from . import timeline as tlm
 
 FPS = tlm.FPS
@@ -423,7 +423,7 @@ BACKDROP_DIM = 0.8      # ...and darkened, so the picture in front reads first [
 
 
 def _fit(size: dict, style: dict | None = None, fades: str = "", fill: bool = False,
-         at: list[float] | None = None, backdrop: str | None = None) -> str:
+         at: list[float] | None = None, adjust: str = "", backdrop: str | None = None) -> str:
     w, h = size["w"], size["h"]
     look = (style or {}).get("look")
     # The grade goes on the picture before padding, so bars stay black, and
@@ -447,7 +447,10 @@ def _fit(size: dict, style: dict | None = None, fades: str = "", fill: bool = Fa
                f"scale={sw}:{sh},gblur=sigma={BACKDROP_SIGMA},"
                f"colorchannelmixer=rr={BACKDROP_DIM}:gg={BACKDROP_DIM}:bb={BACKDROP_DIM},scale={w}:{h}:flags=bicubic[bdb];"
                f"[bdfg]{fit}[bdf];[bdb][bdf]overlay=(W-w)/2:(H-h)/2")
-    chain = (f"{fit},{fades}{grade}"
+    # The shot's own Brightness / Contrast / Saturation (tone.py) come before
+    # any fade, so a dip still reaches black, and before the look's grade,
+    # which then colours the evened-out shot like its neighbours.
+    chain = (f"{fit},{adjust}{fades}{grade}"
              f"pad={w}:{h}:(ow-iw)/2:(oh-ih)/2:black,setsar=1,fps={FPS}")
     bar = _bar(size, style)
     if bar:
@@ -566,15 +569,26 @@ def _shot(job: Job, it: dict, out: Path, tr: dict | None = None) -> None:
     # whole span. Reverse: the span played backwards, made once by
     # reverse.py at the export's size (the preview plays a small one from
     # the same function). Neither has handles (_room); the sound is the mix's.
+    # Stabilise: the span held steady by stable.py, with footage past both
+    # ends for a dissolve's handles; backwards, that steady span reversed.
     head = ""
+    steady = float(it.get("stabilize") or 0)
     if it.get("freeze"):
         src = ["-ss", f"{it['src_start']:.4f}", "-t", "1", "-i", c["path"]]
         head, speed = "trim=end_frame=1,setpts=PTS-STARTPTS,", 1.0
     elif it.get("reverse"):
-        from . import reverse
-        rev = reverse.reversed_span(c["path"], float(it["src_start"]), float(it["src_end"]),
-                                    max(size["w"], size["h"]))
+        from . import reverse, stable
+        a, b = float(it["src_start"]), float(it["src_end"])
+        rev = (stable.steady_reversed(c["path"], a, b, steady, max(size["w"], size["h"])) if steady else
+               reverse.reversed_span(c["path"], a, b, max(size["w"], size["h"])))
         src = ["-ss", "0", "-t", f"{d * speed + 0.5:.4f}", "-i", str(rev)]
+        info = {**info, "audio": False}
+    elif steady:
+        from . import stable
+        f0, held = stable.steady_span(c["path"], float(it["src_start"]), float(it["src_end"]), steady,
+                                      max(size["w"], size["h"]))
+        src = ["-ss", f"{max(0.0, it['src_start'] - tr['head'] / FPS - f0):.4f}", "-t", f"{d * speed + 0.5:.4f}",
+               "-i", str(held)]
         info = {**info, "audio": False}
     # the shot menu's fixes: a quarter turn, then its speed (frames retimed;
     # its sound comes from the mix, stretched there)
@@ -610,7 +624,8 @@ def _shot(job: Job, it: dict, out: Path, tr: dict | None = None) -> None:
     # A span that runs to the very end of its file can decode a frame or two
     # short; hold the last frame so every shot is exactly its frame count.
     args = [*src, "-map", "0:v:0", *amap, "-vf",
-            head + turn + retime + _fit(size, job.style, vfade, bool(it.get("fill")), it.get("aim"), it.get("backdrop"))
+            head + turn + retime + _fit(size, job.style, vfade, bool(it.get("fill")), it.get("aim"),
+                                        adjust=tone.chain(it), backdrop=it.get("backdrop"))
             + effects.chain(it.get("effect"), float(it.get("effect_amount") or 1.0), size, tr["head"] / FPS, it["frames"], FPS)
             + punch
             + f",tpad=stop_mode=clone:stop_duration={d + 1 if it.get('freeze') else 1:.4f}", *common]

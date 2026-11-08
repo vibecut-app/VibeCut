@@ -266,6 +266,10 @@ def default_name(kind: str, v: dict) -> str:
             bits.append("filled")
         if v.get("effect"):
             bits.append(effects.describe(v["effect"]))
+        if v.get("stabilize"):
+            bits.append("steadied")
+        if any(v.get(f) for f in ("brightness", "contrast", "saturation")):
+            bits.append("colour adjusted")
         if "gain" in v or v.get("mute"):
             bits.append("muted" if v.get("mute") else f"sound {round(v['gain'] * 100)}%")
         return ", ".join(bits[:3]).capitalize() or "My shot settings"
@@ -306,7 +310,8 @@ def ops_for(item: dict, board: dict | None, shot: str | None = None, after: str 
         # aim is where one picture's people are: it doesn't carry to another shot
         fx = {f: v.get(f, plain) for f, plain in bd.FX_PLAIN.items() if f != "aim"}
         if bd.is_freeze(e):   # a held frame takes only what it can show
-            fx = {f: fx[f] for f in ("rotate", "fill", "mirror", "effect", "effect_amount")}
+            fx = {f: fx[f] for f in ("rotate", "fill", "mirror", "effect", "effect_amount",
+                                     "brightness", "contrast", "saturation")}
         return [{"op": "set_shot", "shot": shot, **fx}], f"That shot now has “{name}”"
     if kind == "song":
         if have_track is not None and not have_track(v["track"]):
