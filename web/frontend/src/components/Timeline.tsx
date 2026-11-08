@@ -53,7 +53,7 @@ function growOf(it: SeqItem, ed: { edge: 'in' | 'out'; to: number }): number {
 export function Timeline({ tl, marks, marksOf, selected, flash, alt, onSelect, onReorder,
   onInsertShot, onClear, onHelp, overlays = [], graphics = [], selectedOverlay = null, onSelectOverlay, onOverlayEdit, onExport, onTrimEdge,
   selectedAudio = null, onSelectAudio, onAudioMove, joins = [], selectedJoin = null, onSelectJoin,
-  music = null, onSelectMusic, onSplit, onDelete, onTap, height = 290 }: {
+  music = null, onSelectMusic, onSplit, onDelete, onTap, onRecord, recording = null, height = 290 }: {
   tl: TimelineData
   marks: Marks
   marksOf: Record<string, 'added' | 'moved' | 'trimmed' | undefined>
@@ -91,6 +91,10 @@ export function Timeline({ tl, marks, marksOf, selected, flash, alt, onSelect, o
   onSplit?: () => void
   /** the ruler or a shot was clicked: the playhead is now there */
   onTap?: () => void
+  /** the Record button: start a voiceover from the playhead, or stop the one recording */
+  onRecord?: () => void
+  /** a voiceover on its way: counting down from 3, recording since `from`, or being saved */
+  recording?: { from: number; count: number; live: boolean } | null
   onDelete?: () => void
   height?: number
 }) {
@@ -428,6 +432,7 @@ export function Timeline({ tl, marks, marksOf, selected, flash, alt, onSelect, o
     return { row, n: ends.length }
   }, [pills])
   const strips: SoundStrip[] = tl.audio?.strips ?? []
+  const voice: SoundStrip[] = tl.audio?.voice ?? []
   const silent = useMemo(() => new Set(tl.audio?.off ?? []), [tl.audio])
   // Measured from the bottom: Audio (strips, then the music), Captions, and
   // the picture takes what is left.
@@ -438,7 +443,8 @@ export function Timeline({ tl, marks, marksOf, selected, flash, alt, onSelect, o
   const rowH = Math.round(LANE_ROW * stretch)
   const soundH = Math.round(SOUND_H * stretch)
   const chipText = Math.round(12 + (stretch - 1) * 5)
-  const audioRows = (strips.length ? 1 : 0) + 1
+  const voiceRow = voice.length > 0 || !!recording
+  const audioRows = (strips.length ? 1 : 0) + (voiceRow ? 1 : 0) + 1
   const audioH = audioRows * soundH + (audioRows - 1) * 4 + 8
   const capH = Math.max(1, lanes.n) * rowH + 8
   const audioBottom = 8
@@ -447,6 +453,8 @@ export function Timeline({ tl, marks, marksOf, selected, flash, alt, onSelect, o
   const lanesH = VIDEO_TOP + MIN_VIDEO_H + shotsBottom
   const musicBottom = audioBottom + 4
   const stripBottom = musicBottom + soundH + 4
+  // recorded voice on its own row above the shots' strips, as CapCut keeps its voiceover track
+  const voiceBottom = (strips.length ? stripBottom : musicBottom) + soundH + 4
   const [moving, setMoving] = useState<{ id: string; x0: number; grab: number; at: number; moved: boolean } | null>(null)
   const overlayTime = (clientX: number, bypass: boolean) => {
     const el = track.current!
@@ -477,6 +485,16 @@ export function Timeline({ tl, marks, marksOf, selected, flash, alt, onSelect, o
         <span className="h-6 w-px bg-line" aria-hidden />
         {onSplit && <Tool icon="split" label="Split" title="Split the shot at the playhead (B)" onClick={onSplit} disabled={!items.length} />}
         {onDelete && <Tool icon="trash" label="Delete" title="Delete the selected shot, or the marked part (Delete)" onClick={onDelete} disabled={!items.length} />}
+        {onRecord && (recording ? (
+          <button type="button" onClick={onRecord} title="Stop recording (Space). Your voice lands on its own strip where you started."
+                  className="flex h-8 shrink-0 items-center gap-1.5 rounded-md bg-rose-600 px-2.5 text-[15px] text-white hover:bg-rose-700">
+            <span className="size-2.5 rounded-[2px] bg-white" aria-hidden />
+            {recording.live ? `Stop · ${clock(Math.max(0, ph - recording.from))}` : recording.count ? `Talk in ${recording.count}…` : 'Saving…'}
+          </button>
+        ) : (
+          <Tool icon="mic" label="Record" disabled={!items.length} onClick={onRecord}
+                title="Record your voice over the video, from the playhead. The video plays while you talk; the music goes quieter under your voice." />
+        ))}
         <span className="h-6 w-px bg-line" aria-hidden />
 
         <input
@@ -779,12 +797,12 @@ export function Timeline({ tl, marks, marksOf, selected, flash, alt, onSelect, o
               )
             })}
 
-            {strips.map((a) => {
+            {[...strips, ...voice].map((a) => {
               const m = moving?.id === a.id ? moving : null
               const at = m ? m.at : a.at
               const x = xAt(Math.min(at, tl.total))
               const w = Math.max(28, Math.min(still.end + PAD, xAt(Math.min(at + a.dur, tl.total))) - x)
-              const label = `Sound of shot ${a.n ?? ''}`.trim()
+              const label = a.voice ? `Your voice${voice.length > 1 ? ` ${a.n}` : ''} · ${a.dur.toFixed(1)}s` : `Sound of shot ${a.n ?? ''}`.trim()
               return (
                 <div key={a.id}
                      title={`${label} · ${a.mute ? 'muted' : `${Math.round(a.gain * 100)}%`}\nClick to change its volume and fades. Drag to move it (it sticks to cuts; hold ⌥ for exact).`}
@@ -806,15 +824,23 @@ export function Timeline({ tl, marks, marksOf, selected, flash, alt, onSelect, o
                        if (Math.abs(m.at - a.at) > 1 / 60) onAudioMove?.(a.id, Math.round(m.at * 1000) / 1000)
                      }}
                      className={`absolute flex cursor-grab items-center gap-1.5 overflow-hidden rounded-md px-1.5 leading-none active:cursor-grabbing ${
-                       a.mute ? 'bg-stone-300 text-stone-600' : 'bg-teal-600 text-white'} ${
+                       a.mute ? 'bg-stone-300 text-stone-600' : a.voice ? 'bg-orange-500 text-white' : 'bg-teal-600 text-white'} ${
                        selectedAudio === a.id ? 'ring-2 ring-accent' : ''} ${m?.moved ? 'opacity-80' : ''}`}
-                     style={{ left: x, width: w, bottom: stripBottom, height: soundH, fontSize: chipText,
+                     style={{ left: x, width: w, bottom: a.voice ? voiceBottom : stripBottom, height: soundH, fontSize: chipText,
                        backgroundImage: a.mute ? undefined : 'repeating-linear-gradient(90deg, rgba(255,255,255,.18) 0 2px, transparent 2px 5px)' }}>
-                  <span className="shrink-0">{a.mute ? '🔇' : '♪'}</span>
+                  <span className="shrink-0">{a.mute ? '🔇' : a.voice ? <Icon name="mic" size={Math.round(chipText * 1.2)} /> : '♪'}</span>
                   <span className="truncate">{label}{a.mute ? ' · muted' : a.gain !== 1 ? ` · ${Math.round(a.gain * 100)}%` : ''}</span>
                 </div>
               )
             })}
+
+            {recording?.live && (
+              <div className="pointer-events-none absolute flex items-center gap-1.5 overflow-hidden rounded-md bg-rose-600 px-1.5 leading-none text-white"
+                   style={{ left: xAt(recording.from), width: Math.max(4, xAt(Math.min(ph, tl.total)) - xAt(recording.from)), bottom: voiceBottom, height: soundH, fontSize: chipText }}>
+                <span className="size-2 shrink-0 animate-pulse rounded-full bg-white" aria-hidden />
+                <span className="truncate">Recording</span>
+              </div>
+            )}
 
             {dropAt != null && (
               <div className="pointer-events-none absolute w-0.5 rounded bg-accent"
