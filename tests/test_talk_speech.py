@@ -56,6 +56,9 @@ def main() -> int:
     res = speech.transcribe(clip, "zh-CN")
     heard = "".join(r["text"] for r in res)
     check("the recogniser hears the script", talk.containment("第一步是把气口剪掉", heard) > 0.8, heard[:40])
+    confs = [w.get("c") for r in res for w in r["words"]]
+    check("and says how sure it is of each word (0..1)", confs and all(c is None or 0.0 <= c <= 1.0 for c in confs)
+          and any(c is not None for c in confs), f"{sum(c is not None for c in confs)}/{len(confs)} words with a confidence")
 
     p = talk.build({clip["id"]: res}, {clip["id"]: clip}, "zh-CN", {clip["id"]: talk.active(speech.audio(clip))})
     pub = talk.public(p)
