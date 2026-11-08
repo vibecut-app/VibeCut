@@ -1499,7 +1499,7 @@ export default function App({ id, view }: { id: string; view: 'story' | 'frames'
              } catch (e) { note((e as Error).message) }
            }} />
   ) : side === 'text' ? <>
-    {panelHead('Text', <Button size="sm" aria-pressed={!!ovData.items.length} onClick={toggleCaptions}>{ovData.items.length ? 'Turn captions off' : 'Turn captions on'}</Button>)}
+    {panelHead('Text', <Button size="sm" aria-pressed={!!ovData.items.length} onClick={() => setCaptions(ovData.items.length ? 'off' : 'describe')}>{ovData.items.length ? 'Turn captions off' : 'Turn captions on'}</Button>)}
     <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">{overlaysPanel}</div>
   </> : side === 'music' ? <>
     {panelHead('Music')}
