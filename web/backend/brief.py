@@ -88,16 +88,41 @@ def suggest_format(portrait_share: float, usable_s: float) -> str:
     return "short" if usable_s <= 2 * SHORT_MAX_S else "tall"
 
 
-def length_for(fmt: str | None, marks: dict) -> float:
+PLATFORMS = ("TikTok", "Instagram", "YouTube")   # the profile's "Where you share" (profile.ts)
+
+
+def frame_for(post_to: list[str] | None, portrait_share: float, usable_s: float) -> tuple[str, str] | None:
+    """The frame where the creator posts asks for, and why -- or None when
+    they haven't said. The side-by-side of 2026-10-26: her day's footage was
+    upright, so the setup offered a 60 s vertical Short, while the vlogs she
+    wanted hers to look like were 15-minute 16:9 YouTube vlogs. YouTube (alone
+    or with the others) is a wide video, its vertical version one click in
+    the Share box; TikTok / Reels / Shorts only is vertical: a short when
+    there's little to say, else a vertical vlog."""
+    got = [p for p in (post_to or []) if p in PLATFORMS]
+    if not got:
+        return None
+    if "YouTube" in got:
+        return "wide", ("as you post on YouTube" if got == ["YouTube"]
+                        else "for YouTube; the Share box makes the vertical one in a click")
+    where = " and ".join(got)
+    return ("short" if usable_s <= 2 * SHORT_MAX_S else "tall"), f"as you post on {where}"
+
+
+def length_for(fmt: str | None, marks: dict, reach: float | None = None) -> float:
     """The length a format asks for: a short is its Short mark, capped; a
     vlog (tall or wide) is the Medium mark when the footage has one, else the
-    suggestion -- so the three frames in the setup don't all read "about 1:00"."""
+    suggestion -- so the three frames in the setup don't all read "about 1:00".
+    `reach` (vlog.reach): how long a vlog Make can really run on this
+    footage; a vlog never promises more (2026-10-25: "about 50 seconds"
+    promised, 29 made)."""
     by = {m["key"]: m["seconds"] for m in marks["marks"]}
     if fmt == "short":
         return float(min(by.get("short", marks["seconds"]), SHORT_MAX_S))
-    if fmt in ("tall", "wide") and "medium" in by:
-        return float(by["medium"])
-    return float(marks["seconds"])
+    want = float(by["medium"]) if fmt in ("tall", "wide") and "medium" in by else float(marks["seconds"])
+    if fmt in ("tall", "wide") and reach:
+        want = max(MIN_LENGTH_S, min(want, round(reach)))
+    return want
 
 # Focus choices, each a storyboard theme (storyboard.THEMES).
 FOCUS = [("people", "Me and the people I was with"), ("food", "Food and drinks"),
@@ -351,8 +376,9 @@ def repeat_ops(board: dict | None, cat) -> tuple[list[dict], list[str]]:
     -- a look-alike, or the same stretch of one clip twice -- as drop_shot
     ops, keeping the better-made of each group wherever it sits. Returns
     (ops, names of what goes). Vision-only, like `one_per_look`."""
+    # a teaser shows later moments on purpose (make.teaser): never a repeat, never the one kept
     entries = [e for bt in (board or {}).get("beats", []) for e in bt["shots"]
-               if not e.get("gap") and e.get("id") in cat.shots]
+               if not e.get("gap") and not e.get("teaser") and e.get("id") in cat.shots]
     rank = lambda e: cat.shots[e["id"]].score + (0.15 if cat.shots[e["id"]].lean else 0.0)  # noqa: E731
     keep: list[dict] = []
     ops, names = [], []

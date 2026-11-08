@@ -15,8 +15,15 @@ the editing-craft reading of 2026-10-19):
    the cup, the hands, the face). Two look-alikes never sit together.
    A scene ends on a detail or a face, not on a passing street.
 3. **Stillness.** The longest holds go to the stillest shots -- a window,
-   a cup, a view -- and a handheld walk gets a short one. Shots run 3–6 s
-   (make.PRIOR for tall / wide), cut where the action ends.
+   a cup, a view -- and a handheld walk gets a short one, cut where the
+   action ends.
+
+Rewritten 2026-10-24 against what the good vlogs measured (house.py): the
+3–6 s a shot of 2026-10-19 was a guess, and the real ones are quicker and
+far less even -- b-roll at about 2 s, a second for a walk, a long rest on
+one still shot per scene, talk to the lens held for its sentence and broken
+up by cutaways, music stepping out while someone talks. Between 2026-10-23
+and this date none of this ran: a merge kept a make.py without it.
 
 What the index already knows is enough for all three: face area and face
 count for shot size, labels for details, per-second motion for stillness,
@@ -25,6 +32,8 @@ Every threshold here is a prior until the creator says otherwise.
 """
 
 from __future__ import annotations
+
+import math
 
 import numpy as np
 
@@ -40,12 +49,16 @@ WIDE = {"outdoor", "sky", "blue_sky", "cloudy", "night_sky", "land", "structure"
         "fence", "conveyance", "portal", "interior_room", "window", "door", "stairs", "crowd"}
 LOOKALIKE = 0.78         # embedding cosine: the same view again
 STILL, BUSY = 15.0, 40.0 # per-second motion (index units): rest, and walking with the phone
-STILL_HOLD, BUSY_HOLD = 1.5, 0.7
-MIN_HOLD_S, MAX_HOLD_S = 1.5, 7.0
+STILL_HOLD, BUSY_HOLD = 1.3, 0.45   # around the house's b-roll length [priors]
+REST = 2.6               # a scene's one still rest: this many b-roll lengths, inside the good side's held shots [prior]
+MIN_HOLD_S, MAX_HOLD_S = 0.9, 16.0   # the good long vlogs' quick shots (p10 ~1 s) and held ones (p90 up to 16 s)
 MAX_SCENES = 7
-MIN_PICK_S = 2.5         # a shot filmed shorter than this can't hold a vlog's pace
+MIN_PICK_S = 1.5         # a shot filmed shorter than this can't hold even a quick b-roll beat (was 2.5 s
+                         # while every shot held 3–6 s; the good vlogs' b-roll runs about 2 s, house.py)
 LENGTH_OK = 0.9          # a vlog this close to the length asked for is left alone
 ASK_MORE_MAX = 1.6       # ...else more moments are asked for, at most this many times over
+FILL_MAX_S = 5.0         # when the shoot has no more moments, a b-roll shot may hold this long to reach
+                         # the length promised -- inside the good vlogs' held shots (p90 up to 16 s) [prior]
 
 
 def shot_size(s) -> str:
@@ -66,10 +79,11 @@ def _sim(a, b) -> float:
     return float(np.dot(va, vb))
 
 
-def sequence(picks: list[sel.Pick]) -> list[sel.Pick]:
+def sequence(picks: list[sel.Pick], talking: set[str] | None = None) -> list[sel.Pick]:
     """The three-shot order for one scene: wide, then medium, then close,
     each class in filming order; look-alikes kept apart; the scene ends on
-    a close shot or a face when it has one."""
+    a close shot or a face when it has one; talk to the lens never runs into
+    more talk while there is b-roll to cut away to (cutaways)."""
     if len(picks) <= 1:
         return list(picks)
     rank = {"wide": 0, "medium": 1, "close": 2}
@@ -91,10 +105,48 @@ def sequence(picks: list[sel.Pick]) -> list[sel.Pick]:
                        if shot_size(out[i].shot) == "close" or (getattr(out[i].shot, "faces", 0) or 0) > 0), None)
     if last_close is not None and last_close != len(out) - 1:
         out.append(out.pop(last_close))
+    return cutaways(out, talking)
+
+
+def _talks(p: sel.Pick, talking: set[str] | None) -> bool:
+    return bool(talking) and p.shot.id in talking
+
+
+def cutaways(order: list[sel.Pick], talking: set[str] | None) -> list[sel.Pick]:
+    """Talk broken up by b-roll: the good vlogs hold someone talking to the
+    lens, then cut away (house.py; "the longest talk with no cutaway" is one
+    of the taste model's strongest signals). Two talking shots side by side
+    get the nearest b-roll moved between them; the talk keeps its order, and
+    the b-roll its own. Nothing moves when the scene is all talk or none."""
+    if not talking or len(order) < 3:
+        return list(order)
+    talk = [p for p in order if _talks(p, talking)]
+    roll = [p for p in order if not _talks(p, talking)]
+    if not talk or not roll:
+        return list(order)
+    if all(not (_talks(a, talking) and _talks(b, talking)) for a, b in zip(order, order[1:])):
+        return list(order)
+    # open the way the scene opened (on b-roll when it did), then alternate
+    # talk with as much b-roll as there is, the rest of the b-roll after
+    out: list[sel.Pick] = []
+    lead = not _talks(order[0], talking)
+    gaps = len(talk) - 1 + (1 if lead else 0)
+    share = [len(roll) // max(gaps, 1) + (1 if k < len(roll) % max(gaps, 1) else 0) for k in range(max(gaps, 1))]
+    r = iter(roll)
+    k = 0
+    if lead:
+        out.extend(next(r) for _ in range(share[k]))
+        k += 1
+    for i, t in enumerate(talk):
+        out.append(t)
+        if i < len(talk) - 1:
+            out.extend(next(r) for _ in range(share[k] if k < len(share) else 0))
+            k += 1
+    out.extend(r)
     return out
 
 
-def scenes(plan: sel.Plan) -> None:
+def scenes(plan: sel.Plan, talking: set[str] | None = None) -> None:
     """Regroup the plan's picks into scenes in place: a stop of the day
     (brief.spots: a place, twenty minutes) is sequenced wide -> medium ->
     close on its own; stops are then folded, smallest neighbours first,
@@ -107,7 +159,7 @@ def scenes(plan: sel.Plan) -> None:
     groups: dict[int, list[sel.Pick]] = {}
     for p in picks:
         groups.setdefault(where.get(p.shot.id, 0), []).append(p)
-    stops = [sequence(sorted(g, key=lambda p: p.shot.order)) for _, g in sorted(groups.items())]
+    stops = [sequence(sorted(g, key=lambda p: p.shot.order), talking) for _, g in sorted(groups.items())]
     folded: list[list[list[sel.Pick]]] = [[st] for st in stops if st]
     while len(folded) > MAX_SCENES:
         i = min(range(len(folded) - 1), key=lambda j: sum(map(len, folded[j])) + sum(map(len, folded[j + 1])))
@@ -141,26 +193,116 @@ def stillness(s) -> float:
     """How much longer (or shorter) a shot may hold than the median: still
     frames rest, handheld walks don't."""
     a = float(getattr(s, "activity", 0.0) or 0.0)
-    return STILL_HOLD if a < STILL else BUSY_HOLD if a > BUSY else 1.0
+    if a < STILL:
+        return STILL_HOLD
+    # between rest and a walk the hold shortens with the movement, so a
+    # shoot's lengths spread like the good vlogs' instead of sitting on one
+    return float(np.interp(a, [STILL, BUSY], [1.0, BUSY_HOLD]))
 
 
-def breathe(plan: sel.Plan, clips: dict, fp: dict) -> dict:
-    """Give every pick a hold: the vlog's median, the arc's curve for where
-    it sits, times its stillness, clamped to MIN_HOLD_S..MAX_HOLD_S; cut in
-    where the action is (select.window). Returns a small report."""
+def _house(fp: dict) -> dict:
+    from . import house
+    return fp.get("house") or house.measured("long")
+
+
+def rest_of(sess: list[sel.Pick], talking: set[str] | None) -> sel.Pick | None:
+    """The scene's one long rest: its stillest b-roll shot, if any is still."""
+    still = [p for p in sess if not _talks(p, talking) and float(getattr(p.shot, "activity", 99.0) or 0.0) < STILL]
+    return min(still, key=lambda p: float(getattr(p.shot, "activity", 0.0) or 0.0)) if still else None
+
+
+LAUGH_S = 1              # a heard second of laughter (worth.py's reading)...
+LAUGH_MEAN = 0.3         # ...or this much laughter on average over the shot (the taste model's LAUGH_ON)
+
+
+def laughs(p: sel.Pick, clips: dict | None) -> bool:
+    """Someone laughs in this shot, as either reading hears it."""
+    from . import worth
+    rec = (clips or {}).get(p.shot.clip_id)
+    if not rec:
+        return False
+    secs = worth._secs(rec, "laughter", p.shot.start, p.shot.end)
+    return worth._count(rec, "laughter", p.shot.start, p.shot.end) >= LAUGH_S or (
+        len(secs) > 0 and float(np.mean(secs)) >= LAUGH_MEAN)
+
+
+def hold_for(p: sel.Pick, h: dict, c: float, rest: bool, talking: set[str] | None, laugh: bool = False) -> float:
+    """One shot's hold, the way the good vlogs hold that kind of shot
+    (house.py): talk to the lens its sentence (at least the house's talk
+    length, the whole shot as filmed up to their held shots), a laugh the
+    same (the taste model: good vlogs hold a laugh 1.5x, ours cut it to
+    0.4x), a scene's still rest REST b-roll lengths, other b-roll the
+    house's b-roll length by its stillness (a walk about a second). `c` is
+    the arc's curve here."""
+    if _talks(p, talking) or laugh:
+        whole = float(p.shot.end - p.shot.start)
+        return float(np.clip(max(whole, h["talk_s"]), MIN_HOLD_S, min(MAX_HOLD_S, h["held_s"])))
+    base = h["broll_s"] * c
+    want = base * REST if rest else base * stillness(p.shot)
+    return float(np.clip(want, MIN_HOLD_S, MAX_HOLD_S))
+
+
+def breathe(plan: sel.Plan, clips: dict, fp: dict, talking: set[str] | None = None) -> dict:
+    """Give every pick a hold by what it is (hold_for), with the arc's curve
+    for where it sits; cut in where the action is (select.window). The pace
+    word moves every hold with the house median. Returns a small report."""
     seq = [p for sess in plan.sessions for p in sess]
     n = max(len(seq), 1)
-    med = float(fp.get("median_s") or 4.0)
+    h = dict(_house(fp))
+    scale = float(fp.get("median_s") or h["shot_s"]) / float(h["shot_s"] or 1.0)
+    h["broll_s"] = h["broll_s"] * scale
     curve = fp.get("curve") or [1.0] * 5
-    held, short = 0, 0
-    for k, p in enumerate(seq):
-        pos = (k + 0.5) / n
-        c = float(np.interp(pos * (len(curve) - 1), range(len(curve)), curve))
-        want = float(np.clip(med * c * stillness(p.shot), MIN_HOLD_S, MAX_HOLD_S))
-        p.start, p.end, p.short = sel.window(clips, p.shot, want)
-        held += stillness(p.shot) > 1.0
-        short += p.short
-    return {"shots": len(seq), "still_held": held, "filmed_too_short": short, "median_s": med}
+    rests = {id(r) for r in (rest_of(sess, talking) for sess in plan.sessions) if r is not None}
+    held, short, talk = 0, 0, 0
+    k = 0
+    for sess in plan.sessions:
+        for p in sess:
+            pos = (k + 0.5) / n
+            c = float(np.interp(pos * (len(curve) - 1), range(len(curve)), curve))
+            want = hold_for(p, h, c, id(p) in rests, talking, laughs(p, clips))
+            p.start, p.end, p.short = sel.window(clips, p.shot, want)
+            held += id(p) in rests
+            talk += _talks(p, talking)
+            short += p.short
+            k += 1
+    return {"shots": len(seq), "rests": held, "talk": talk, "filmed_too_short": short,
+            "broll_s": round(h["broll_s"], 2)}
+
+
+def fill(plan: sel.Plan, clips: dict, target: float, talking: set[str] | None = None) -> float:
+    """A thin shoot: every moment is already in and the vlog still runs
+    short of the length the setup promised (2026-10-25: "about 50 seconds"
+    became 29). Hold the b-roll longer, up to FILL_MAX_S each and never
+    past what was filmed, the stillest first -- a held still shot rests, a
+    held walk drags. Talk keeps its sentence. Returns the seconds added."""
+    short = target - plan.duration
+    if short <= 0.05:
+        return 0.0
+    added = 0.0
+    seq = [p for sess in plan.sessions for p in sess if not _talks(p, talking)]
+    for p in sorted(seq, key=lambda p: float(getattr(p.shot, "activity", 0.0) or 0.0)):
+        room = min(FILL_MAX_S, float(p.shot.end - p.shot.start)) - p.duration
+        if room <= 0.05:
+            continue
+        give = min(room, short - added)
+        before = p.duration
+        p.start, p.end, p.short = sel.window(clips, p.shot, before + give)
+        added += p.duration - before
+        if added >= short - 0.05:
+            break
+    return round(added, 3)
+
+
+def reach(shots: list, vision: bool = True) -> float:
+    """How long a vlog Make can run on this footage: every shot it can pick
+    (filmed at least MIN_PICK_S, look-alikes once), each held at most
+    FILL_MAX_S. The setup promises no more than this (brief.length_for)."""
+    kept: list = []
+    for s in sorted(shots, key=lambda s: s.score, reverse=True):
+        if s.end - s.start < MIN_PICK_S or (vision and any(brief.alike(s, k) for k in kept)):
+            continue
+        kept.append(s)
+    return float(sum(min(FILL_MAX_S, s.end - s.start) for s in kept))
 
 
 def describe(plan: sel.Plan) -> str:
@@ -204,7 +346,10 @@ def _closes(p: sel.Pick) -> bool:
     return shot_size(p.shot) == "close" or (getattr(p.shot, "faces", 0) or 0) > 0
 
 
-def flow(plan: sel.Plan, clips: dict) -> int:
+TALK_RUN_PEN = 2.0       # two talking shots side by side when b-roll could sit between them
+
+
+def flow(plan: sel.Plan, clips: dict, talking: set[str] | None = None) -> int:
     """Within each scene, among the orders that keep wide -> medium -> close,
     take the one whose cuts are smoothest by the joins checker (brightness,
     colour, energy, loudness steps), with look-alikes apart and the scene
@@ -217,12 +362,13 @@ def flow(plan: sel.Plan, clips: dict) -> int:
         for k, sess in enumerate(scene):
             if not 2 <= len(sess) <= MAX_FLOW:
                 continue
-            moved += _flow_stop(sess, scene, k, flat, clips, plan)
+            moved += _flow_stop(sess, scene, k, flat, clips, plan, talking)
     plan.sessions = [[p for st in scene for p in st] for scene in stops]
     return moved
 
 
-def _flow_stop(sess: list[sel.Pick], scene: list[list[sel.Pick]], k: int, flat: list[sel.Pick], clips: dict, plan: sel.Plan) -> int:
+def _flow_stop(sess: list[sel.Pick], scene: list[list[sel.Pick]], k: int, flat: list[sel.Pick], clips: dict, plan: sel.Plan,
+               talking: set[str] | None = None) -> int:
     import itertools
     sides = {p.shot.id: _side(p, clips) for p in sess}
     if not any(sides.values()):
@@ -230,6 +376,7 @@ def _flow_stop(sess: list[sel.Pick], scene: list[list[sel.Pick]], k: int, flat: 
     rank = {"wide": 0, "medium": 1, "close": 2}
     tiers = [[p for p in sess if rank[shot_size(p.shot)] == t] for t in range(3)]
     can_close = any(_closes(p) for p in sess)
+    can_cut_away = any(_talks(p, talking) for p in sess) and any(not _talks(p, talking) for p in sess)
     cache: dict = {}
     i0 = flat.index(sess[0])
     before = flat[i0 - 1] if i0 > 0 else (plan.hook[-1] if plan.hook else None)
@@ -244,6 +391,8 @@ def _flow_stop(sess: list[sel.Pick], scene: list[list[sel.Pick]], k: int, flat: 
                 c += _pair(sides, x, y, cache)
                 if _sim(x.shot, y.shot) >= LOOKALIKE:
                     c += LOOKALIKE_PEN
+                if can_cut_away and _talks(x, talking) and _talks(y, talking):
+                    c += TALK_RUN_PEN
             if can_close and not _closes(order[-1]):
                 c += END_PEN
             return c
@@ -268,24 +417,43 @@ PHRASE_BEATS = 16        # four bars: where a track's phrases turn [prior]
 HALF_PHRASE = 8          # a scene shorter than a phrase lands on two bars
 
 
-def phrase(plan: sel.Plan, clips: dict, period: float) -> dict:
+def phrase(plan: sel.Plan, clips: dict, period: float, fp: dict | None = None,
+           talking: set[str] | None = None) -> dict:
     """The hook ends on a whole beat (so the drop lands), and every scene
-    runs a whole number of phrases: its shots stretch or shrink together,
-    within the hold clamp, and what's left goes to the closing shot. Shots
-    inside a scene fall where the action ends, not on a beat."""
+    runs a whole number of phrases: its b-roll stretches or shrinks together,
+    within the hold clamp, and what's left goes to the closing shot. Talk to
+    the lens keeps its sentence. Shots inside a scene fall where the action
+    ends, not on a beat."""
+    # a teaser's glimpses (make.teaser): each a whole number of beats, quick, inside the seconds it was
+    # given -- so the drop, at the teaser's end, lands on a beat
+    for p in plan.teaser:
+        beats = max(1, int(round(p.duration / period)))
+        lo, hi = p.room or (p.shot.start, p.shot.end)
+        want = min(beats * period, hi - lo)
+        p.start = round(max(lo, min(p.start, hi - want)), 3)
+        p.end = round(p.start + want, 3)
     for p in plan.hook:
         beats = max(2, int(round(p.duration / period)))
         p.start, p.end, p.short = sel.window(clips, p.shot, beats * period)
     report = {"scenes": 0, "on_phrase": 0}
+    # a scene rounds up to its next phrase while the video is short of its length, so
+    # the beat fit doesn't take back what was promised (50 s asked, 32 cut, 29 after the fit)
+    short = float((fp or {}).get("duration") or 0.0) - plan.duration
     for sess in plan.sessions:
         if not sess:
             continue
         report["scenes"] += 1
         total = sum(p.duration for p in sess)
         unit = (PHRASE_BEATS if total >= 0.75 * PHRASE_BEATS * period else HALF_PHRASE) * period
-        want_total = max(unit, round(total / unit) * unit)
-        factor = want_total / total if total > 0 else 1.0
+        n = total / unit
+        want_total = max(unit, (math.ceil(n - 0.05) if short > 0.25 * unit else round(n)) * unit)
+        rest = rest_of(sess, talking)
+        keep = lambda p: _talks(p, talking) or p is rest or laughs(p, clips)  # noqa: E731 -- held as held
+        fixed = sum(p.duration for p in sess if keep(p))
+        factor = (want_total - fixed) / (total - fixed) if total - fixed > 0 else 1.0
         for p in sess:
+            if keep(p):
+                continue
             want = float(np.clip(p.duration * factor, MIN_HOLD_S, MAX_HOLD_S))
             p.start, p.end, p.short = sel.window(clips, p.shot, want)
         left = want_total - sum(p.duration for p in sess)
@@ -293,6 +461,8 @@ def phrase(plan: sel.Plan, clips: dict, period: float) -> dict:
         for p in reversed(sess):
             if abs(left) < 1e-3:
                 break
+            if _talks(p, talking):
+                continue
             room = (p.shot.end - p.end) if left > 0 else (p.end - p.start - MIN_HOLD_S)
             give = min(left, room) if left > 0 else max(left, -room)
             if give > 1e-3 or give < -1e-3:
@@ -300,6 +470,7 @@ def phrase(plan: sel.Plan, clips: dict, period: float) -> dict:
                 left -= give
         if abs(sum(p.duration for p in sess) - want_total) < 0.05:
             report["on_phrase"] += 1
+        short -= sum(p.duration for p in sess) - total
     return report
 
 
@@ -317,7 +488,7 @@ def swells(plan: sel.Plan) -> list[list[float]]:
     SETTLE of its gain; around each scene change it is at full. Talking
     ducks (bed.ducks) sit under these; the mixer takes the quieter."""
     out: list[list[float]] = []
-    t = sum(p.duration for p in plan.hook)
+    t = sum(p.duration for p in plan.teaser) + sum(p.duration for p in plan.hook)
     for sess in plan.sessions:
         if not sess:
             continue
@@ -325,6 +496,21 @@ def swells(plan: sel.Plan) -> list[list[float]]:
         if b - a >= 1.0:
             out.append([round(a, 3), round(b, 3), SETTLE])
         t += sum(p.duration for p in sess)
+    return out
+
+
+TALK_OUT = 0.05          # music while someone talks to the lens: out, as in the good vlogs (house.py:
+                         # a median 2% of their talking time has music under it) [prior]
+TALK_EASE_S = 0.4        # it leaves just before the first word and comes back just after the last
+
+
+def talk_out(board: dict, talking: set[str] | None) -> list[list[float]]:
+    """Duck entries in edit seconds: the music steps out under every talking
+    stretch (bed.ducks' stretches, at TALK_OUT, eased in and out)."""
+    from . import bed
+    out = []
+    for a, b, _g in bed.ducks(board, talking or set()):
+        out.append([round(max(0.0, a - TALK_EASE_S), 3), round(b + TALK_EASE_S, 3), TALK_OUT])
     return out
 
 

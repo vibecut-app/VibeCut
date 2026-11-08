@@ -580,9 +580,39 @@ def from_board(board: dict, clips, cat=None, fmt: str = "short", *, roles: dict 
         "open": bool(first.get("fade_in") and first["fade_in"][1] == "black"),
         "close": bool(last.get("fade_out") and last["fade_out"][1] == "black"),
         "words": _words_of_board(board, fmt),
-        "music": {"bpm": bpm, "on": 1.0 if on else 0.0, "beat": beat},
+        "music": {"bpm": bpm, "on": heard_share(shots, mus if on else None, total), "beat": beat},
         "lufs": None,
     }
+
+
+HEARD = 0.2            # the bed ducked below this share of its gain isn't heard as music [prior]
+
+
+def heard_share(shots: list[dict], mus: dict | None, total: float, step: float = 0.25) -> float:
+    """Share of the edit's time with music heard, as from_video reads a real
+    vlog (the classifier hears music in the final mix): the bed where it
+    isn't ducked out, or music in the footage's own sound. Before
+    2026-10-24 a board with a track read 1.0 however much of it was ducked
+    out, so the taste model couldn't see music stepping out under talk."""
+    if total <= 0:
+        return 0.0
+    ducks = [d for d in ((mus or {}).get("duck") or []) if len(d) >= 3]
+    n = max(1, int(math.ceil(total / step)))
+    heard = 0
+    k = 0
+    for i in range(n):
+        t = (i + 0.5) * step
+        while k < len(shots) - 1 and t >= shots[k]["t"] + shots[k]["d"]:
+            k += 1
+        own = shots[k].get("music") if shots else None
+        if own is not None and own >= MUSIC_ON:
+            heard += 1
+            continue
+        if mus is None:
+            continue
+        level = min([float(g) for a, b, g in ducks if float(a) <= t < float(b)], default=1.0)
+        heard += level >= HEARD
+    return _r(heard / n)
 
 
 # --------------------------------------------------------------------------

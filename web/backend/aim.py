@@ -88,6 +88,48 @@ def subject(faces: list[list[float]], window: tuple[float, float]) -> tuple[floa
     return (left + right) / 2, (top + bottom) / 2
 
 
+# A crop that keeps a face's centre can still cut the face: a close selfie in
+# a wide frame is taller than the third of the picture a wide window shows,
+# and its hair and chin go (the side-by-side of 2026-10-26: foreheads cut at
+# 1:07, a face sliced at the edge at 56.7 s). So the whole face is checked,
+# with room for the hair above and the chin below. [priors]
+HAIR = 0.4           # above a face box, this much of its height is still the head
+CHIN = 0.15          # ...and below it
+CUT_TOL = 0.04       # a head may lose this much of its height to the crop before it reads as cut
+CUT_SHARE = 0.34     # cut on this share of the samples with a face in them = the crop cuts the face
+
+
+def cuts_face(it: dict, clip: dict, faces: list[list[list[float]]] | None, window: tuple[float, float],
+              at: tuple[float, float] | None) -> bool:
+    """Whether the crop -- `window` (width, height shares of the picture) put
+    where export._fit puts it for `at` (else the middle) -- cuts off a head:
+    the main faces' boxes (a companion as big as COMPANION of the largest
+    counts), grown by HAIR and CHIN, must sit inside it on most samples."""
+    if not faces:
+        return False
+    times = (clip.get("samples") or {}).get("times") or []
+    a, b = float(it.get("src_start", 0)), float(it.get("src_end", 0))
+    inside = [i for i, t in enumerate(times) if a <= t <= b and i < len(faces) and faces[i]]
+    if not inside:
+        return False
+    wx, wy = window
+    px, py = at or (0.5, 0.5)
+    left = min(max(px - wx / 2, 0.0), max(0.0, 1 - wx))
+    top = min(max(py - HEAD_AT * wy, 0.0), max(0.0, 1 - wy))
+    cut = 0
+    for i in inside:
+        big = max(faces[i], key=lambda f: f[2] * f[3])
+        for f in (f for f in faces[i] if f[2] * f[3] >= COMPANION * big[2] * big[3]):
+            x0, x1 = f[0], f[0] + f[2]
+            y0, y1 = 1 - (f[1] + f[3]) - HAIR * f[3], 1 - f[1] + CHIN * f[3]
+            lost = (max(0.0, top - y0) + max(0.0, y1 - (top + wy))) / max(f[3], 1e-6)
+            lost_x = (max(0.0, left - x0) + max(0.0, x1 - (left + wx))) / max(f[2], 1e-6)
+            if lost > CUT_TOL or lost_x > CUT_TOL:
+                cut += 1
+                break
+    return cut >= CUT_SHARE * len(inside)
+
+
 def turned(p: tuple[float, float], rotate: int, mirror: bool) -> tuple[float, float]:
     """A point in the filmed picture, after the shot's mirror and quarter
     turns as export._shot applies them (hflip, then transpose)."""

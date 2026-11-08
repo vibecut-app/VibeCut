@@ -22,6 +22,7 @@ import { PreferCards } from './components/PreferCards'
 import type { OverlayEdit } from './components/OverlayCanvas'
 import { Menu, SwapPicker, type MenuItem } from './components/Menus'
 import { Music } from './components/Music'
+import { SongPicker } from './components/SongPicker'
 import type { ClassifyReq } from './components/Remember'
 import { Resources, type SaveWhy } from './components/Resources'
 import { ProfileAsk, type Picks as ProfilePicks } from './components/ProfileAsk'
@@ -35,7 +36,7 @@ import { PreviewBar, type FrameChoice } from './components/PreviewBar'
 import { Handle, useLayout } from './components/Split'
 import { GraphicAnimations, type GraphicPatch } from './components/Graphics'
 import { PIECES } from './graphicDraw'
-import type { Graphic, GraphicPiece } from './types'
+import type { Graphic, GraphicPiece, CaptionsMode } from './types'
 import { Icon, type IconName } from './components/icons'
 import { lineName } from './overlayDraw'
 import type { LineRole } from './types'
@@ -80,6 +81,8 @@ const SEEN_FX = ['rotate', 'fill', 'mirror', 'effect', 'effect_amount', 'brightn
 const pick = (o: Record<string, unknown>, keys: string[]) => Object.fromEntries(Object.entries(o).filter(([k]) => keys.includes(k)))
 
 type Queue = { source: string; items: PlayItem[]; index: number }
+/** a voiceover being recorded: the microphone, its recorder once the countdown ends, what it heard */
+type Take = { stream: MediaStream; recorder: MediaRecorder | null; chunks: Blob[]; timer: number }
 
 function useNarrow(px = 1100): boolean {
   const [n, setN] = useState(() => window.innerWidth < px)
@@ -95,6 +98,7 @@ function useNarrow(px = 1100): boolean {
 // One project's workspace. The stage in the middle (Footage · Brief ·
 // Rough cut · Story) is derived from the project's state, never set by
 // hand; the stepper only lets you look back at an earlier one.
+
 export default function App({ id, view }: { id: string; view: 'story' | 'frames' }) {
   const level = view
   const setLevel = (k: 'story' | 'frames') => go({ kind: 'project', id, view: k })
@@ -768,6 +772,73 @@ export default function App({ id, view }: { id: string; view: 'story' | 'frames'
     setSegment({ key: shotId + uid(), clipId, start, end, autoplay: true })
   }
   const timelineOwns = () => { stopQueue(); setSegment(null) }
+
+  // ---- voiceover: Record, 3-2-1, the video plays without its sound while
+  // you talk, Stop (or the end of the video) puts the take on its own strip
+  // where you started, as one undoable turn (sarah, 2026-10-27: "build
+  // voiceover"; the CapCut / iMovie convention). ----
+  const [rec, setRec] = useState<{ from: number; count: number; live: boolean } | null>(null)
+  const recRef = useRef<Take | null>(null)
+  const stopRecording = () => {
+    const r = recRef.current
+    if (!r) return
+    window.clearInterval(r.timer)
+    transport.stop()
+    transport.silent = false
+    if (r.recorder && r.recorder.state !== 'inactive') { r.recorder.stop(); return }   // its onstop saves the take
+    r.stream.getTracks().forEach((x) => x.stop())   // stopped during the countdown: nothing was recorded
+    recRef.current = null
+    setRec(null)
+  }
+  const startRecording = async () => {
+    if (recRef.current) return
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+      note('This browser can’t record from a microphone. Open VibeCut in Chrome to record your voice.')
+      return
+    }
+    let stream: MediaStream
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } })
+    } catch {
+      note('VibeCut can’t hear your microphone. Allow it for this page in Chrome (the icon at the right of the address bar), then press Record again.')
+      return
+    }
+    timelineOwns()
+    transport.stop()
+    if (phStore.get() >= tl.total - 0.05) transport.seek(0)
+    const from = phStore.get()
+    const r: Take = { stream, recorder: null, chunks: [], timer: 0 }
+    recRef.current = r
+    let n = 3
+    setRec({ from, count: n, live: false })
+    r.timer = window.setInterval(() => {
+      n -= 1
+      if (n > 0) { setRec({ from, count: n, live: false }); return }
+      window.clearInterval(r.timer)
+      const type = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'].find((t) => MediaRecorder.isTypeSupported(t))
+      const mr = new MediaRecorder(stream, type ? { mimeType: type } : undefined)
+      r.recorder = mr
+      mr.ondataavailable = (e) => { if (e.data.size) r.chunks.push(e.data) }
+      mr.onstop = async () => {
+        stream.getTracks().forEach((x) => x.stop())
+        recRef.current = null
+        setRec({ from, count: 0, live: false })
+        try {
+          const s = await api.recordVoice(new Blob(r.chunks, { type: mr.mimeType || 'audio/webm' }), from)
+          setSession(s)
+          offerUndo(s)
+        } catch (e) { note((e as Error).message) } finally { setRec(null) }
+      }
+      mr.start(250)
+      transport.silent = true
+      snapStore.set(null)
+      transport.play(1)
+      setRec({ from, count: 0, live: true })
+    }, 1000)
+  }
+  // the video ran out, or something else stopped it: the take ends there
+  useEffect(() => { if (rec?.live && !tr.playing) stopRecording() }, [rec?.live, tr.playing]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => { const r = recRef.current; if (r) { window.clearInterval(r.timer); r.stream.getTracks().forEach((x) => x.stop()); transport.silent = false } }, [])
   // A click on the timeline while a clip from Media plays: back to the video
   // at that frame, playing (sarah, 2026-10-20). Without a clip up it only seeks.
   const backToVideo = () => {
@@ -905,6 +976,8 @@ export default function App({ id, view }: { id: string; view: 'story' | 'frames'
       if (e.key === 'Alt') setAlt(true)
       const tag = (e.target as HTMLElement).tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA') return
+      // while a voiceover records, Space or Escape stops it (and keeps the take)
+      if (recRef.current && (e.code === 'Space' || e.key === 'Escape')) { e.preventDefault(); stopRecording(); return }
       if (shown !== 'story') return
       if (level !== 'frames' && !((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z')) return
       const t = phStore.get()
@@ -1316,14 +1389,19 @@ export default function App({ id, view }: { id: string; view: 'story' | 'frames'
   )
 
   // ---- the edit screen's pieces ------------------------------------------------
-  const toggleCaptions = async () => {
-    try { const r = await api.captions(!ovData.items.length); setSession(r); offerUndo(r) }
+  // The Captions switch: Off / Describe / Subtitles. One undoable turn; what
+  // can't be done (no recogniser on this machine, nobody talking) is said
+  // where the switch is and nothing changes.
+  const captionsMode: CaptionsMode = ovData.mode ?? (ovData.items.length ? 'describe' : 'off')
+  const setCaptions = async (mode: CaptionsMode) => {
+    if (mode === captionsMode) return
+    try { const r = await api.captions(mode !== 'off', mode === 'off' ? undefined : mode); setSession(r); offerUndo(r) }
     catch (e) { note((e as Error).message) }
   }
   const looking = session?.bed?.stage === 'looking'
   const musicNode = session?.board ? (
     <div className="space-y-3">
-      <p className="font-serif text-[16px] leading-snug text-zinc-100">
+      <p className="font-serif text-[16px] leading-snug text-zinc-100 [overflow-wrap:anywhere]">
         {looking ? `Finding a song${session.bed?.source ? ` from ${session.bed.source}` : ''}…${session.bed?.total ? ` ${session.bed.done}/${session.bed.total}` : ''}`
           : session.music ? <>Playing under the video: <b className="font-medium">{session.music.title}</b></> : 'No music under this video.'}
       </p>
@@ -1345,7 +1423,8 @@ export default function App({ id, view }: { id: string; view: 'story' | 'frames'
       </Button>
     </div>
   ) : null
-  const selStrip = selAudio ? tl.audio?.strips.find((x) => x.id === selAudio) ?? null : null
+  const selStrip = selAudio ? [...tl.audio?.strips ?? [], ...tl.audio?.voice ?? []].find((x) => x.id === selAudio) ?? null : null
+  const stripName = (a: { voice?: boolean; n: number | null }) => a.voice ? 'your voice' : `the sound of shot ${a.n ?? ''}`
   const allJoins = session?.mix?.joins ?? []
   const pickedJoin = selJoin ? allJoins.find((j) => j.after === selJoin) : undefined
   const joinAt = (j: (typeof allJoins)[number]): JoinPick => {
@@ -1399,7 +1478,7 @@ export default function App({ id, view }: { id: string; view: 'story' | 'frames'
                extracted={!!selItem && !!tl.audio?.off.includes(selItem.key)}
                strip={selStrip}
                join={pickedJoin ? joinAt(pickedJoin) : allJoins[0] ? joinAt(allJoins[0]) : null} joinPicked={!!pickedJoin}
-               style={ovData.style} captionsOn={!!ovData.items.length} captionThumb={shotThumb(capUnder)}
+               style={ovData.style} captionsMode={captionsMode} captionsToCheck={ovData.items.filter((o) => o.unsure?.length)} captionThumb={shotThumb(capUnder)}
                captionSample={capText.length > 20 ? capText.slice(0, Math.max(10, capText.lastIndexOf(' ', 20))) : capText}
                caption={ovSel ?? null}
                onCaptionEdit={(patch, label) => ovSel && run([{ op: 'edit_overlay', overlay: ovSel.id, ...patch }], label)}
@@ -1451,8 +1530,8 @@ export default function App({ id, view }: { id: string; view: 'story' | 'frames'
                onCloseGap={() => { if (!selItem) return; run([{ op: 'drop_shot', shot: selItem.key }], 'You closed up an empty space'); setSelected(null) }}
                onExtract={() => selItem && run([{ op: 'extract_audio', shot: selItem.key }], `You took the sound off shot ${selItem.n}`)}
                onStrip={(patch, label) => selStrip && run([{ op: 'edit_audio', audio: selStrip.id, ...patch }], label)}
-               onStripDelete={() => { if (!selStrip) return; run([{ op: 'drop_audio', audio: selStrip.id }], `You deleted the sound of shot ${selStrip.n ?? ''}`); setSelAudio(null) }}
-               onCaptions={toggleCaptions}
+                onStripDelete={() => { if (!selStrip) return; run([{ op: 'drop_audio', audio: selStrip.id }], `You deleted ${stripName(selStrip)}`); setSelAudio(null) }}
+                onCaptions={setCaptions} onCaptionPick={(id) => setSelOverlay(id)}
                onCaptionStyle={(patch, label) => run([{ op: 'overlay_style', ...patch }], label)}
                onJoin={(op, label) => run([{ op: 'set_transition', ...(op.all || !pickedJoin ? {} : { shot: pickedJoin.after }), ...op }], label)}
                onLook={(id, name) => run([{ op: 'set_look', look: id }], `The video now has the ${name} look`)}
@@ -1503,13 +1582,16 @@ export default function App({ id, view }: { id: string; view: 'story' | 'frames'
              } catch (e) { note((e as Error).message) }
            }} />
   ) : side === 'text' ? <>
-    {panelHead('Text', <Button size="sm" aria-pressed={!!ovData.items.length} onClick={toggleCaptions}>{ovData.items.length ? 'Turn captions off' : 'Turn captions on'}</Button>)}
+    {panelHead('Text', <Button size="sm" aria-pressed={!!ovData.items.length} onClick={() => setCaptions(ovData.items.length ? 'off' : 'describe')}>{ovData.items.length ? 'Turn captions off' : 'Turn captions on'}</Button>)}
     <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">{overlaysPanel}</div>
   </> : side === 'music' ? <>
     {panelHead('Music')}
     <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 pb-4">
       {musicNode}
-      {session?.board && <Music board={session.board} inUse={session.music?.id ?? null} onSession={setSession} />}
+      {session && <SongPicker session={session} note={note}
+                              onSession={(r, undoable) => { setSession(r); if (undoable) offerUndo(r) }} />}
+      {session?.board && <Music board={session.board} inUse={session.music?.id ?? null} onSession={setSession}
+                                folderOnly={!!session.music} />}
     </div>
   </> : side === 'chat' ? <>
     <div className="flex min-h-0 flex-1 flex-col [&>aside]:min-h-0 [&>aside]:flex-1 [&>aside]:border-r-0">{chat}</div>
@@ -1718,8 +1800,16 @@ export default function App({ id, view }: { id: string; view: 'story' | 'frames'
                 ? <Handle axis="x" size={layout.side} onSize={(v, save) => setSize('side', v, save)}
                           max={() => window.innerWidth - layout.inspector - 560} label="Drag to make the left panel wider or narrower" />
                 : <div className="w-2 shrink-0" />}
-              <div ref={stageRef} className="flex min-h-0 min-w-[280px] flex-1 flex-col overflow-hidden rounded-2xl bg-[#121212]">
+              <div ref={stageRef} className="relative flex min-h-0 min-w-[280px] flex-1 flex-col overflow-hidden rounded-2xl bg-[#121212]">
                 {player(true)}
+                {rec && rec.count > 0 && (
+                  <div className="pointer-events-none absolute inset-0 z-30 grid place-items-center bg-black/35" aria-live="assertive">
+                    <div className="text-center text-white">
+                      <div className="font-serif text-[96px] leading-none">{rec.count}</div>
+                      <div className="mt-2 font-serif text-[18px]">Talk when it starts</div>
+                    </div>
+                  </div>
+                )}
               </div>
               <Handle axis="x" size={layout.inspector} grow={-1} onSize={(v, save) => setSize('inspector', v, save)}
                       max={() => window.innerWidth - (side && !narrow ? layout.side : 0) - 480} label="Drag to make the right panel wider or narrower" />
@@ -1747,6 +1837,7 @@ export default function App({ id, view }: { id: string; view: 'story' | 'frames'
                         }}
                         onReorder={reorder} onInsertShot={insertShot} onClear={clear} onHelp={() => setHelp(true)}
                         onSplit={cut} onDelete={() => deleteSelection(false)} onTap={backToVideo}
+                        onRecord={rec ? stopRecording : () => { void startRecording() }} recording={rec}
                         overlays={ovData.items} graphics={art} selectedOverlay={selOverlay}
                         onSelectOverlay={(id) => (isArt(id) ? selectArt(id) : selectOverlay(id))}
                         onOverlayEdit={(id, patch) => {
@@ -1761,8 +1852,8 @@ export default function App({ id, view }: { id: string; view: 'story' | 'frames'
                         music={session?.music ?? null}
                         onSelectMusic={() => { setSelected(null); setSelAudio(null); setSelJoin(null); setInsTab('audio') }}
                         onAudioMove={(id, at) => {
-                          const a = tl.audio?.strips.find((x) => x.id === id)
-                          run([{ op: 'edit_audio', audio: id, at }], `You moved the sound of shot ${a?.n ?? ''} to ${clock(at)}`)
+                          const a = [...tl.audio?.strips ?? [], ...tl.audio?.voice ?? []].find((x) => x.id === id)
+                          run([{ op: 'edit_audio', audio: id, at }], `You moved ${a ? stripName(a) : 'the sound'} to ${clock(at)}`)
                         }} />
             </div>
             {undoable && <UndoToast text={undoable.text} lift={layout.timeline + 28} onUndo={() => { toggle(undoable.turn); setUndoable(null) }} />}

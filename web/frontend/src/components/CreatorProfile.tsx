@@ -69,8 +69,12 @@ export function CreatorProfile({ onClose }: { onClose: () => void }) {
     setProfile(p => ({ ...p, [key]: value }))
     setMessage('')
   }
-  const toggle = (key: 'platforms' | 'vibes', value: string) => update(key,
-    profile[key].includes(value) ? profile[key].filter(v => v !== value) : [...profile[key], value])
+  const toggle = (key: 'platforms' | 'vibes', value: string) => {
+    const next = profile[key].includes(value) ? profile[key].filter(v => v !== value) : [...profile[key], value]
+    update(key, next as Profile[typeof key])
+    // where you share sets the frame a new video starts in (brief.frame_for), saved at once like the start picks
+    if (key === 'platforms') api.postTo(next).catch(() => {})
+  }
   const store = () => {
     if (pendingReference) {
       setReferenceError('Add your reference below, or clear its fields before saving.')
@@ -126,7 +130,7 @@ export function CreatorProfile({ onClose }: { onClose: () => void }) {
               </div>
               <Field label="Your email"><input type="email" value={profile.email} maxLength={254} autoComplete="email" placeholder="you@example.com" onChange={e => update('email', e.target.value)} className={inputCls} /></Field>
               <Field label="What do you make?"><textarea value={profile.about} rows={2} maxLength={1000} placeholder="Little moments, weekend adventures, and places worth sharing…" onChange={e => update('about', e.target.value)} className={inputCls + ' resize-y'} /></Field>
-              <Field label="Where you share"><Pills values={PLATFORMS} selected={profile.platforms} onPick={v => toggle('platforms', v)} /></Field>
+              <Field label="Where you share · sets the frame a new video starts in"><Pills values={PLATFORMS} selected={profile.platforms} onPick={v => toggle('platforms', v)} /></Field>
             </Section>
 
             <Section n="02" title="How your videos start" text="Asked after your first export. Each tap is saved, and your next video starts this way.">

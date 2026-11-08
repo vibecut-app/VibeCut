@@ -21,6 +21,8 @@ export type SeqItem = {
   rotate?: number    // quarter turns, clockwise
   punch?: number     // the camera's push over the shot: + in, - out (board set_shot)
   fill?: boolean     // cover the frame, edges cropped
+  aim?: [number, number] | null   // a filled shot's crop centre in its picture (Make, aim.py); none = the middle
+  backdrop?: 'blur' | null        // the whole picture over a blur of itself (Make, where filling would cut a face)
   mirror?: boolean   // flipped left to right
   fade_in?: number   // its own sound fading in / out, seconds
   fade_out?: number

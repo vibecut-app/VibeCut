@@ -45,7 +45,7 @@ OPS = LLM_OPS + ("split", "trim", "drop_range", "overlay_style", "apply_style", 
 # How the sound crosses a cut (audiomix.py): hard, carried out (L), carried in (J).
 JOIN_SOUNDS = ("cut", "carry_out", "carry_in", "default")
 # What set_music may record about the bed under the edit (export and preview mix it the same).
-MUSIC_KEYS = ("track", "in", "gain", "original", "level", "fade_out", "duck", "sfx", "volume")
+MUSIC_KEYS = ("track", "in", "gain", "original", "level", "fade_out", "duck", "sfx", "guide", "volume")
 # volume: the music's own Volume slider, on top of the level it was placed at (1 = as placed, up to 2)
 MUSIC_VOLUME_MAX = 2.0
 # Words on screen (overlays.py): same log, same undo, but they never touch a shot.
@@ -53,7 +53,10 @@ OVERLAY_OPS = ("add_overlay", "edit_overlay", "drop_overlay", "overlay_style")
 # A shot's own sound taken off onto its own strip under the picture (the
 # "extract audio" every editor has): then it can be moved, made louder or
 # quieter, muted or deleted on its own. From the timeline, never chat.
-SOUND_OPS = ("extract_audio", "edit_audio", "drop_audio")
+# A voiceover (mic.py): the creator's own voice recorded over the playing
+# edit, on its own strip like the extracted ones, changed and deleted the same
+# way (edit_audio / drop_audio). From the Record button, never chat.
+SOUND_OPS = ("extract_audio", "edit_audio", "drop_audio", "add_voice")
 OPS = OPS + SOUND_OPS
 # Graphic animations drawn over the footage (graphics.py): same log, same
 # undo, anchored like captions. From the Graphic animations tab, never chat.
@@ -73,12 +76,16 @@ FREEZE_S = 3.0        # a freeze frame's length when none is asked for (CapCut's
 FREEZE_MAX = 30.0
 SPEEDS = (0.25, 4.0)           # the slowest and fastest a shot may play
 SHOT_FX = ("speed", "gain", "mute", "rotate", "fill", "mirror", "fade_in", "fade_out",
-           "punch", "effect", "effect_amount", "reverse",
+           "punch", "effect", "effect_amount", "reverse", "aim", "backdrop",
            # the Adjust tab's three sliders (tone.py) and Stabilise (stable.py)
            "brightness", "contrast", "saturation", "stabilize")
+# backdrop: "blur" = the whole picture over a blurred, enlarged copy of itself, where filling the frame
+# would cut a face off (Make, aim.cuts_face); no bars, nothing cut. None = bars, as before.
+# aim: where a filled shot's crop centres, [x, y] as shares of its turned picture (aim.py); None = the middle.
+# Set by Make for shots filmed the other way to the frame, so the crop keeps the people (preview and export alike).
 PUNCH_MAX = 0.25     # a push into (or out of) the frame over the shot, as a share of its size
 # effect: one of effects.KINDS (Shake, Glitch, VHS...), picked in the Effects tab
-FX_PLAIN = {"speed": 1.0, "gain": 1.0, "mute": False, "rotate": 0, "fill": False, "mirror": False,
+FX_PLAIN = {"aim": None, "backdrop": None, "speed": 1.0, "gain": 1.0, "mute": False, "rotate": 0, "fill": False, "mirror": False,
             "fade_in": 0.0, "fade_out": 0.0, "punch": 0.0, "effect": None, "effect_amount": 1.0,
             "reverse": False, "brightness": 0.0, "contrast": 0.0, "saturation": 0.0, "stabilize": 0.0}
 FADE_MAX = 5.0   # a shot's own sound fading in or out, seconds
@@ -92,6 +99,18 @@ FRAME = 1 / 30  # sequence frame; the smallest piece a cut or trim may leave
 # same duration arithmetic, nothing to show.
 def key(e: dict) -> str:
     return e.get("key") or e["id"]
+
+
+TEASER_BEAT = "rt"   # a made vlog's "Coming up" part (make.teaser); its entries carry `teaser: True`
+
+
+def opening_s(board: dict) -> float | None:
+    """Where a made video's opening ends -- the music's drop goes there: a
+    teaser part, else the first shot. None on an empty board."""
+    beats = board.get("beats") or []
+    if beats and beats[0].get("id") == TEASER_BEAT:
+        return sum(seq_dur(e) for e in beats[0]["shots"])
+    return next((seq_dur(e) for bt in beats for e in bt["shots"] if not e.get("gap")), None)
 
 
 def seq_dur(e: dict) -> float:
@@ -299,6 +318,17 @@ def _shot_fx(b: dict, op: dict) -> None:
         e["fill"] = bool(op["fill"])
     if "mirror" in op:
         e["mirror"] = bool(op["mirror"])
+    if "backdrop" in op:
+        if op["backdrop"] not in (None, "blur"):
+            raise OpError("a shot's backdrop is blur, or none")
+        e["backdrop"] = op["backdrop"]
+    if "aim" in op:
+        a = op["aim"]
+        if a is not None and not (isinstance(a, (list, tuple)) and len(a) == 2):
+            raise OpError("aim is a point [x, y] in the picture, or nothing")
+        e["aim"] = None if a is None else [round(min(1.0, max(0.0, float(v))), 4) for v in a]
+    elif ("rotate" in op or "mirror" in op) and e.get("aim"):
+        e["aim"] = None   # the point was found on the picture as it was turned; turned again, it's wrong
     for f in ("fade_in", "fade_out"):
         if f in op:
             e[f] = round(max(0.0, min(FADE_MAX, float(op[f]))), 2)
@@ -379,6 +409,19 @@ def _sound_op(b: dict, op: dict, kind: str, new_id) -> None:
     place in the edit (sequence seconds), like an unlinked audio clip: it
     stays where it was put when shots before it change."""
     snd = b.setdefault("sound", {"off": [], "strips": []})
+    if kind == "add_voice":
+        # the board keeps the recording's name only; mic.path_of finds the file
+        f = str(op.get("voice") or "")
+        if not (8 <= len(f) <= 32 and all(ch in "0123456789abcdef" for ch in f)):
+            raise OpError("no such recording")
+        dur = float(op.get("dur") or 0.0)
+        if dur <= 0:
+            raise OpError("the recording is empty")
+        sid = op.get("id") or new_id()
+        op["id"] = sid
+        snd.setdefault("voice", []).append({"id": sid, "file": f, "at": round(max(0.0, float(op.get("at") or 0.0)), 3),
+                                            "dur": round(dur, 3), "gain": 1.0, "mute": False})
+        return
     if kind == "extract_audio":
         k = op.get("shot")
         beat, i = _where(b, k)
@@ -400,12 +443,13 @@ def _sound_op(b: dict, op: dict, kind: str, new_id) -> None:
                 strip[f] = e[f]
         snd["strips"].append(strip)
         return
-    strip = next((x for x in snd["strips"] if x["id"] == op.get("audio")), None)
+    voice = snd.get("voice") or []
+    strip = next((x for x in snd["strips"] + voice if x["id"] == op.get("audio")), None)
     if strip is None:
         raise OpError(f"no sound strip {op.get('audio')!r}")
     if kind == "drop_audio":
         # Like any editor: deleting the strip leaves the shot silent. Undo brings it back.
-        snd["strips"].remove(strip)
+        (voice if strip in voice else snd["strips"]).remove(strip)
         return
     if "gain" in op:
         strip["gain"] = round(max(0.0, min(AUDIO_GAIN_MAX, float(op["gain"]))), 3)
@@ -1011,6 +1055,8 @@ def _describe_sound(a: dict | None, b: dict | None) -> list[dict]:
                         "mute": lambda: "Muted a shot" if y else "Unmuted a shot",
                         "rotate": lambda: f"Turned a shot to {y}°",
                         "fill": lambda: "Shot fills the frame (edges cropped)" if y else "Shot shows its whole picture",
+                        "aim": lambda: "Shot's crop follows the people in it" if y else "Shot's crop back to the middle",
+                        "backdrop": lambda: "Shot shows its whole picture over a blur of itself" if y else "Shot's blur behind it taken away",
                         "mirror": lambda: "Mirrored a shot" if y else "Shot no longer mirrored",
                         "fade_in": lambda: f"Shot's sound fades in over {y:g}s" if y else "Shot's sound starts without a fade",
                         "fade_out": lambda: f"Shot's sound fades out over {y:g}s" if y else "Shot's sound ends without a fade",
@@ -1044,6 +1090,24 @@ def _describe_sound(a: dict | None, b: dict | None) -> list[dict]:
                               if y.get(f) else f"Sound strip no longer fades {word}"})
         if x["at"] != y["at"]:
             lines.append({"kind": "sound", "text": f"Moved a sound strip {'later' if y['at'] > x['at'] else 'earlier'} by {abs(y['at'] - x['at']):.2f}s"})
+    va = {x["id"]: x for x in (a.get("sound") or {}).get("voice", [])}
+    vb = {x["id"]: x for x in (b.get("sound") or {}).get("voice", [])}
+    for i in vb.keys() - va.keys():
+        lines.append({"kind": "sound", "text": f"Recorded {vb[i]['dur']:.1f}s of your voice at {int(vb[i]['at'] // 60)}:{int(vb[i]['at'] % 60):02d}"})
+    for i in va.keys() - vb.keys():
+        lines.append({"kind": "sound", "text": "Deleted a recording of your voice"})
+    for i in va.keys() & vb.keys():
+        x, y = va[i], vb[i]
+        if x["mute"] != y["mute"]:
+            lines.append({"kind": "sound", "text": "Muted your voice" if y["mute"] else "Unmuted your voice"})
+        if x["gain"] != y["gain"]:
+            lines.append({"kind": "sound", "text": f"Your voice's volume {round(x['gain'] * 100)}% → {round(y['gain'] * 100)}%"})
+        for f, word in (("fade_in", "in"), ("fade_out", "out")):
+            if x.get(f, 0) != y.get(f, 0):
+                lines.append({"kind": "sound", "text": f"Your voice fades {word} over {y.get(f, 0):g}s"
+                              if y.get(f) else f"Your voice no longer fades {word}"})
+        if x["at"] != y["at"]:
+            lines.append({"kind": "sound", "text": f"Moved your voice {'later' if y['at'] > x['at'] else 'earlier'} by {abs(y['at'] - x['at']):.2f}s"})
     if (a.get("music") or None) != (b.get("music") or None):
         m, m0 = b.get("music") or {}, a.get("music") or {}
         only_volume = {k: v for k, v in m.items() if k != "volume"} == {k: v for k, v in m0.items() if k != "volume"}

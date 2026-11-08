@@ -282,7 +282,8 @@ def render(items: list[dict], clips: dict, *, joins: list[dict] | None = None,
     """The whole edit's sound: (n, 2) float32 at SR, exactly the timeline's length.
 
     `sound` is `strips_of(board)`: shots whose own sound was taken off, and
-    the strips it went to, each placed and levelled on its own."""
+    the strips it went to, each placed and levelled on its own; and the
+    creator's recorded voice, with the music ducked where it is heard."""
     total = float(items[-1]["seq_end"]) if items else 0.0
     n = int(round(total * SR))
     out = np.zeros((n, 2), np.float32)
@@ -346,6 +347,10 @@ def render(items: list[dict], clips: dict, *, joins: list[dict] | None = None,
 
     for st in (sound or {}).get("strips") or []:
         _place(out, st, clips, original)
+    # the creator's voice (mic.py): on top of everything, the music ducks under it
+    talk: list = []
+    for v in (sound or {}).get("voice") or []:
+        talk += _voice(out, v)
 
     m = music or {}
     if m.get("path"):
@@ -356,7 +361,7 @@ def render(items: list[dict], clips: dict, *, joins: list[dict] | None = None,
             got = track[i0:i0 + n]
             bed[:len(got)] = got
             gain = float(m.get("gain", MUSIC_GAIN))
-            env = np.full(n, gain, np.float32) * duck_envelope(n, m.get("duck") or [])
+            env = np.full(n, gain, np.float32) * duck_envelope(n, list(m.get("duck") or []) + talk)
             fd = int(round(float(m.get("fade_out", 2.0)) * SR))
             if 0 < fd <= n:
                 env[n - fd:] *= np.linspace(1, 0, fd, dtype=np.float32)
@@ -409,14 +414,44 @@ def _place(out: np.ndarray, st: dict, clips: dict, original: float) -> None:
     out[q0:z] += seg[:z - q0] * float(st["gain"]) * original
 
 
+def _voice(out: np.ndarray, v: dict) -> list:
+    """One recorded take into the mix at its place; where the music ducks under it."""
+    from . import mic
+    snd = decode(v["path"]) if os.path.isfile(v.get("path", "")) else None
+    q0 = int(round(float(v["at"]) * SR))
+    if snd is None or v["gain"] <= 0 or q0 >= len(out):
+        return []
+    seg = np.array(snd[:len(out) - q0], np.float32)
+    f = min(len(seg) // 2, int(round(MICRO_S * SR)))
+    if f:
+        seg[:f] *= _ramp(f, "micro", True)[:, None]
+        seg[-f:] *= _ramp(f, "micro", False)[:, None]
+    fa, fz = v.get("fades") or (0.0, 0.0)
+    if fa or fz:
+        q = np.arange(len(seg), dtype=np.float32) / SR
+        env = np.ones(len(seg), np.float32)
+        if fa:
+            env *= np.clip(q / fa, 0, 1)
+        if fz:
+            env *= np.clip((len(snd) / SR - q) / fz, 0, 1)
+        seg *= env[:, None]
+    out[q0:q0 + len(seg)] += seg * float(v["gain"])
+    at = float(v["at"])
+    return [(at + a, at + b, mic.VOICE_DUCK) for a, b in mic.speaking(snd)]
+
+
 def strips_of(board: dict | None) -> dict | None:
     """The board's extracted sound (board.extract_audio), as the mixer needs
     it: which shots play silent, and each strip's file, seconds, place and
     level. A muted strip is simply left out."""
     snd = (board or {}).get("sound")
-    if not snd or not (snd.get("off") or snd.get("strips")):
+    if not snd or not (snd.get("off") or snd.get("strips") or snd.get("voice")):
         return None
-    return {"off": list(snd.get("off") or []),
+    from . import mic
+    return {"voice": [{"path": str(mic.path_of(x["file"])), "at": x["at"], "gain": float(x.get("gain", 1.0)),
+                       "fades": (float(x.get("fade_in") or 0.0), float(x.get("fade_out") or 0.0))}
+                      for x in snd.get("voice") or [] if not x.get("mute")],
+            "off": list(snd.get("off") or []),
             "strips": [{"clip_id": x["shot"].split(":")[0], "src": [x["start"], x["end"]], "at": x["at"],
                         "speed": float(x.get("speed") or 1.0),
                         "gain": 0.0 if x.get("mute") else float(x.get("gain", 1.0)),

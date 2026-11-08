@@ -138,6 +138,8 @@ def _cached(track_id: str) -> music.Track | None:
     pack = songpack.cache_dir()
     folders = [(openverse.cache_dir() / "tracks", openverse.dress)]
     folders += [(d, songpack.dress) for d in sorted(pack.iterdir()) if d.is_dir()] if pack.is_dir() else []
+    from web.backend import trend
+    folders.append((trend.cache_dir(), trend.dress))      # trending sounds read as guides (trend.py)
     for folder, dress in folders:
         src = music.LocalFolderSource(str(folder))
         for f in src.files() if folder.is_dir() else []:
