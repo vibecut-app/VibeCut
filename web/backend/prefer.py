@@ -147,6 +147,10 @@ class Deck:
                             c["about"], c["talking"], c["lines"])
             if made is None:
                 return None
+            if c.get("sfx"):
+                # the transition sounds Make put on (sfx.py), placed on this version's own joins
+                from . import make
+                make.with_sounds(made[2], c["clips"], made[1], c["fmt"], c["fp"])
         _plan, mx, ops = made
         if self.cat is None:
             self.cat = bd.Catalog.from_clips(list(c["clips"].values()))

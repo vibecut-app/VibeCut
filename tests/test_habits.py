@@ -92,10 +92,12 @@ def main() -> int:
     plan = sel.Plan(hook=[], sessions=[[pick("a", datetime(2026, 9, 22, 8, 35), (40.8078, -73.964))], [pick("b", datetime(2026, 9, 22, 15, 10))], [pick("c", None)]], titles=["a", "b", "c"])
     found = {places.key((40.8078, -73.964)): {"area": "Morningside Heights", "city": "New York"}}
     lines = make.plain_lines(plan, found)
-    check("place and time of day, as a person says it; time alone; nothing", lines == ["Morningside Heights, morning", "afternoon", ""], str(lines))
+    check("the place once, above how the day moved on; the hour alone; nothing", lines == ["Morningside Heights\ngood morning", "afternoon", ""], str(lines))
     ops = make.ops(plan, make.fingerprint("short", "fast", 60.0), None, "short", "cozy", "A day", set(), lines=lines)
     parts = [o["text"] for o in ops if o.get("kind") == "part"]
-    check("the lines go on the board without a clock stamp, and a silent stop stays silent", parts == ["Morningside Heights, morning", "afternoon"], str(parts))
+    subs = [o.get("sub") for o in ops if o.get("kind") == "part"]
+    check("the lines go on the board without a clock stamp, the place above the first, and a silent stop stays silent",
+          parts == ["good morning", "afternoon"] and subs == ["Morningside Heights", None], str(list(zip(parts, subs))))
     check("no key: the writer gives the plain lines", make.words(plan, "A day", "", None, None, found) == lines)
 
     print("through the API")

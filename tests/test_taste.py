@@ -70,8 +70,8 @@ def main() -> int:
     def broken(items, about, taste):
         raise RuntimeError("no")
     plain = make.plain_lines(plan, None)
-    check("a failing writer leaves place and time", make.words(plan, "A day", "", broken) == plain and plain == ["morning", "morning"], str(plain))
-    check("no key: place and time, plainly", make.words(plan, "A day", "") == plain)
+    check("a failing writer leaves the plain lines: what the picture shows", make.words(plan, "A day", "", broken) == plain and plain == ["coffee run", "up we go"], str(plain))
+    check("no key: the plain lines", make.words(plan, "A day", "") == plain)
     print("through the API")
     from fastapi.testclient import TestClient
     from tests.test_projects import TMP as PTMP, clip, wait

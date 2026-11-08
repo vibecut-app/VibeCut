@@ -215,7 +215,7 @@ def capture(kind: str, board: dict | None, shot: str | None = None, after: str |
         return {"effect": e["effect"], "effect_amount": float(e.get("effect_amount") or 1.0)}
     if kind == "shot":
         e = _entry(b, shot)
-        v = {f: e[f] for f in bd.SHOT_FX if f in e}
+        v = {f: e[f] for f in bd.SHOT_FX if f in e and f != "aim"}   # aim belongs to this picture
         if not v:
             raise ResourceError("this shot is as filmed; change its speed, turn, crop or effect first")
         return v
@@ -303,7 +303,8 @@ def ops_for(item: dict, board: dict | None, shot: str | None = None, after: str 
                 f"“{name}” on {'that shot' if shot else 'every shot'}")
     if kind == "shot":
         e = _entry(b, shot)
-        fx = {f: v.get(f, plain) for f, plain in bd.FX_PLAIN.items()}
+        # aim is where one picture's people are: it doesn't carry to another shot
+        fx = {f: v.get(f, plain) for f, plain in bd.FX_PLAIN.items() if f != "aim"}
         if bd.is_freeze(e):   # a held frame takes only what it can show
             fx = {f: fx[f] for f in ("rotate", "fill", "mirror", "effect", "effect_amount")}
         return [{"op": "set_shot", "shot": shot, **fx}], f"That shot now has “{name}”"

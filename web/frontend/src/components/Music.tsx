@@ -11,7 +11,11 @@ type MusicState = {
 
 // Tracks from the creator's own folder whose energy follows the storyboard's
 // shape. Recomputed whenever the storyboard changes; nothing is placed.
-export function Music({ board, inUse, onSession }: { board: Board; inUse: string | null; onSession: (s: Session) => void }) {
+// `folderOnly`: a song is already under the video, and the folder's songs are
+// in "Songs that fit" (SongPicker) with everything else, so only the folder shows.
+export function Music({ board, inUse, onSession, folderOnly = false }: {
+  board: Board; inUse: string | null; onSession: (s: Session) => void; folderOnly?: boolean
+}) {
   const [m, setM] = useState<MusicState | null>(null)
   const [editing, setEditing] = useState(false)
   const [folder, setFolder] = useState('')
@@ -78,6 +82,16 @@ export function Music({ board, inUse, onSession }: { board: Board; inUse: string
     )
   }
   const showField = editing || m.status === 'none'
+  if (folderOnly && !showField && m.status === 'ready' && m.folder) {
+    return (
+      <p className="text-[11px] text-muted">
+        Your music folder ({m.tracks} songs) is in the suggestions above.{' '}
+        <button type="button" onClick={() => { setFolder(m.folder ?? ''); setEditing(true) }} className="underline hover:text-zinc-300">
+          Change folder
+        </button>
+      </p>
+    )
+  }
 
   return (
     <section className="rounded-xl border border-line bg-raised px-3 py-2.5">

@@ -28,7 +28,10 @@ LINE_CJK = 16
 GAP_S = 0.6          # a pause this long starts a new line [prior]
 MIN_DUR, MAX_DUR = 0.8, 4.5
 VOICE = 0.25         # mean voice probability over a clip for it to be worth transcribing [prior]
+UNSURE = 0.5         # a word the recogniser is less sure of than this is marked for the creator to check [prior]
 _CJK = re.compile(r"[぀-ヿ㐀-鿿가-힯]")
+_WORD = re.compile(r"[\w぀-ヿ㐀-鿿가-힯]")
+_PUNCT = " ,.;:!?\"'()，。！？、；：（）「」"
 
 
 def locale_for(about: str) -> str:
@@ -64,6 +67,22 @@ def join(ws: list[dict], cjk: bool) -> str:
     return ("".join(w["t"].strip() for w in ws) if cjk else " ".join(w["t"].strip() for w in ws)).strip()
 
 
+def unsure(ws: list[dict]) -> list[str]:
+    """The words of a line the recogniser wasn't sure of, in order, once
+    each. A guess shown as a subtitle reads as fact to a viewer; the creator
+    knows what they said, so these are pointed out for them to fix. A word
+    with no confidence at all (an older cache, another helper) isn't marked:
+    unknown is not uncertain."""
+    out: list[str] = []
+    for w in ws:
+        c = w.get("c")
+        t = w["t"].strip().strip(_PUNCT)
+        # punctuation comes as runs of its own, often doubted: not a word to check
+        if c is not None and float(c) < UNSURE and _WORD.search(t) and t not in out:
+            out.append(t)
+    return out
+
+
 def caption_ops(board: dict, cat, clips: dict[str, dict], about: str = "",
                 transcribe=None) -> tuple[list[dict], list[str]]:
     """-> (add_overlay ops, notes). `transcribe(rec, locale)` stands in for
@@ -75,6 +94,7 @@ def caption_ops(board: dict, cat, clips: dict[str, dict], about: str = "",
     heard: dict[str, list[dict]] = {}
     failed: list[str] = []
     ops: list[dict] = []
+    doubtful = 0
     for bt in board.get("beats", []):
         for e in bt["shots"]:
             if e.get("gap") or not e.get("id"):
@@ -101,12 +121,19 @@ def caption_ops(board: dict, cat, clips: dict[str, dict], about: str = "",
                 dur = min(max(end - a - at, MIN_DUR), MAX_DUR, (b - a) - at)
                 text = join(ln, cjk)
                 if text and dur > 0.2:
-                    ops.append({"op": "add_overlay", "kind": "caption", "text": text[:140],
-                                "anchor": {"to": "shot", "id": e.get("key") or e["id"]},
-                                "at": round(at, 2), "dur": round(dur, 2)})
+                    op = {"op": "add_overlay", "kind": "caption", "text": text[:140], "heard": True,
+                          "anchor": {"to": "shot", "id": e.get("key") or e["id"]},
+                          "at": round(at, 2), "dur": round(dur, 2)}
+                    if (us := unsure(ln)):
+                        op["unsure"] = us
+                        doubtful += len(us)
+                    ops.append(op)
     notes = []
     if failed:
         notes.append(f"Couldn't transcribe {len(failed)} clip{'s' * (len(failed) != 1)}: {', '.join(failed[:3])}.")
+    if doubtful:
+        notes.append(f"{doubtful} word{'s' * (doubtful != 1)} weren't heard clearly: they're marked in the "
+                     "Captions tab for you to check.")
     if not ops and not failed:
         notes.append("Nobody seems to be talking in the shots this story uses, so there's nothing to subtitle.")
     return ops, notes
