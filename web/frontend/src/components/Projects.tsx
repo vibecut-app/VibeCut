@@ -6,6 +6,7 @@ import { loadProfile } from '../profile'
 import { go } from '../router'
 import type { ExportJob, ProjectMeta } from '../types'
 import { ago, Button, Confirm, cx, Dialog, Field, inputCls, Notice, Wordmark } from '../ui'
+import { Btn, Label, Mark, NOISE, Ticks } from './Landing'
 import { SharePanel } from './SharePanel'
 
 // Home: every video you're making, and where each one stands. A new video
@@ -14,10 +15,25 @@ import { SharePanel } from './SharePanel'
 // look at what's picked, Create. It's named from the day it was filmed.
 // Under the box, your recent videos (sarah, 2026-10-27), so a return visit
 // opens on what you made: each as its own picture, with Open and Share.
+//
+// The look is the landing page's (sarah, 2026-11-09: Home "doesn't match the
+// aesthetics of the landing page", then "all five" of the ideas): its dark
+// palette with film grain and a soft gold glow, a big serif headline with one
+// italic turn, the gold button, the drop box framed with crop marks, sections
+// numbered like a contents line, and each video upright and whole like the
+// landing page's carousel, tapped to open. The editor stays bright.
 
 const STAGE_WORDS: Record<ProjectMeta['stage'], string> = {
   footage: 'Footage', brief: 'Getting ready', cut: 'Getting ready', story: 'Editing', exported: 'Exported',
 }
+
+const CSS = `
+.home-glow { background: radial-gradient(55% 55% at 50% 0%, rgba(255,217,61,.08), transparent 70%); }
+.home-grain { opacity: .06; background-image: ${NOISE}; }
+.home-card { transition: transform .4s cubic-bezier(.34,1.56,.64,1), filter .4s; }
+.home-card:hover { transform: translateY(-4px) scale(1.02); filter: brightness(1.08); }
+@media (prefers-reduced-motion: reduce) { .home-card { transition: none; } .home-card:hover { transform: none; } }
+`
 
 export function Projects() {
   const [list, setList] = useState<ProjectMeta[] | null>(null)
@@ -82,9 +98,12 @@ export function Projects() {
   }, [])
 
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-ink">
-      <header className="flex h-12 shrink-0 items-center gap-3 border-b border-line bg-ink px-4">
-        <Wordmark />
+    <div className="on-video relative flex h-full flex-col overflow-hidden bg-ink font-sans text-zinc-100 antialiased">
+      <style>{CSS}</style>
+      <div aria-hidden className="home-grain pointer-events-none fixed inset-0 z-50" />
+      <header className="flex h-14 shrink-0 items-center gap-2 border-b border-line bg-ink px-4">
+        <Mark className="size-6" />
+        <Wordmark className="text-[20px]" />
         <div className="flex-1" />
         {/* Polish (#polish) still works by its address; home doesn't offer it
             (sarah, 2026-10-06: no need for it there). */}
@@ -92,13 +111,12 @@ export function Projects() {
                 className="grid size-8 place-items-center rounded-full bg-zinc-700 font-serif text-[15px] font-semibold text-zinc-100 ring-1 ring-zinc-500/40 hover:ring-accent">{initial}</button>
       </header>
 
-      <main className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-[1100px] px-6 py-8">
-          <div className="flex flex-wrap items-end gap-4">
-            <div>
-              <h1 className="font-serif text-[30px] leading-tight text-zinc-100">{greeting(hello)}</h1>
-            </div>
-          </div>
+      <main className="relative min-h-0 flex-1 overflow-y-auto">
+        <div aria-hidden className="home-glow pointer-events-none absolute inset-x-0 top-0 h-[900px]" />
+        <div className="relative mx-auto max-w-[1100px] px-4 py-10 sm:px-6">
+          <h1 className="font-serif text-[40px] font-normal leading-[1.04] tracking-[-0.02em] text-zinc-100 sm:text-[64px]">
+            {greeting(hello)}<br /><em className="font-serif italic text-zinc-400">What did you film?</em>
+          </h1>
           {error && <Notice tone="bad" className="mt-4">{error} <button type="button" className="underline" onClick={load}>Try again</button></Notice>}
 
           <Start picked={picked} dragging={dragging} creating={creating} compact={!!list?.length}
@@ -110,9 +128,9 @@ export function Projects() {
           {list === null ? (
             <p className="mt-10 font-serif text-[17px] text-zinc-200">Loading…</p>
           ) : list.length === 0 ? null : (
-            <section className="mt-10" aria-labelledby="recent-title">
-              <h2 id="recent-title" className="font-serif text-[24px] text-zinc-100">Your recent videos</h2>
-              <div className="mt-4 grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">
+            <section className="mt-14" aria-labelledby="recent-title">
+              <h2 id="recent-title"><Label n="01">Your recent videos</Label></h2>
+              <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4">
                 {list.map((p) => <Card key={p.id} p={p} onOpen={() => open(p)} onShare={() => setSharing(p)}
                                        onRename={() => setRename(p)} onDelete={() => setRemove(p)} />)}
               </div>
@@ -133,46 +151,48 @@ export function Projects() {
   )
 }
 
-// One video: its picture (a frame of the export, else the edit's first shot,
-// else its first clip), its length, and two ways on. A tall video sits whole
-// over a blurred copy of itself rather than cropped to a band.
+// One video, upright and whole, the way it will be watched: its picture
+// fills the card (the clip's clearest frame at full size, or the cover the
+// creator chose to post with), with where it stands, its name and date over
+// it. Tapping the card opens it; Share sits on the picture once there's an
+// exported file to share.
 function Card({ p, onOpen, onShare, onRename, onDelete }: {
   p: ProjectMeta; onOpen: () => void; onShare: () => void; onRename: () => void; onDelete: () => void
 }) {
   const [menu, setMenu] = useState(false)
   const v = p.video ?? null
-  // the next picture when one can't be read (a clip whose index was cleared)
-  const pics = [v?.poster, p.poster, p.cover].filter((x): x is string => !!x)
+  // the next picture when one can't be read (a clip that has moved)
+  const pics = [v?.chosen ? v.poster : null, p.picture, v?.poster, p.poster, p.cover].filter((x): x is string => !!x)
   const [miss, setMiss] = useState(0)
   useEffect(() => setMiss(0), [pics.join('|')])
   const pic = pics[miss] ?? null
   const seconds = v?.seconds ?? p.seconds ?? null
-  const line = v?.at ? `Exported ${ago(v.at)}`
+  // "Exported" is already said above the name
+  const line = v?.at ? ago(v.at)
     : p.clips ? `${p.clips} clip${p.clips === 1 ? '' : 's'} · ${ago(p.updated)}` : 'No clips yet'
+  const chip = 'rounded-full border border-white/35 bg-black/45 text-white backdrop-blur-sm transition-colors hover:bg-black/70'
   return (
-    <article className="group relative flex flex-col overflow-hidden rounded-xl border border-line bg-panel transition-colors hover:border-zinc-600">
-      <button type="button" onClick={onOpen} aria-label={`Open ${p.name}`} className="block text-left">
-        <div className={cx('relative aspect-video w-full overflow-hidden', pic ? 'bg-black' : 'bg-raised')}>
-          {pic ? <>
-            <img src={pic} alt="" aria-hidden className="absolute inset-0 size-full scale-110 object-cover opacity-60 blur-xl" />
-            <img src={pic} alt="" onError={() => setMiss((m) => m + 1)} className="relative size-full object-contain" />
-          </> : null}
-          <span className="absolute left-2 top-2 rounded-md bg-black/70 px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-100">{STAGE_WORDS[p.stage]}</span>
-          {seconds ? <span className="absolute bottom-2 right-2 rounded bg-black/70 px-1.5 text-[12px] tabular-nums text-zinc-100">{dur(seconds)}</span> : null}
-        </div>
+    <article className="home-card group relative aspect-[9/16] overflow-hidden rounded-[14px] border border-white/10 bg-raised shadow-xl">
+      <button type="button" onClick={onOpen} aria-label={`Open ${p.name}`}
+              className="absolute inset-0 block text-left focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-[#FFD93D]">
+        {pic && <img src={pic} alt="" onError={() => setMiss((m) => m + 1)} className="absolute inset-0 size-full object-cover" />}
+        <span aria-hidden className="absolute inset-x-0 top-0 h-1/5 bg-gradient-to-b from-black/45 to-transparent" />
+        <span aria-hidden className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-black/85 via-black/40 to-transparent" />
+        <span className="absolute inset-x-3 bottom-3 block">
+          <span className="block truncate text-[11px] font-semibold uppercase tracking-[0.16em] text-white/90">
+            {STAGE_WORDS[p.stage]}{seconds ? <span className="tabular-nums"> · {dur(seconds)}</span> : null}
+          </span>
+          <span className="mt-1 block truncate font-serif text-[22px] leading-tight text-white">{p.name}</span>
+          <span className="block truncate font-serif text-[15px] text-white/80">{line}</span>
+        </span>
       </button>
-      <div className="flex flex-1 flex-col px-3 pb-3 pt-2.5">
-        <h3 className="truncate font-serif text-[18px] text-zinc-100">{p.name}</h3>
-        <p className="mt-0.5 truncate font-serif text-[15px] text-zinc-300">{line}</p>
-        <div className="mt-3 flex gap-2">
-          <Button variant="primary" onClick={onOpen}>Open</Button>
-          {v && <Button onClick={onShare}>Share</Button>}
-        </div>
+      <div className="absolute right-2.5 top-2.5 flex gap-1.5">
+        {v && <button type="button" onClick={onShare} className={cx(chip, 'px-3 py-0.5 font-serif text-[15px]')}>Share</button>}
+        <button type="button" aria-label="Rename or delete" title="Rename or delete" onClick={() => setMenu((m) => !m)}
+                className={cx(chip, 'grid size-7 place-items-center text-[15px] leading-none')}>⋯</button>
       </div>
-      <button type="button" aria-label="Project options" onClick={() => setMenu((m) => !m)}
-              className="absolute right-2 top-2 grid size-7 place-items-center rounded-md bg-black/60 text-zinc-200 opacity-0 hover:bg-black/80 focus:opacity-100 group-hover:opacity-100">⋯</button>
       {menu && (
-        <div className="absolute right-2 top-10 z-10 w-40 rounded-lg border border-line bg-panel p-1 shadow-xl" onMouseLeave={() => setMenu(false)}>
+        <div className="absolute right-2.5 top-11 z-10 w-36 rounded-lg border border-line bg-panel p-1 shadow-xl" onMouseLeave={() => setMenu(false)}>
           <button type="button" onClick={() => { setMenu(false); onRename() }} className="block w-full rounded-md px-2.5 py-1.5 text-left font-serif text-[15px] text-zinc-100 hover:bg-raised">Rename</button>
           <button type="button" onClick={() => { setMenu(false); onDelete() }} className="block w-full rounded-md px-2.5 py-1.5 text-left font-serif text-[15px] text-rose-200 hover:bg-rose-500/10">Delete…</button>
         </div>
@@ -214,8 +234,9 @@ function Start({ picked, dragging, creating, compact, links, onLinks, onAdd, onR
   const size = picked.reduce((n, p) => n + p.file.size, 0)
   const pick = (fl: FileList | null) => { if (fl) onAdd(fromInput(fl)) }
   return (
-    <div className={cx('mt-6 rounded-2xl border border-dashed text-center transition-colors',
-      dragging ? 'border-accent bg-accent/5' : 'border-zinc-700', compact && !picked.length ? 'p-6' : 'p-10')}>
+    <div className={cx('relative mt-10 rounded-[10px] border text-center transition-colors',
+      dragging ? 'border-[#FFD93D] bg-[#FFD93D]/5' : 'border-zinc-600', compact && !picked.length ? 'px-6 py-9' : 'p-10')}>
+      <Ticks />
       {/* A browser's picker takes clips or a folder, never both, so two buttons.
           (sarah: a phone version will only need Add clips.) */}
       {/* @ts-expect-error -- non-standard but supported everywhere that matters */}
@@ -224,11 +245,11 @@ function Start({ picked, dragging, creating, compact, links, onLinks, onAdd, onR
              onChange={(e) => { pick(e.target.files); e.target.value = '' }} />
       {!picked.length ? (
         <>
-          <h2 className={cx('font-serif text-zinc-100', compact ? 'text-[20px]' : 'text-[26px]')}>{dragging ? 'Drop them here' : 'Start with your clips'}</h2>
+          <h2 className={cx('font-serif text-zinc-100', compact ? 'text-[22px]' : 'text-[26px]')}>{dragging ? 'Drop them here' : 'Start with your clips'}</h2>
           <p className="mt-2 font-serif text-[17px] text-zinc-200">Drag clips / folder here</p>
-          <div className="mt-5 flex justify-center gap-2">
-            <Button variant="primary" size="lg" onClick={() => files.current?.click()}>Add clips</Button>
-            <Button variant="primary" size="lg" onClick={() => folder.current?.click()}>Add folder</Button>
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            <Btn onClick={() => files.current?.click()}>Add clips</Btn>
+            <Btn ghost onClick={() => folder.current?.click()}>Add folder</Btn>
           </div>
         </>
       ) : (
@@ -247,9 +268,11 @@ function Start({ picked, dragging, creating, compact, links, onLinks, onAdd, onR
                       className="mt-1 w-full resize-none rounded-lg border border-line bg-ink px-3 py-2 font-mono text-[12px] text-zinc-200 outline-none placeholder:font-sans placeholder:text-zinc-500 focus:border-accent/60" />
             {hasLinks && <p className="mt-1 text-[11px] text-muted">Their pace, length and the feel of their music; nothing of their footage. Free music with a credit line.</p>}
           </div>
-          <Button variant="primary" size="lg" className="mt-4" disabled={creating} onClick={onCreate}>
-            {creating ? 'Creating…' : hasLinks ? 'Make a short like it' : 'Create'}
-          </Button>
+          <div className="mt-5 flex justify-center">
+            <Btn onClick={onCreate} className={creating ? 'pointer-events-none opacity-60' : undefined}>
+              {creating ? 'Creating…' : hasLinks ? 'Make a short like it' : 'Create'}
+            </Btn>
+          </div>
         </>
       )}
     </div>
@@ -301,8 +324,9 @@ function RenameProject({ p, onClose, onDone }: { p: ProjectMeta; onClose: () => 
   )
 }
 
-// Glad to see you, by the clock (sarah: "sound more enthusiastic").
+// Glad to see you, by the clock (sarah: "sound more enthusiastic"), then the
+// question the page is for, in the landing page's italic turn.
 function greeting(name: string, hour = new Date().getHours()): string {
   const part = hour >= 5 && hour < 12 ? 'Good morning' : hour >= 12 && hour < 18 ? 'Good afternoon' : 'Good evening'
-  return name ? `${part}, ${name}!` : `${part}!`
+  return name ? `${part}, ${name}.` : `${part}.`
 }

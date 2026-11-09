@@ -1157,6 +1157,30 @@ def api_project_poster(pid: str) -> FileResponse:
         raise HTTPException(500, str(e)) from e
 
 
+@app.get("/api/projects/{pid}/picture")
+def api_project_picture(pid: str) -> FileResponse:
+    """The picture on a video's card at Home: the edit at its clearest, a
+    full-size frame of the original clip (recent.pick_still). A clip that
+    has moved is a 404, and the card falls back to the next picture."""
+    from . import recent
+    cur = PROJECT["p"]
+    if cur is not None and cur.id == pid:
+        st = pj.snapshot_of(CLIPS, SESSION.board).get("still")
+    else:
+        try:
+            st = (pj.load(pid).snapshot or {}).get("still")
+        except pj.ProjectError as e:
+            raise HTTPException(404, str(e)) from e
+    if not st:
+        raise HTTPException(404, "no picture yet")
+    try:
+        return FileResponse(recent.clip_still(st), media_type="image/jpeg")
+    except FileNotFoundError as e:
+        raise HTTPException(404, str(e)) from e
+    except ValueError as e:
+        raise HTTPException(500, str(e)) from e
+
+
 @app.post("/api/projects/{pid}/share")
 def api_project_share(pid: str) -> dict:
     """Share from Home: the video's export, ready for the Share box. The

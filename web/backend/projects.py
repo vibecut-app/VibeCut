@@ -79,6 +79,8 @@ class Project:
             "clips": n_clips, "duration": snap.get("duration"), "cover": snap.get("cover"),
             # the made video before it's exported: its first shot and its length
             "poster": snap.get("poster"), "seconds": snap.get("seconds"),
+            # the card's picture: the video at its clearest, full size (recent.pick_still)
+            "picture": f"/api/projects/{self.id}/picture?v={recent.still_key(snap['still'])}" if snap.get("still") else None,
             "stage": stage_of(self.workflow.get("state", "intake"), bool(snap.get("board")), bool(self.exports), n_clips,
                               bool(self.brief)),
             "edits": edited, "exports": len(self.exports),
@@ -96,10 +98,11 @@ def snapshot_of(clips: dict[str, dict], board: dict | None) -> dict:
         if c.get("shots"):
             cover = f"/api/thumbs/{c['id']}/{c['shots'][0]['thumb']}"
             break
-    poster = seconds = None
+    poster = seconds = still = None
     if board:
         entries = [e for b in board["beats"] for e in b["shots"]]
         seconds = round(sum(bd.seq_dur(e) for e in entries), 1)
+        still = recent.pick_still(entries, clips)
         for e in entries:
             if bd.is_gap(e) or not e.get("id"):
                 continue
@@ -110,7 +113,7 @@ def snapshot_of(clips: dict[str, dict], board: dict | None) -> dict:
                 break
     return {"duration": round(sum(c.get("duration", 0.0) for c in cs), 1), "cover": cover,
             "board": {"name": board["name"], "parts": len(board["beats"])} if board else None,
-            "poster": poster, "seconds": seconds}
+            "poster": poster, "seconds": seconds, "still": still}
 
 
 def stage_of(state: str, has_board: bool, exported: bool, n_clips: int, has_brief: bool = False) -> str:
@@ -191,9 +194,9 @@ def _write(project: Project) -> None:
 
 
 def stale(project: Project) -> bool:
-    """Saved before its snapshot carried the made video's first shot and
-    length (Home's recent videos): it has an edit, the snapshot doesn't."""
-    return "seconds" not in (project.snapshot or {}) and bool(project.turns)
+    """Saved before its snapshot carried what Home's card shows (the made
+    video's picture and length): it has an edit, the snapshot doesn't."""
+    return "still" not in (project.snapshot or {}) and bool(project.turns)
 
 
 def refresh_snapshot(pid: str) -> bool:
@@ -216,7 +219,9 @@ def refresh_snapshot(pid: str) -> bool:
         cur = load(pid)
         if cur.updated != pr.updated or not stale(cur):
             return False
-        cur.snapshot = {**(cur.snapshot or {}), "poster": snap["poster"], "seconds": snap["seconds"]}
+        # a log that wouldn't replay keeps whatever picture and length it had
+        got = {k: snap[k] for k in ("poster", "seconds") if board is not None or k not in (cur.snapshot or {})}
+        cur.snapshot = {**(cur.snapshot or {}), **got, "still": snap["still"]}
         _write(cur)
     return True
 
