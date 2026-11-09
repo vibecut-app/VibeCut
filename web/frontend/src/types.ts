@@ -42,9 +42,12 @@ export type ProjectMeta = {
   poster?: string | null; seconds?: number | null
   // the exported video Home shows and shares (backend recent.py); null when none is left on disk
   video?: RecentVideo | null
+  // the card's picture: the edit at its clearest, a full-size frame of its clip (recent.pick_still)
+  picture?: string | null
 }
 export type RecentVideo = { n: number; file: string; seconds: number | null; size: { w: number; h: number } | null
-  at: number | null; alt: boolean; poster: string }
+  at: number | null; alt: boolean; poster: string
+  chosen?: boolean }   // the creator chose this cover to post with: the card shows it
 export type ExportRecord = { job: string; file: string; path: string; at: number; seconds: number; size: { w: number; h: number }
   music: boolean; overlays: number; bytes: number | null
   // launch tracking (backend/launchlog.py): the one question after an export, and what it cost

@@ -82,21 +82,40 @@ The promise to a user is therefore *not* "this will be beautiful." It is
   "coming soon" cards are gone (see `web/feature-roadmap.md`). What the
   machine can't do (no key, not macOS, no yt-dlp) is stated where the action
   would be, never hidden. Home is as bare as it can be (sarah, 2026-10-06:
-  "as simple as possible"): "Good morning / afternoon / evening, <profile first name>!", then
+  "as simple as possible"): "Good morning / afternoon / evening, <profile first name>.", then
   "Start with your clips", "Drag clips / folder here", Add clips + Add folder (a
   browser picker can't take both; a phone version only needs Add clips).
+  Home wears the landing page's look (sarah, 2026-11-09: it "doesn't match the
+  aesthetics of the landing page", then "all five" of five ideas): `.on-video`
+  dark with film grain and a gold glow, the greeting as a big serif headline
+  with an italic "What did you film?", the landing's gold `Btn` (Add clips,
+  Create) and outline (Add folder), the drop box a hairline frame with crop
+  marks (`Ticks`) and "Runs on your Mac · No upload · Nothing generated"
+  under it, the logo (`Mark`) in the top bar, "01 — Your recent videos" as a
+  `Label`. Those four are exported from `Landing.tsx`. The editor stays bright.
   Under the box, **Your recent videos** (sarah, 2026-10-27; `web/backend/
-  recent.py`, `tests/test_recent.py`): every video as its own picture, a frame
-  of its export (the chosen cover's moment, else the hook's middle noted on
-  the export's record as `poster_t`, 640 px JPEG cached under `posters/`),
-  else the edit's first shot (`snapshot.poster`), else its first clip; its
-  length; Open, and Share once an export's file is still where it was saved.
+  recent.py`, `tests/test_recent.py`): every video upright and whole on a 9:16
+  card, the picture filling it, where it stands · its length, name and date
+  over the bottom; tapping the card opens it, Share sits on the picture once
+  an export's file is still where it was saved, ⋯ renames or deletes. The
+  picture (2026-11-09, sarah: "so blurry ... a really ugly cover"; the
+  216 px index thumbnails were blown up and padded with a blurred copy): the
+  clearest of the edit's first `OPENING` 3 shots by the indexer's best-frame
+  `quality`, at its `best_t` when the edit keeps it (`recent.pick_still`,
+  kept on the snapshot as `still`), read from the original clip big enough to
+  cover a 540 × 960 card (`FIT`, ≤ 1280, never enlarged), HDR toned by
+  `media.to_sdr` as the thumbnails are, cached under `posters/`
+  (`/api/projects/{pid}/picture`). A cover the creator chose to post with
+  takes the card instead (`video.chosen`, a frame of the export at that
+  moment, same size); a clip that has moved falls back to the export's frame
+  at the hook's middle (`poster_t`), then the old thumbnails.
   Share opens the project (the words, credit and cover are read from it) and
   takes the export up again from its record when the job is gone after a
   restart (`recent.revive`), then shows the video and the same Share box.
-  Videos saved before this get their first shot and length filled once in
-  the background from their own log (`projects.refresh_snapshot`, keeps
-  `updated`); a picture that won't load falls back to the next one.
+  Videos saved before this get their picture, first shot and length filled
+  once in the background from their own log (`projects.refresh_snapshot`,
+  keeps `updated`; `stale` = no `still` on the snapshot); a picture that
+  won't load falls back to the next one.
   Footage has no preview panel: an opened stack is a vertical column on its own side (Kept left, Left out right), the other stack shrinks opposite as the drop target; a clicked clip plays in place with a "Move to …" button (no double-click). See `web/README.md`.
   **The edit screen** (sarah, 2026-10-16: "change the layout to this
   reference photo", same colours; `App.tsx` frames view, `Inspector.tsx`,
@@ -140,7 +159,7 @@ The promise to a user is therefore *not* "this will be beautiful." It is
   each a move the editor has under its menu name, drawn as CSS over made-up
   scenes (no faces); it advances by itself until touched. Both
   sides of the before/after are drawn in CSS because every real screenshot
-  shows the creator's face. The app's home (`#/`) stays bare; the page is
+  shows the creator's face. The app's home (`#/`) stays bare (in the page's look since 2026-11-09); the page is
   linked only from the profile page ("About VibeCut"). Copy keeps to "no amateur tells", never "beautiful".
 - Chat editing rule: a turn applies operations to the working storyboard
   (`web/backend/board.py`), never regenerates it. The LLM only emits ops;

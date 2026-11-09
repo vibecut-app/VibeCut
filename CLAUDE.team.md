@@ -160,7 +160,7 @@ cut the way an industry pro editor would — not a set of numbers to match.
 - Finder / iCloud duplicate files ending in " 2" / " 3" are harmless
   leftovers; don't commit them (a copy of a `.tsx` can break `tsc`).
 - Landing page is `#/welcome`, linked only from the profile page ("About
-  VibeCut"); home (`#/`) stays bare.
+  VibeCut"); home (`#/`) stays bare, in the landing page's dark look.
 
 ## Tests (hand-run, no CI)
 
