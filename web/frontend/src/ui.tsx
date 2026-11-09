@@ -86,7 +86,7 @@ export function Dialog({ title, sub, onClose, busy, width = 480, children, foote
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4 backdrop-blur-[2px]"
          onPointerDown={(e) => { if (e.target === e.currentTarget && !busy) onClose() }}>
-      <div role="dialog" aria-labelledby={id} style={{ width, maxWidth: '100%' }}
+      <div role="dialog" aria-labelledby={id} style={{ width, maxWidth: 'calc(100vw - 32px)' }}
            className="max-h-[92vh] overflow-y-auto rounded-2xl border border-line bg-panel p-5 shadow-2xl shadow-black/60">
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
@@ -116,14 +116,19 @@ export function Spinner({ className }: { className?: string }) {
   return <span className={cx('inline-block size-2 animate-pulse rounded-full bg-accent align-middle', className)} aria-hidden />
 }
 
-/** Confirm before something that is hard to take back. */
+/** Confirm before something that is hard to take back. A little larger and
+ *  heavier than other dialogs (sarah, 2026-11-09: "slightly bigger and the
+ *  fonts more readable by bolding"): it is read once, carefully. */
 export function Confirm({ title, text, action, danger, onYes, onNo }: {
   title: string; text: ReactNode; action: string; danger?: boolean; onYes: () => void; onNo: () => void
 }) {
   return (
-    <Dialog title={title} onClose={onNo} width={400} id="confirm-title"
-            footer={<><Button variant="ghost" onClick={onNo}>Keep it</Button><Button variant={danger ? 'danger' : 'primary'} onClick={onYes}>{action}</Button></>}>
-      <p className="text-[13px] leading-snug text-zinc-300">{text}</p>
+    <Dialog title={<span className="text-[28px] font-semibold">{title}</span>} onClose={onNo} width={460} id="confirm-title"
+            footer={<>
+              <Button variant="ghost" size="lg" className="font-semibold text-zinc-300" onClick={onNo}>Keep it</Button>
+              <Button variant={danger ? 'danger' : 'primary'} size="lg" className="font-semibold" onClick={onYes}>{action}</Button>
+            </>}>
+      <p className="text-[15px] font-medium leading-relaxed text-zinc-200">{text}</p>
     </Dialog>
   )
 }

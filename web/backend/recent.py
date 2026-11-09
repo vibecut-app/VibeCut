@@ -149,7 +149,8 @@ def clip_still(st: dict) -> Path:
         chain.append("hflip")
     chain.append(FIT)
     p = subprocess.run(["ffmpeg", "-hide_banner", "-v", "error", "-nostdin", "-ss", f"{max(0.0, st['t']):.3f}", "-i", path,
-                        "-frames:v", "1", "-vf", ",".join(chain), "-f", "image2pipe", "-vcodec", "ppm", "-"],
+                        "-frames:v", "1", "-vf", ",".join(chain), "-pix_fmt", "rgb24",  # an iPhone's 10 bits too
+                        "-f", "image2pipe", "-vcodec", "ppm", "-"],
                        capture_output=True, timeout=60)
     img = _ppm(p.stdout) if p.returncode == 0 else None
     if img is None:

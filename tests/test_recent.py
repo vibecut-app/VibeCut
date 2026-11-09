@@ -77,13 +77,14 @@ def rules() -> None:
     check("… a held frame shows its one frame; nothing to show is None",
           recent.pick_still([e("c2:0", 1.5, 4.5, freeze=True)], clips)["t"] == 1.5 and recent.pick_still([], clips) is None)
 
-    # An iPhone films HLG: its picture read straight to 8 bits is flat grey,
-    # so the card's frame is toned as the thumbnails are.
+    # An iPhone films 10-bit HEVC in HLG: its picture read straight to 8 bits
+    # is flat grey, so the card's frame is toned as the thumbnails are (and
+    # ten bits must not stop it being read: they did on sarah's Mac).
     from web.backend.indexer import clip_dir
-    hlg = os.path.join(d, "hlg.mp4")
+    hlg = os.path.join(d, "hlg.mov")
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "color=c=0xbfbfbf:s=360x640:d=1:r=30",
-                    "-c:v", "libx264", "-pix_fmt", "yuv420p", "-color_trc", "arib-std-b67", "-color_primaries", "bt2020",
-                    "-colorspace", "bt2020nc", hlg], check=True)
+                    "-c:v", "libx265", "-x265-params", "log-level=error", "-pix_fmt", "yuv420p10le", "-tag:v", "hvc1",
+                    "-color_trc", "arib-std-b67", "-color_primaries", "bt2020", "-colorspace", "bt2020nc", hlg], check=True)
     clip_dir("hlg000000000").mkdir(parents=True, exist_ok=True)
     (clip_dir("hlg000000000") / "index.json").write_text(json.dumps({"path": hlg}))
     jpg = recent.clip_still({"clip": "hlg000000000", "t": 0.5, "rotate": 0, "mirror": False}).read_bytes()
