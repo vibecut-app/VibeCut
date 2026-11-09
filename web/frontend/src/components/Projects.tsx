@@ -234,7 +234,6 @@ function Start({ picked, dragging, creating, compact, links, onLinks, onAdd, onR
   const size = picked.reduce((n, p) => n + p.file.size, 0)
   const pick = (fl: FileList | null) => { if (fl) onAdd(fromInput(fl)) }
   return (
-    <>
     <div className={cx('relative mt-10 rounded-[10px] border text-center transition-colors',
       dragging ? 'border-[#FFD93D] bg-[#FFD93D]/5' : 'border-zinc-600', compact && !picked.length ? 'px-6 py-9' : 'p-10')}>
       <Ticks />
@@ -277,10 +276,6 @@ function Start({ picked, dragging, creating, compact, links, onLinks, onAdd, onR
         </>
       )}
     </div>
-    <p className="mt-5 text-center text-[12px] font-medium uppercase tracking-[0.16em] text-zinc-400">
-      Runs on your Mac · No upload · Nothing generated
-    </p>
-    </>
   )
 }
 

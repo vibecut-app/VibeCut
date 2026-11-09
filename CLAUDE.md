@@ -90,8 +90,8 @@ The promise to a user is therefore *not* "this will be beautiful." It is
   dark with film grain and a gold glow, the greeting as a big serif headline
   with an italic "What did you film?", the landing's gold `Btn` (Add clips,
   Create) and outline (Add folder), the drop box a hairline frame with crop
-  marks (`Ticks`) and "Runs on your Mac · No upload · Nothing generated"
-  under it, the logo (`Mark`) in the top bar, "01 — Your recent videos" as a
+  marks (`Ticks`) and no line under it (sarah took "Runs on your Mac · No
+  upload · Nothing generated" off the same day), the logo (`Mark`) in the top bar, "01 — Your recent videos" as a
   `Label`. Those four are exported from `Landing.tsx`. The editor stays bright.
   Under the box, **Your recent videos** (sarah, 2026-10-27; `web/backend/
   recent.py`, `tests/test_recent.py`): every video upright and whole on a 9:16
