@@ -85,6 +85,7 @@ ENDS = ("payoff", "signoff")               # what a chapter ends on: these never
 MAX_CHAPTERS = vlog.MAX_SCENES
 MIN_STORY = 3            # a chapter with fewer moments than this can't be a setup, a step and a payoff:
                          # it joins the stop filmed nearest to it [prior]
+SEAT_SLACK = 1.25        # a chapter takes at most this much of its own share when others can't fill theirs [prior]
 SETUP_LOOK = 3           # the setup is one of a chapter's first this-many moments: the arrival [prior]
 SETUP_WIDE = 0.15        # ...the one that looks most like a place: wide, the first look at a new place [prior]
 SETUP_NEW = 0.1
@@ -223,13 +224,26 @@ def _gap(a: list[sb.Shot], b: list[sb.Shot]) -> float:
     return 1e6 + len(a) + len(b)
 
 
-def chapters_of(pool: list[sb.Shot], want: int) -> list[list[sb.Shot]]:
+def room(c: list[sb.Shot], clips: dict | None = None) -> int:
+    """How many moments a chapter can give: one per clip, two from a long
+    one, as select.choose takes them. On her shoot a stop filmed as one long
+    clip offered a dozen shots and gave two (2026-11-10)."""
+    if clips is None:
+        return len(c)
+    per: dict[str, int] = {}
+    for s in c:
+        per[s.clip_id] = per.get(s.clip_id, 0) + 1
+    return sum(min(v, 2 if (clips.get(cid) or {}).get("duration", 0) >= sel.LONG_CLIP_S else sel.CLIP_CAP)
+               for cid, v in per.items())
+
+
+def chapters_of(pool: list[sb.Shot], want: int, clips: dict | None = None) -> list[list[sb.Shot]]:
     """The stops of the day (brief.spots: a place, twenty minutes), joined
     into at most `want` chapters in the day's order: first any stop too
-    thin to tell a story joins the neighbour filmed nearest to it, then the
-    two neighbours filmed closest together, until there are few enough --
-    a walk and the café it led to are one chapter, lunch and the evening
-    aren't."""
+    thin to tell a story (fewer than MIN_STORY moments it can give, `room`)
+    joins the neighbour filmed nearest to it, then the two neighbours
+    filmed closest together, until there are few enough -- a walk and the
+    café it led to are one chapter, lunch and the evening aren't."""
     where = brief.spots(pool)
     groups: dict[int, list[sb.Shot]] = {}
     for s in pool:
@@ -237,9 +251,9 @@ def chapters_of(pool: list[sb.Shot], want: int) -> list[list[sb.Shot]]:
     chs = [sorted(g, key=lambda s: s.order) for _, g in sorted(groups.items())]
     chs = [c for c in chs if c]
     while len(chs) > 1:
-        thin = [i for i, c in enumerate(chs) if len(c) < MIN_STORY]
+        thin = [i for i, c in enumerate(chs) if room(c, clips) < MIN_STORY]
         if thin:
-            i = min(thin, key=lambda i: len(chs[i]))
+            i = min(thin, key=lambda i: room(chs[i], clips))
             left = _gap(chs[i - 1], chs[i]) if i > 0 else float("inf")
             right = _gap(chs[i], chs[i + 1]) if i < len(chs) - 1 else float("inf")
             j = i - 1 if left <= right else i
@@ -280,13 +294,20 @@ def shares(chs: list[list[sb.Shot]], val: dict[str, float], sheet: dict) -> tupl
     return w, peak
 
 
-def seats(chs: list[list[sb.Shot]], weights: list[float], n: int) -> list[int]:
+def seats(chs: list[list[sb.Shot]], weights: list[float], n: int, clips: dict | None = None) -> list[int]:
     """How many moments each chapter gets: n in proportion to its weight,
-    at least enough to tell its story (MIN_STORY, or all it has), never more
-    than it has; what a chapter can't take goes to the others by weight."""
-    have = [len(c) for c in chs]
+    at least enough to tell its story (MIN_STORY, or all it can give),
+    never more than it can give (`room`); what a chapter can't take goes to
+    the others by weight, none past SEAT_SLACK of its own share -- on her
+    shoot the peak soaked up what thin chapters couldn't take and ran 14
+    moments, 2.7x a typical chapter where the pros run 1.9x (2026-11-10).
+    What no one can take is left: the vlog runs short and make.moments
+    asks for more."""
+    have = [room(c, clips) for c in chs]
     w = np.asarray(weights, dtype=float)
     raw = n * w / w.sum()
+    top = [max(min(MIN_STORY, h), int(np.ceil(r * SEAT_SLACK))) for r, h in zip(raw, have)]
+    have = [min(h, t) for h, t in zip(have, top)]
     k = np.minimum(np.maximum(np.floor(raw), np.minimum(MIN_STORY, have)), have).astype(int)
     left = n - int(k.sum())
     order = sorted(range(len(chs)), key=lambda i: (-(raw[i] - np.floor(raw[i])), -w[i]))
@@ -446,9 +467,9 @@ def plan(clips: dict[str, dict], cut, fp: dict, talking: set[str] | None = None,
     total = float(length or fp["duration"])
     n_body = max(4, int(round(max(1.0, total - fp["hook_s"]) / fp["median_s"])))
     want = int(np.clip(round(n_body / sheet["chapter_shots"]), 1, MAX_CHAPTERS))
-    chs = chapters_of(pool, want)
+    chs = chapters_of(pool, want, clips)
     w, peak = shares(chs, val, sheet)
-    k = seats(chs, w, n_body)
+    k = seats(chs, w, n_body, clips)
 
     def mk(s: sb.Shot, job: str, i: int) -> sel.Pick:
         sc, parts = scored[s.id]
