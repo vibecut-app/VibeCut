@@ -41,7 +41,10 @@ os.environ["OPENAI_API_KEY"] = ""
 import numpy as np  # noqa: E402
 
 from taste import describe as ds, model as tm  # noqa: E402
-from web.backend import beats, board as bd, make, tastepick, vlog  # noqa: E402
+from web.backend import beats, board as bd, llm, make, oai, tastepick, vlog  # noqa: E402
+
+# a key in web/.env is never read here: nothing in this run may spend
+oai.ENV_FILE = llm.ENV_FILE = Path("/nonexistent/.env")
 
 GROUP = {"wide": "long", "tall": "long", "short": "short"}
 SECONDS = {"wide": 90.0, "tall": 90.0, "short": 45.0}
