@@ -9,12 +9,16 @@ music pool, and reports for each:
 
 - the taste model's score of the made board and where it falls among the
   good vlogs' own scores (as house_style.py does), and which cut it chose;
+- with --modes, the beat sheet with parts of it taken out, to tell which
+  part moves the score: taste_free (the taste model's order changes may
+  move a chapter's setup and payoff), no_shares (no beats.hold_shares),
+  plain (neither: the sheet's chapters only);
 - the spine as made, beside the pros' (beats.measured): chapters and their
   moments, the peak against a typical chapter, the last against it, how
   many chapters open on a wide look, where the strongest moment sits in its
   chapter, what the video ends on.
 
-    .venv/bin/python design/eval/beats_eval.py [--frames tall,wide] [--out file.json] [--synthetic]
+    .venv/bin/python design/eval/beats_eval.py [--frames tall,wide] [--modes beat_sheet,plain,...] [--out file.json] [--synthetic]
 
 Nothing is paid (no key, judge off); nothing is changed. --synthetic runs
 it on tests/test_beats.py's made-up day, to check the script itself.
@@ -46,7 +50,20 @@ from web.backend import beats, board as bd, llm, make, oai, tastepick, vlog  # n
 # a key in web/.env is never read here: nothing in this run may spend
 oai.ENV_FILE = llm.ENV_FILE = Path("/nonexistent/.env")
 
+from web.backend import tastepick as tp  # noqa: E402
+
 GROUP = {"wide": "long", "tall": "long", "short": "short"}
+# each mode: (beat sheet on, the taste pick keeps a chapter's setup and payoff, hold_shares)
+MODES = {"beat_sheet": (True, True, True), "taste_free": (True, False, True), "no_shares": (True, True, False),
+         "plain": (True, False, False), "scene_grammar": (False, True, True)}
+_PINNED, _SHARES = tp._pinned, beats.hold_shares
+
+
+def configure(mode: str) -> None:
+    on, pins, shares = MODES[mode]
+    os.environ["VIBECUT_BEATS"] = "1" if on else "0"
+    tp._pinned = _PINNED if pins else (lambda s: (0, len(s)))
+    beats.hold_shares = _SHARES if shares else (lambda plan, clips, talking=None: [])
 SECONDS = {"wide": 90.0, "tall": 90.0, "short": 45.0}
 
 
@@ -74,9 +91,9 @@ def spine(plan) -> dict:
             "jobs": [[p.job for p in c] for c in chs] if any(p.job for c in chs for p in c) else None}
 
 
-def made(clips, cut_, fmt, pace, tracks, beats_on: bool) -> dict:
+def made(clips, cut_, fmt, pace, tracks, mode: str) -> dict:
     import threading
-    os.environ["VIBECUT_BEATS"] = "1" if beats_on else "0"
+    configure(mode)
     done = threading.Event()
     job = make.start(clips, cut_, fmt, pace, "cozy", "A day", SECONDS[fmt], tracks, None, None, lambda j: done.set())
     done.wait(600)
@@ -90,6 +107,7 @@ def main() -> int:
     ap.add_argument("--frames", default="tall,wide")
     ap.add_argument("--out")
     ap.add_argument("--synthetic", action="store_true")
+    ap.add_argument("--modes", default="beat_sheet,scene_grammar", help=",".join(MODES))
     a = ap.parse_args()
     if a.synthetic:
         os.environ["VIBECUT_BED"] = "0"
@@ -117,8 +135,9 @@ def main() -> int:
             good = hs.good_scores(model, GROUP[fmt])
         out = {}
         descs: dict = {}
-        for name, on in (("beat_sheet", True), ("scene_grammar", False)):
-            res = made(clips, cut_, fmt, pace, tracks, on)
+        modes = a.modes.split(",")
+        for name in modes:
+            res = made(clips, cut_, fmt, pace, tracks, name)
             board = tastepick.board_of(res["ops"], cat)
             mx = res.get("music")
             desc = ds.from_board(board, clips, cat, fmt, track=mx["track"] if mx else None)
@@ -134,10 +153,10 @@ def main() -> int:
             print(f"== {fmt} {name}: score {out[name]['score']}, above {above and round(100 * above)}% of the good vlogs, "
                   f"taste pick {out[name]['taste_pick']}", file=sys.stderr)
             print("   " + json.dumps(out[name]["spine"], default=str)[:600], file=sys.stderr)
-        if len(descs) == 2:
-            # what the model saw differently: the readings that moved the score most
+        if len(descs) >= 2:
+            # what the model saw differently from the last mode: the readings that moved the score most
             out["why"] = [{k: (round(v, 3) if isinstance(v, float) else v) for k, v in e.items()}
-                          for e in model.explain(descs["beat_sheet"], top=6, against=descs["scene_grammar"])]
+                          for e in model.explain(descs[modes[0]], top=6, against=descs[modes[-1]])]
             print("   why: " + "; ".join(f"{e['feature']} {e['effect']:+.2f} ({e['value']} vs {e['typical']})" for e in out["why"]),
                   file=sys.stderr)
         if good:

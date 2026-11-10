@@ -651,7 +651,8 @@ def ramp_hook(plan: sel.Plan, mx: dict | None, fmt: str) -> tuple[str, float, st
     return p.shot.id, cut_at, f"{p.shot.id}~{int(round(cut_at * 1000))}"
 
 
-def say(plan: sel.Plan, fp: dict, mx: dict | None, source: str, judged: bool, ai: dict | None = None) -> str:
+def say(plan: sel.Plan, fp: dict, mx: dict | None, source: str, judged: bool, ai: dict | None = None,
+        fmt: str = "short") -> str:
     like = fp.get("like")         # a saved recipe names itself (recipes.py)
     parts = [f"Made your video: {len(plan.picks)} moments, {plan.duration:.0f} s"
              + (f", cut like {like}" if like else ", in the style of your references" if fp.get("refs_used") else "") + "."]
@@ -667,7 +668,11 @@ def say(plan: sel.Plan, fp: dict, mx: dict | None, source: str, judged: bool, ai
         src = "like your recipe" if like else "like the reel"
         parts.append(f"No words, {src}." if t["share"] < 0.05 else
                      f"Words at the {t.get('band') or 'bottom'}, held about {t.get('hold_s') or 1.5:.1f} s, {src}.")
-    if mx:
+    if mx and is_vlog(fmt, fp):
+        # a vlog has no ramp and no push on the bar (vlog.py): its scenes change on the phrases
+        parts.append(f"Music: {mx['track'].title} ({mx['bpm']:.0f} BPM, from {source}); each chapter changes on "
+                     "its phrases, under the place's own sound.")
+    elif mx:
         parts.append(f"Music: {mx['track'].title} ({mx['bpm']:.0f} BPM, from {source}); every cut sits on its beat, "
                      "the hook speeds into the drop, the picture pushes in on it and on every bar.")
     elif source.startswith("off"):
@@ -791,7 +796,7 @@ def start(clips: dict[str, dict], cut, fmt: str, pace: str, look: str | None, ab
             job.result = {"ops": made, "music": mx, "fp": fp, "plan": plan, "taste": taste, "written": wrote,
                           "remake": None if chapters else remake,
                           "ai": ai, "taste_pick": picked, "deck": deck,
-                          "reply": say(plan, fp, mx, source, judged, ai) + (" Claude wrote the lines, in your voice." if wrote else "")
+                          "reply": say(plan, fp, mx, source, judged, ai, fmt) + (" Claude wrote the lines, in your voice." if wrote else "")
                           + (" " + chose if chose else "") + (" " + sfx.say(sounds) if sounds else "")}
             if check:
                 job.stage = "checking"

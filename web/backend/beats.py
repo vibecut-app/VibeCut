@@ -567,16 +567,26 @@ def _share_cap(p: sel.Pick) -> float:
 
 
 def describe(plan: sel.Plan) -> str:
-    """One line on the spine, for the plan's notes and the reply."""
+    """One line on the spine, for the plan's notes and the reply. It says
+    only what the cut does: the taste model may keep a chapter in the order
+    it was filmed (tastepick), and then a chapter doesn't end on its payoff."""
     sh = getattr(plan, "sheet", None) or {}
     if not plan.sessions:
         return "No chapters: nothing to tell yet."
-    names = list(plan.titles)
     peak = sh.get("peak")
-    bits = [f"{n}{' (the peak)' if i == peak else ''}" for i, n in enumerate(names)]
-    end = "a sign-off" if sh.get("signoff") else "its strongest moment"
-    return (f"Planned as {len(plan.sessions)} chapter{'s' * (len(plan.sessions) != 1)} before cutting: "
-            f"{', '.join(bits)}; each opens on where you are and ends on its best moment, and the video ends on {end}.")
+    # a chapter's name can hold a comma ("Afternoon, 2:42 pm"), so they're set apart with dots
+    names = " · ".join(f"{n}{' (the peak)' if i == peak else ''}" for i, n in enumerate(plan.titles))
+    chs = [s for s in plan.sessions if len(s) > 1]
+    if chs and all(s[0].job == "setup" and s[-1].job in ENDS for s in chs):
+        inside = "; each opens on where you are and ends on its best moment"
+    elif chs and all([p.shot.order for p in s] == sorted(p.shot.order for p in s) for s in chs):
+        inside = "; each runs in the order it was filmed"
+    else:
+        inside = ""
+    last = plan.sessions[-1][-1].job if plan.sessions[-1] else None
+    end = {"signoff": ", and the video ends on a sign-off", "payoff": ", and the video ends on its strongest moment"}.get(last, "")
+    n = len(plan.sessions)
+    return f"Planned as {n} chapter{'s' * (n != 1)} before cutting: {names}{inside}{end}."
 
 
 def say(plan: sel.Plan) -> str:

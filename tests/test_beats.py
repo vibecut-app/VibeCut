@@ -289,6 +289,18 @@ def main() -> int:
     check("filming order still sorts the steps between", all(m == sorted(m) for m in mids), str(mids))
     check("a copy keeps the beat sheet, so the reply says the spine of whichever cut wins",
           beats.say(tp.copy_plan(made)) == beats.say(made) != "")
+    loose = tp.copy_plan(made)
+    for s in loose.sessions:
+        s.sort(key=lambda p: p.shot.order)
+    check("the reply says only what the cut does: chapters put back in filming order say so, not 'best moment'",
+          "best moment" not in beats.say(loose) and "order it was filmed" in beats.say(loose), beats.say(loose))
+    check("...and the planned cut says each opens on where you are and ends on its best moment",
+          "ends on its best moment" in beats.say(made) and " · " in beats.say(made), beats.say(made))
+    from types import SimpleNamespace
+    mx = {"track": SimpleNamespace(title="Song"), "bpm": 100.0}
+    check("a vlog's reply doesn't promise a short's speed-up into the drop",
+          "speeds into the drop" not in make.say(made, fp, mx, "your folder", False, fmt="tall")
+          and "speeds into the drop" in make.say(made, sfp, mx, "your folder", False, fmt="short"))
     ctrl = tp.copy_plan(off)
     tp._filming_order(ctrl)
     check("control: a plan without a sheet goes into filming order whole",
