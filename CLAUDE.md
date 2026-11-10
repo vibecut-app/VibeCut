@@ -1424,6 +1424,14 @@ The promise to a user is therefore *not* "this will be beautiful." It is
   own), one font per video like the colour; a template keeps its edge and
   backing around it; drawn by `overlayDraw` so preview, typing box and export
   match. Per-font size factors are eyeballed. `captionFonts.test.ts`.
+  **Quiet faces first** (sarah, 2026-11-10: "the fonts we use right now are
+  not the ones the good vlogs would use"; she said "make changes" to the five
+  swaps): Inter Light, Montserrat Light, Poppins Light, Cormorant Garamond
+  Italic, Nunito and Reenie Beanie lead the picker; Archivo Black, Luckiest
+  Guy, Bangers, Permanent Marker and Lobster left it (`RETIRED`: still drawn
+  for videos that use them, still accepted by the backend). The taste set
+  measured size and case (small, a quarter capitals), not the faces, so the
+  picks are by eye.
   **Caption text panel** (sarah, 2026-10-18: "pick different fonts, colors,
   outlining, shadows, backgrounds and adjust how thick they are"; plain
   controls, no video behind them; word art shown on a frame). Captions tab:

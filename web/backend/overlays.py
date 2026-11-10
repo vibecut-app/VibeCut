@@ -82,7 +82,9 @@ ENTERS = {"fade": "Fade up", "pop": "Pop", "slide": "Slide in", "stamp": "Stamp"
 # The captions' typeface, picked by hand (the Captions tab). None = the
 # template's or the look's own. Ids of web/frontend/src/captionFonts.ts, whose
 # openly licensed files ship with the app so preview and export match.
-TYPEFACES = {"tiktok-sans": "TikTok Sans", "montserrat": "Montserrat", "poppins": "Poppins",
+TYPEFACES = {"inter-light": "Inter Light", "montserrat-light": "Montserrat Light", "poppins-light": "Poppins Light",
+             "cormorant-italic": "Cormorant Italic", "nunito": "Nunito", "reenie-beanie": "Reenie Beanie",
+             "tiktok-sans": "TikTok Sans", "montserrat": "Montserrat", "poppins": "Poppins",
              "bebas-neue": "Bebas Neue", "anton": "Anton", "archivo-black": "Archivo Black",
              "luckiest-guy": "Luckiest Guy", "bangers": "Bangers", "fredoka": "Fredoka",
              "permanent-marker": "Permanent Marker", "caveat": "Caveat", "pacifico": "Pacifico",
