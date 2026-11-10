@@ -984,9 +984,21 @@ The promise to a user is therefore *not* "this will be beautiful." It is
   Make reply says the plan. What a moment shows can't name its job (a
   reader of faces / voice / motion / labels names pros' setups 11% right on
   an unseen creator), so jobs come from position. Rules only (the Claude
-  judge re-picks old sessions, not chapters). `VIBECUT_BEATS=0` = the scene
-  grammar above. `tests/test_beats.py`; `design/eval/beats_eval.py` scores
-  both on a real shoot with the taste model. Not yet judged on her footage.
+  judge re-picks old sessions, not chapters). A chapter gets no more moments
+  than its clips can give (one a clip, two from a long one) and at most
+  `SEAT_SLACK` 1.25 of its share; after the holds, `hold_shares` stretches or
+  squeezes each chapter's b-roll to its share of the seconds (talk and the
+  payoff's hold kept). The taste model's order changes (`tastepick`
+  filming order / strongest last / wide first / another opening) move only
+  the steps between a chapter's setup and its payoff (`_pinned`), and the
+  plan's sheet rides through `copy_plan`, so the reply stays true of the cut
+  that wins. `VIBECUT_BEATS=0` = the scene grammar above.
+  `tests/test_beats.py`; `design/eval/beats_eval.py` scores both on a real
+  shoot with the taste model. On her 115-clip shoot (2026-11-10, AI off),
+  before `hold_shares` and the pinning: -10.2 against the scene grammar's
+  -12.1, both under every good vlog (-3.8 to 18.5); the last chapter ran a
+  third of a typical one and the taste pick put chapters back in filming
+  order.
   **The house style** (`web/backend/house.py`, 2026-10-24; the user: "how
   can we make that kind of vlog that people love?"). The Oct 23 merge
   (449ce21) kept main's `make.py`, which never had the vlog grammar, so

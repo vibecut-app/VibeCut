@@ -85,6 +85,8 @@ ENDS = ("payoff", "signoff")               # what a chapter ends on: these never
 MAX_CHAPTERS = vlog.MAX_SCENES
 MIN_STORY = 3            # a chapter with fewer moments than this can't be a setup, a step and a payoff:
                          # it joins the stop filmed nearest to it [prior]
+SHARE_FLOOR_S = 1.5      # a chapter squeezed to its share never cuts a shot shorter than this: the vlog grammar's floor [prior]
+SHARE_PASSES = 3         # a chapter whose shots hit their limits asks the others again, this many times
 SEAT_SLACK = 1.25        # a chapter takes at most this much of its own share when others can't fill theirs [prior]
 SETUP_LOOK = 3           # the setup is one of a chapter's first this-many moments: the arrival [prior]
 SETUP_WIDE = 0.15        # ...the one that looks most like a place: wide, the first look at a new place [prior]
@@ -479,6 +481,7 @@ def plan(clips: dict[str, dict], cut, fp: dict, talking: set[str] | None = None,
 
     sessions = [[mk(s, job, i) for s, job in fill(c, n, val, clips, talking, last=(i == len(chs) - 1))]
                 for i, (c, n) in enumerate(zip(chs, k))]
+    w = [x for x, s in zip(w, sessions) if s]          # each kept chapter keeps its share (hold_shares)
     sessions = [s for s in sessions if s]
     for i, sess in enumerate(sessions):
         for p in sess:
@@ -521,6 +524,46 @@ def plan(clips: dict[str, dict], cut, fp: dict, talking: set[str] | None = None,
         out.notes.append(f"Left out {dropped} near-repeat shot{'s' * (dropped != 1)}.")
     out.notes.append(describe(out))
     return out
+
+
+def hold_shares(plan: sel.Plan, clips: dict, talking: set[str] | None = None) -> list[float]:
+    """Each chapter held to its planned share of the seconds (the sheet's
+    weights: the peak about twice a typical chapter, the last a little
+    under). The seats only set how many moments a chapter gets; vlog.breathe
+    then holds each by what it is, so a chapter of quick shots came out a
+    third of a typical one on her shoot, where the pros' last runs 0.86 of
+    it. A chapter's b-roll stretches or shrinks together, never under
+    SHARE_FLOOR_S, past what was filmed, or past FILL_MAX_S unless it was
+    held longer already; talk keeps its sentence, a payoff its hold. The
+    seconds overall stay what they were, give or take what the footage
+    allows. Returns each chapter's seconds."""
+    w = (getattr(plan, "sheet", None) or {}).get("weights")
+    if w and len(w) == len(plan.sessions):
+        body = sum(p.duration for s in plan.sessions for p in s)
+        live = sum(x for x, s in zip(w, plan.sessions) if s) or 1.0
+        for x, sess in zip(w, plan.sessions):
+            aim = body * x / live
+            free = [p for p in sess if not vlog._talks(p, talking)]
+            for _ in range(SHARE_PASSES):
+                gap = aim - sum(p.duration for p in sess)
+                if abs(gap) < 0.05:
+                    break
+                # the shots that can still move that way: one at its limit sits out the next pass,
+                # and a payoff is never squeezed under the hold vlog.breathe gave it (the pros')
+                room = [p for p in free if (p.duration < _share_cap(p) - 1e-3 if gap > 0
+                                            else p.duration > SHARE_FLOOR_S + 1e-3 and p.job != "payoff")]
+                have = sum(p.duration for p in room)
+                if have <= 0:
+                    break
+                factor = (have + gap) / have
+                for p in room:
+                    want = float(np.clip(p.duration * factor, min(SHARE_FLOOR_S, p.duration), _share_cap(p)))
+                    p.start, p.end, p.short = sel.window(clips, p.shot, want)
+    return [round(sum(p.duration for p in s), 2) for s in plan.sessions]
+
+
+def _share_cap(p: sel.Pick) -> float:
+    return min(max(vlog.FILL_MAX_S, p.duration), float(p.shot.end - p.shot.start))
 
 
 def describe(plan: sel.Plan) -> str:

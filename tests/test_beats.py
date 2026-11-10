@@ -21,7 +21,14 @@ pair:
    (vlog.flow) moves only the steps; the reason to watch held
    back (never in a chapter), no shot twice; through make.moments a tall
    Make plans this way, VIBECUT_BEATS=0 and a short don't;
-8. a payoff holds at least as long as the pros hold theirs.
+8. a payoff holds at least as long as the pros hold theirs;
+9. the taste model's one-change cuts (tastepick.py) reorder only the steps:
+   filming order, strongest last, wide first and another opening leave every
+   chapter opening on its setup and ending on its payoff (a plan without a
+   sheet is reordered whole, as before);
+10. each chapter is held to its share of the seconds: squash the last
+   chapter's shots and it comes back to its share, the total unchanged;
+   without a sheet nothing moves.
 
     python tests/test_beats.py
 """
@@ -263,6 +270,53 @@ def main() -> int:
     check("a payoff holds at least the pros' payoff length, where it was filmed long enough",
           pays and all(p.duration >= min(need, p.shot.end - p.shot.start) - 1e-3 for p in pays),
           str([round(p.duration, 2) for p in pays]) + f" vs {need:.2f}")
+
+    print("9. the taste pick's order changes keep the spine")
+    from web.backend import tastepick as tp
+    ok = lambda pl: all(j[0] == "setup" and j[-1] in ("payoff", "signoff")  # noqa: E731
+                        for j in ([p.job for p in s] for s in pl.sessions) if len(j) > 1)
+    check("the test bites: sorting whole chapters by filming time would move a chapter's ending",
+          any(sorted(s, key=lambda p: p.shot.order)[-1] is not s[-1] for s in made.sessions if len(s) > 1))
+    for name, how in (("filming order", tp._filming_order), ("strongest last", tp._strongest_last),
+                      ("wide first", tp._wide_first), ("another opening", lambda pl: tp._swap_hook(pl, clips))):
+        trial = tp.copy_plan(made)
+        how(trial)
+        check(f"{name}: every chapter still opens on its setup and ends on its payoff or sign-off", ok(trial),
+              str([[p.job for p in s] for s in trial.sessions]))
+    trial = tp.copy_plan(made)
+    tp._filming_order(trial)
+    mids = [[p.shot.order for p in s[slice(*tp._pinned(s))]] for s in trial.sessions]
+    check("filming order still sorts the steps between", all(m == sorted(m) for m in mids), str(mids))
+    check("a copy keeps the beat sheet, so the reply says the spine of whichever cut wins",
+          beats.say(tp.copy_plan(made)) == beats.say(made) != "")
+    ctrl = tp.copy_plan(off)
+    tp._filming_order(ctrl)
+    check("control: a plan without a sheet goes into filming order whole",
+          all([p.shot.order for p in s] == sorted(p.shot.order for p in s) for s in ctrl.sessions))
+
+    print("10. each chapter its share of the time")
+    from web.backend import select as sel2
+    sq = tp.copy_plan(made)
+    for p in sq.sessions[-1]:
+        if p.shot.id not in talking:
+            p.start, p.end, p.short = sel2.window(clips, p.shot, beats.SHARE_FLOOR_S)
+    before = [sum(p.duration for p in s) for s in sq.sessions]
+    w = sq.sheet["weights"]
+    aim = sum(before) * w[-1] / sum(w)
+    after = beats.hold_shares(sq, clips, talking)
+    check("a last chapter of quick shots is held to its share again", abs(after[-1] - aim) < 0.5 and before[-1] < aim - 2,
+          f"{before[-1]:.1f} s -> {after[-1]:.1f} s, its share {aim:.1f} s")
+    check("the seconds overall stay what they were", abs(sum(after) - sum(before)) < 0.5, f"{sum(before):.1f} -> {sum(after):.1f}")
+    check("the peak runs longest", after[sq.sheet["peak"]] == max(after), str(after))
+    check("talk keeps its sentence", all(abs(p.duration - q.duration) < 1e-6 for s, r in zip(made.sessions, sq.sessions)
+                                         for p, q in zip(s, r) if p.shot.id in talking))
+    bare = tp.copy_plan(made)
+    for p in bare.sessions[-1]:
+        if p.shot.id not in talking:
+            p.start, p.end, p.short = sel2.window(clips, p.shot, beats.SHARE_FLOOR_S)
+    del bare.sheet
+    held = [round(sum(p.duration for p in s), 2) for s in bare.sessions]
+    check("control: without a sheet nothing moves", beats.hold_shares(bare, clips, talking) == held)
 
     print(f"\n{len(failures)} failure(s)" if failures else "\nall passed")
     return 1 if failures else 0

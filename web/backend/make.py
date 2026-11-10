@@ -252,6 +252,8 @@ def moments(clips: dict[str, dict], cut, fp: dict, judge=None, taste: str = "", 
                 vlog.scenes(plan, talking)
                 vlog.flow(plan, clips, talking)
             vlog.breathe(plan, clips, fp, talking)
+            if getattr(plan, "sheet", None):
+                beats.hold_shares(plan, clips, talking)   # each chapter its planned share of the time
             if plan.duration >= vlog.LENGTH_OK * fp["duration"] or plan.duration <= 0:
                 break
             length = min(fp["duration"] * fp["duration"] / plan.duration, fp["duration"] * vlog.ASK_MORE_MAX)
