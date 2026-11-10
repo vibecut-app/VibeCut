@@ -112,11 +112,16 @@ def enabled(fmt: str) -> bool:
 
 def copy_plan(plan: sel.Plan) -> sel.Plan:
     """A plan the variants may re-cut: new Picks, the same Shots (their
-    embeddings are never copied). See map/make.md, mutation hazards."""
-    return dataclasses.replace(plan, hook=[dataclasses.replace(p) for p in plan.hook],
-                               teaser=[dataclasses.replace(p) for p in plan.teaser],
-                               sessions=[[dataclasses.replace(p) for p in s] for s in plan.sessions],
-                               titles=list(plan.titles), notes=list(plan.notes))
+    embeddings are never copied). See map/make.md, mutation hazards. The
+    beat sheet's record (beats.plan) comes along: the reply says the spine
+    of whichever cut wins."""
+    out = dataclasses.replace(plan, hook=[dataclasses.replace(p) for p in plan.hook],
+                              teaser=[dataclasses.replace(p) for p in plan.teaser],
+                              sessions=[[dataclasses.replace(p) for p in s] for s in plan.sessions],
+                              titles=list(plan.titles), notes=list(plan.notes))
+    if getattr(plan, "sheet", None):
+        out.sheet = dict(plan.sheet)
+    return out
 
 
 # --------------------------------------------------------------------------
@@ -127,17 +132,35 @@ def _ids(plan: sel.Plan) -> list[list[str]]:
     return [[p.shot.id for p in s] for s in plan.sessions]
 
 
+def _pinned(s: list[sel.Pick]) -> tuple[int, int]:
+    """Where a stop's movable middle starts and ends. A beat sheet's chapter
+    (beats.plan) opens on its setup and ends on its payoff or sign-off, and
+    an order variant moves only what's between: on her shoot the filming
+    order won and put a step before the setup and the payoff mid-chapter,
+    while the reply said each chapter ends on its best moment. A stop
+    without jobs moves whole."""
+    a = 1 if s and s[0].job == "setup" else 0
+    b = len(s)
+    while b > a and s[b - 1].job in ("payoff", "signoff"):
+        b -= 1
+    return a, b
+
+
 def _strongest_last(plan: sel.Plan) -> None:
     for s in plan.sessions:
-        if len(s) > 1:
-            best = max(s, key=lambda p: p.score)
+        a, b = _pinned(s)
+        if b < len(s):
+            continue                  # it already ends on the moment the sheet chose to end it
+        if len(s) - a > 1:
+            best = max(s[a:], key=lambda p: p.score)
             s.remove(best)
             s.append(best)
 
 
 def _filming_order(plan: sel.Plan) -> None:
     for s in plan.sessions:
-        s.sort(key=lambda p: p.shot.order)
+        a, b = _pinned(s)
+        s[a:b] = sorted(s[a:b], key=lambda p: p.shot.order)
 
 
 def _wide(p: sel.Pick) -> bool:
@@ -147,6 +170,8 @@ def _wide(p: sel.Pick) -> bool:
 def _wide_first(plan: sel.Plan) -> None:
     # the establishing shot: a stop reads as a place before it reads as people
     for s in plan.sessions:
+        if _pinned(s)[0]:
+            continue                  # it opens on its setup, the sheet's look at where we are
         w = next((p for p in s if _wide(p)), None)
         if w is not None and s[0] is not w:
             s.remove(w)
@@ -156,7 +181,9 @@ def _wide_first(plan: sel.Plan) -> None:
 def _runner_up(plan: sel.Plan) -> sel.Pick | None:
     # not a shot the teaser already glimpses (make.teaser): it would play twice in a row
     hook = {p.shot.id for p in plan.hook} | {p.shot.id for p in plan.teaser}
-    heroes = [p for s in plan.sessions for p in s if p.role == "hero" and p.shot.id not in hook]
+    # nor a chapter's setup or ending (beats.plan): the chapter would lose what holds it up
+    heroes = [p for s in plan.sessions for p in s if p.role == "hero" and p.shot.id not in hook
+              and p.job not in ("setup", "payoff", "signoff")]
     return max(heroes, key=lambda p: p.score) if heroes else None
 
 
@@ -176,7 +203,7 @@ def _swap_hook(plan: sel.Plan, clips: dict[str, dict]) -> bool:
     i = (min(spans, key=lambda x: 0 if x[1] <= o <= x[2] else min(abs(o - x[1]), abs(o - x[2])))[0]
          if spans else home)
     want = new.duration
-    hook = dataclasses.replace(new, role="hook", session=0)
+    hook = dataclasses.replace(new, role="hook", session=0, job="hook" if new.job else None)
     hook.start, hook.end, hook.short = sel.window(clips, hook.shot, old.duration)
     back = dataclasses.replace(old, role="hero", session=i)
     back.start, back.end, back.short = sel.window(clips, back.shot, want)
@@ -187,6 +214,9 @@ def _swap_hook(plan: sel.Plan, clips: dict[str, dict]) -> bool:
     at = next((k for k, p in enumerate(stop) if p.shot.order > o), len(stop))
     if stop and i == len(plan.sessions) - 1 and at == len(stop):
         at -= 1          # never after the moment the video ends on
+    a, b = _pinned(stop)
+    at = min(max(at, a), b)           # never before a chapter's setup nor after its payoff
+    back.job = "step" if back.job == "hook" else back.job
     stop.insert(at, back)
     return True
 
