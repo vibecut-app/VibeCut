@@ -69,6 +69,7 @@ class Pick:
     session: int = 0
     short: bool = False             # filmed shorter than the pace asked for
     room: tuple[float, float] | None = None   # a teaser glimpse: the source seconds it may use (make.teaser)
+    job: str | None = None          # its job in the story (beats.py): setup | step | detail | talk | payoff | signoff | hook
 
     @property
     def duration(self) -> float:

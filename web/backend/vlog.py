@@ -253,6 +253,12 @@ def breathe(plan: sel.Plan, clips: dict, fp: dict, talking: set[str] | None = No
     h["broll_s"] = h["broll_s"] * scale
     curve = fp.get("curve") or [1.0] * 5
     rests = {id(r) for r in (rest_of(sess, talking) for sess in plan.sessions) if r is not None}
+    # a chapter's payoff (beats.py) holds at least as long as the pros hold theirs:
+    # about 1.3 of their typical shot in a long vlog
+    payoff_x = None
+    if any(getattr(p, "job", None) == "payoff" for p in seq):
+        from . import beats
+        payoff_x = beats.measured(h.get("group") or "long")["payoff_hold"]
     held, short, talk = 0, 0, 0
     k = 0
     for sess in plan.sessions:
@@ -260,6 +266,9 @@ def breathe(plan: sel.Plan, clips: dict, fp: dict, talking: set[str] | None = No
             pos = (k + 0.5) / n
             c = float(np.interp(pos * (len(curve) - 1), range(len(curve)), curve))
             want = hold_for(p, h, c, id(p) in rests, talking, laughs(p, clips))
+            if payoff_x and getattr(p, "job", None) == "payoff" and not _talks(p, talking):
+                want = float(np.clip(max(want, float(fp.get("median_s") or h["shot_s"]) * c * payoff_x),
+                                     MIN_HOLD_S, MAX_HOLD_S))
             p.start, p.end, p.short = sel.window(clips, p.shot, want)
             held += id(p) in rests
             talk += _talks(p, talking)

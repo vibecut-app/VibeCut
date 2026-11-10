@@ -37,7 +37,7 @@ import uuid
 
 from cutgrammar import music as mu
 
-from . import audiomix, bed, habits, house, oai, places, remix, select as sel, sfx, story, storyboard as sb, tempo, timeline, vlog
+from . import audiomix, beats, bed, habits, house, oai, places, remix, select as sel, sfx, story, storyboard as sb, tempo, timeline, vlog
 
 # Shot length and hook by frame and pace: since 2026-10-24 the house style
 # (house.py: what the good vlogs measured) sets them; PRIOR keeps only each
@@ -241,10 +241,16 @@ def moments(clips: dict[str, dict], cut, fp: dict, judge=None, taste: str = "", 
         # lands well under its length asks for more moments once.
         length = fp["duration"]
         for _ in range(2):
-            plan = remix.plan_shots(clips, fp, length=length, cut=cut, judge=judge, taste=taste, bias=bias,
-                                    min_s=vlog.MIN_PICK_S)
-            vlog.scenes(plan, talking)
-            vlog.flow(plan, clips, talking)
+            if beats.enabled():
+                # the spine first (beats.py): chapters, their time and their peak, each a setup,
+                # its steps and a payoff, the video ending on a sign-off -- then the grammar holds them
+                plan = beats.plan(clips, cut, fp, talking, bias, length=length)
+                vlog.flow(plan, clips, talking)
+            else:
+                plan = remix.plan_shots(clips, fp, length=length, cut=cut, judge=judge, taste=taste, bias=bias,
+                                        min_s=vlog.MIN_PICK_S)
+                vlog.scenes(plan, talking)
+                vlog.flow(plan, clips, talking)
             vlog.breathe(plan, clips, fp, talking)
             if plan.duration >= vlog.LENGTH_OK * fp["duration"] or plan.duration <= 0:
                 break
@@ -652,6 +658,8 @@ def say(plan: sel.Plan, fp: dict, mx: dict | None, source: str, judged: bool, ai
     elif ai and ai.get("error"):
         parts.append(f"The story plan didn't work ({ai['error']}), so the usual rules picked the moments."
                      + (f" That try cost ${ai['cost']:.3f}." if ai.get("cost") else ""))
+    if not (ai and ai.get("chapters")) and beats.say(plan):
+        parts.append(beats.say(plan))
     t = fp.get("text")
     if fp.get("refs_used") and t:
         src = "like your recipe" if like else "like the reel"
