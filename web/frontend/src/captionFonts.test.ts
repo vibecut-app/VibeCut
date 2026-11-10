@@ -54,7 +54,7 @@ test('a picked font letters every caption line, place name included', () => {
   for (const f of CAPTION_FONTS) {
     const lines = draw({ ...BASE, typeface: f.id }, ov('caption', 'coffee run', 'Shibuya'))
     assert.equal(lines.length, 2)
-    for (const d of lines) assert.ok(d.font.includes(`"VC ${f.name}"`) && d.font.startsWith(`${f.weight} `), `${f.id}: ${d.font}`)
+    for (const d of lines) assert.ok(d.font.includes(f.family.split(',')[0]) && d.font.startsWith(`${f.weight} `), `${f.id}: ${d.font}`)
   }
   const own = draw(BASE, ov('caption', 'coffee run'))
   assert.ok(!own[0].font.includes('"VC '), 'no font picked: the style keeps its own')
@@ -94,7 +94,9 @@ test('every font ships with the app and the backend knows it', () => {
   const css = readFileSync(new URL('../public/fonts/fonts.css', import.meta.url), 'utf8')
   const py = readFileSync(new URL('../../backend/overlays.py', import.meta.url), 'utf8')
   for (const f of CAPTION_FONTS) {
-    const faces = [...css.matchAll(/@font-face \{([^}]*)\}/g)].map((m) => m[1]).filter((b) => b.includes(`'VC ${f.name}'`))
+    // a light cut is a weight of its family (Montserrat Light = "VC Montserrat" at 300)
+    const family = f.family.split(',')[0].replace(/"/g, '')
+    const faces = [...css.matchAll(/@font-face \{([^}]*)\}/g)].map((m) => m[1]).filter((b) => b.includes(`'${family}'`))
     assert.ok(faces.length >= 1, `${f.name}: no @font-face`)
     // a family may ship other weights too (Montserrat Light letters the chapter titles)
     assert.ok(faces.some((b) => b.includes(`font-weight: ${f.weight};`)), `${f.name}: weight ${f.weight} not shipped`)
@@ -102,7 +104,10 @@ test('every font ships with the app and the backend knows it', () => {
       const file = /url\(\/fonts\/([^)]+)\)/.exec(b)![1]
       assert.ok(existsSync(new URL(`../public/fonts/${file}`, import.meta.url)), `${file} missing`)
     }
-    assert.ok(existsSync(new URL(`../public/fonts/${f.id}/LICENSE`, import.meta.url)), `${f.id}: no licence`)
+    for (const b of faces) {
+      const dir = /url\(\/fonts\/([^/]+)\//.exec(b)![1]
+      assert.ok(existsSync(new URL(`../public/fonts/${dir}/LICENSE`, import.meta.url)), `${f.id}: no licence in ${dir}`)
+    }
     assert.ok(py.includes(`"${f.id}": "${f.name}"`), `${f.id}: not in overlays.TYPEFACES`)
   }
 })
