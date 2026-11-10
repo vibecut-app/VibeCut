@@ -9,16 +9,17 @@ music pool, and reports for each:
 
 - the taste model's score of the made board and where it falls among the
   good vlogs' own scores (as house_style.py does), and which cut it chose;
-- with --modes, the beat sheet with parts of it taken out, to tell which
-  part moves the score: taste_free (the taste model's order changes may
-  move a chapter's setup and payoff), no_shares (no beats.hold_shares),
-  plain (neither: the sheet's chapters only);
+- with --modes taste_free, the beat sheet with the taste model's order
+  changes free to move a chapter's setup and payoff, to tell what keeping
+  them buys. (2026-11-10 on her shoot: kept, -9.1; free, -10.2; the scene
+  grammar -12.1. Holding each chapter to its share of the seconds was tried
+  and taken out: -13.0 with the ends kept.)
 - the spine as made, beside the pros' (beats.measured): chapters and their
   moments, the peak against a typical chapter, the last against it, how
   many chapters open on a wide look, where the strongest moment sits in its
   chapter, what the video ends on.
 
-    .venv/bin/python design/eval/beats_eval.py [--frames tall,wide] [--modes beat_sheet,plain,...] [--out file.json] [--synthetic]
+    .venv/bin/python design/eval/beats_eval.py [--frames tall,wide] [--modes beat_sheet,taste_free,scene_grammar] [--out file.json] [--synthetic]
 
 Nothing is paid (no key, judge off); nothing is changed. --synthetic runs
 it on tests/test_beats.py's made-up day, to check the script itself.
@@ -53,17 +54,15 @@ oai.ENV_FILE = llm.ENV_FILE = Path("/nonexistent/.env")
 from web.backend import tastepick as tp  # noqa: E402
 
 GROUP = {"wide": "long", "tall": "long", "short": "short"}
-# each mode: (beat sheet on, the taste pick keeps a chapter's setup and payoff, hold_shares)
-MODES = {"beat_sheet": (True, True, True), "taste_free": (True, False, True), "no_shares": (True, True, False),
-         "plain": (True, False, False), "scene_grammar": (False, True, True)}
-_PINNED, _SHARES = tp._pinned, beats.hold_shares
+# each mode: (beat sheet on, the taste pick keeps a chapter's setup and payoff)
+MODES = {"beat_sheet": (True, True), "taste_free": (True, False), "scene_grammar": (False, True)}
+_PINNED = tp._pinned
 
 
 def configure(mode: str) -> None:
-    on, pins, shares = MODES[mode]
+    on, pins = MODES[mode]
     os.environ["VIBECUT_BEATS"] = "1" if on else "0"
     tp._pinned = _PINNED if pins else (lambda s: (0, len(s)))
-    beats.hold_shares = _SHARES if shares else (lambda plan, clips, talking=None: [])
 SECONDS = {"wide": 90.0, "tall": 90.0, "short": 45.0}
 
 

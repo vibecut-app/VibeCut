@@ -25,10 +25,8 @@ pair:
 9. the taste model's one-change cuts (tastepick.py) reorder only the steps:
    filming order, strongest last, wide first and another opening leave every
    chapter opening on its setup and ending on its payoff (a plan without a
-   sheet is reordered whole, as before);
-10. each chapter is held to its share of the seconds: squash the last
-   chapter's shots and it comes back to its share, the total unchanged;
-   without a sheet nothing moves.
+   sheet is reordered whole, as before), and the reply says only what the
+   cut does.
 
     python tests/test_beats.py
 """
@@ -296,6 +294,12 @@ def main() -> int:
           "best moment" not in beats.say(loose) and "order it was filmed" in beats.say(loose), beats.say(loose))
     check("...and the planned cut says each opens on where you are and ends on its best moment",
           "ends on its best moment" in beats.say(made) and " · " in beats.say(made), beats.say(made))
+    import dataclasses as dc
+    two = tp.copy_plan(made)
+    last = two.sessions[-1][0]
+    last.shot = dc.replace(last.shot, when=last.shot.when + timedelta(days=1))
+    check("over two days each chapter says its day, so the names read in order",
+          "Sep 23" in beats.say(two) and "Sep 22" in beats.say(two) and "Sep 2" not in beats.say(made), beats.say(two))
     from types import SimpleNamespace
     mx = {"track": SimpleNamespace(title="Song"), "bpm": 100.0}
     check("a vlog's reply doesn't promise a short's speed-up into the drop",
@@ -305,30 +309,6 @@ def main() -> int:
     tp._filming_order(ctrl)
     check("control: a plan without a sheet goes into filming order whole",
           all([p.shot.order for p in s] == sorted(p.shot.order for p in s) for s in ctrl.sessions))
-
-    print("10. each chapter its share of the time")
-    from web.backend import select as sel2
-    sq = tp.copy_plan(made)
-    for p in sq.sessions[-1]:
-        if p.shot.id not in talking:
-            p.start, p.end, p.short = sel2.window(clips, p.shot, beats.SHARE_FLOOR_S)
-    before = [sum(p.duration for p in s) for s in sq.sessions]
-    w = sq.sheet["weights"]
-    aim = sum(before) * w[-1] / sum(w)
-    after = beats.hold_shares(sq, clips, talking)
-    check("a last chapter of quick shots is held to its share again", abs(after[-1] - aim) < 0.5 and before[-1] < aim - 2,
-          f"{before[-1]:.1f} s -> {after[-1]:.1f} s, its share {aim:.1f} s")
-    check("the seconds overall stay what they were", abs(sum(after) - sum(before)) < 0.5, f"{sum(before):.1f} -> {sum(after):.1f}")
-    check("the peak runs longest", after[sq.sheet["peak"]] == max(after), str(after))
-    check("talk keeps its sentence", all(abs(p.duration - q.duration) < 1e-6 for s, r in zip(made.sessions, sq.sessions)
-                                         for p, q in zip(s, r) if p.shot.id in talking))
-    bare = tp.copy_plan(made)
-    for p in bare.sessions[-1]:
-        if p.shot.id not in talking:
-            p.start, p.end, p.short = sel2.window(clips, p.shot, beats.SHARE_FLOOR_S)
-    del bare.sheet
-    held = [round(sum(p.duration for p in s), 2) for s in bare.sessions]
-    check("control: without a sheet nothing moves", beats.hold_shares(bare, clips, talking) == held)
 
     print(f"\n{len(failures)} failure(s)" if failures else "\nall passed")
     return 1 if failures else 0
