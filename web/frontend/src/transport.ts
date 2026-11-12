@@ -4,7 +4,7 @@
 // it 60 times a second re-renders only what shows it (timeline, readout)
 // instead of the whole app.
 import { useSyncExternalStore } from 'react'
-import { fromMedia, locate, mediaEnd, mediaUrl, toMedia, toSource, type SeqItem } from './sequence'
+import { fromMedia, locate, mediaEnd, mediaUrl, pushAt, toMedia, toSource, type SeqItem } from './sequence'
 import { aimPosition, drawBackdrop } from './aimView'
 import type { Target } from './snap'
 import { hideStill, settleStill, swapSource } from './hold'
@@ -245,25 +245,32 @@ export class Transport {
       const live = this.toneLive
       return toneFilter(live && (!live.keys || live.keys.has(it.key)) ? live.tone : it)
     }
+    const pushOf = (el: HTMLVideoElement) => (this.lent ? 1 : pushAt(shown(el), t))
     let topFx = NO_FX
-    const put = (el: HTMLVideoElement, z: string, p: Pic | null, opacity: number, fx: FxLook, tone: string) => {
+    const put = (el: HTMLVideoElement, z: string, p: Pic | null, opacity: number, fx: FxLook, tone: string, push = 1) => {
       el.style.zIndex = z
       el.style.opacity = String(p ? p.opacity : opacity)
       el.style.translate = p?.translate ?? ''
-      el.style.scale = p?.scale ?? ''
+      // a blend's own scale (zoom through) times the shot's push at this moment
+      const sc = (p?.scale ? Number(p.scale) : 1) * push
+      el.style.scale = sc === 1 ? '' : String(+sc.toFixed(4))
       el.style.filter = [p?.filter ?? '', tone, fx.filter].join(' ').trim()
       el.style.transform = [fx.transform, el.dataset.dress ?? ''].join(' ').trim()
     }
     for (const el of [v, b]) {
       if (!el) continue
-      if (el === top) { topFx = fxOf(el); put(el, '2', look?.in ?? null, 1, topFx, toneOf(shown(el))) }
-      else if (el === under) put(el, '1', look?.out ?? null, 1, fxOf(el), toneOf(shown(el)))
+      if (el === top) { topFx = fxOf(el); put(el, '2', look?.in ?? null, 1, topFx, toneOf(shown(el)), pushOf(el)) }
+      else if (el === under) put(el, '1', look?.out ?? null, 1, fxOf(el), toneOf(shown(el)), pushOf(el))
       else put(el, '0', null, 0, NO_FX, '')
     }
     const stage = this.veil?.parentElement
     // the frame held over the picture while a jump loads is the shot at the playhead
     const still = stage?.querySelector<HTMLCanvasElement>('canvas[data-hold]')
-    if (still) still.style.filter = toneOf(this.items[k0])
+    if (still) {
+      still.style.filter = toneOf(this.items[k0])
+      const sc = this.lent ? 1 : pushAt(this.items[k0], t)
+      still.style.scale = sc === 1 ? '' : String(+sc.toFixed(4))
+    }
     // a whole picture over a blur of itself (board backdrop): the blur, drawn from the picture on top
     const backdrop = (stage ?? top?.parentElement)?.querySelector<HTMLCanvasElement>('canvas[data-backdrop]')
     if (backdrop) {
@@ -512,9 +519,8 @@ export function dress(el: HTMLVideoElement | null, it: SeqItem | null | undefine
     const k = fill ? Math.max(W / w, H / h) : Math.min(W / w, H / h)
     transform = `rotate(${r}deg) scale(${k})${flip}`
   }
-  // the push over the shot (board punch; export's zoompan): a slow scale, + in, - out
-  const push = it?.kind === 'shot' ? (it.punch ?? 0) : 0
-  const dur = it ? Math.max(0.2, it.seq_end - it.seq_start) : 0
+  // The push over the shot (board punch) is not dressed here: it follows the
+  // playhead (pushAt, in paint), so it moves only while the edit plays.
   // the held frame laid over the picture (hold.ts) is the same picture: dress it alike
   const still = hold ? el.parentElement?.querySelector<HTMLCanvasElement>('canvas[data-hold]') : null
   for (const x of still ? [el, still] : [el]) {
@@ -522,16 +528,7 @@ export function dress(el: HTMLVideoElement | null, it: SeqItem | null | undefine
     x.style.transform = transform
     x.style.objectFit = fit
     x.style.objectPosition = position
-    if (push) {
-      x.style.setProperty('--push-from', String(push > 0 ? 1 : 1 - push))
-      x.style.setProperty('--push-to', String(push > 0 ? 1 + push : 1))
-      x.style.animation = 'none'
-      void x.offsetWidth   // restart the animation at each cut
-      x.style.animation = `vc-push ${dur.toFixed(3)}s linear forwards`
-    } else {
-      x.style.animation = ''
-      x.style.removeProperty('scale')
-    }
+    x.style.scale = ''   // paint() sets the push again for a shot of the edit
   }
 }
 

@@ -6,13 +6,17 @@
 // picked version on it as one undoable turn.
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../api'
-import { locate, toSource, type SeqItem } from '../sequence'
+import { locate, pushAt, toSource, type SeqItem } from '../sequence'
 import { dress, transport, transportStore } from '../transport'
 import type { PreferCard, PreferSide, Session, Turn } from '../types'
 import { Button } from '../ui'
 
 const DRIFT = 0.25      // seconds the picture may wander from the sound before it is put back
 const H = 210           // a version's height on the card: big enough to judge, small enough that the video stays biggest
+const setPush = (el: HTMLVideoElement, it: SeqItem | undefined, t: number) => {
+  const sc = pushAt(it, t)
+  el.style.scale = sc === 1 ? '' : String(+sc.toFixed(4))
+}
 
 type Said = { deck: number; text: string; turn: number | null }
 
@@ -143,7 +147,7 @@ function Version({ side, ratio, label, playing, onPlay, onStop }: {
     const [f, bk] = els()
     const k = locate(items, side.start)
     st.current = { ...st.current, front: 0, cur: -1, pre: -1 }
-    if (f && k >= 0) { load(f, items[k], side.start); f.pause(); f.style.opacity = '1'; dress(f, items[k], false) }
+    if (f && k >= 0) { load(f, items[k], side.start); f.pause(); f.style.opacity = '1'; dress(f, items[k], false); setPush(f, items[k], side.start) }
     if (bk) { bk.pause(); bk.style.opacity = '0' }
   }
   useEffect(rest, [side]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -189,6 +193,8 @@ function Version({ side, ratio, label, playing, onPlay, onStop }: {
         const f = vs[s.front]
         if (f && it?.kind === 'shot' && Math.abs(f.currentTime - toSource(it, t)) > DRIFT) f.currentTime = toSource(it, t)
       }
+      const f = vs[s.front]
+      if (f) setPush(f, it, t)   // the shot's push, at this moment of it (as the player draws it)
       s.raf = requestAnimationFrame(tick)
     }
     // the picture starts with the sound (its mix may still be rendering), or alone if it can't play

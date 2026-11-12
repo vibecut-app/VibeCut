@@ -304,7 +304,9 @@ The promise to a user is therefore *not* "this will be beautiful." It is
 - **Motion on the beat and a deliberate ending** (`make.py`, 2026-10-18):
   `punch` is a shot fix like speed or mirror (`board.SHOT_FX`, ±`PUNCH_MAX`
   0.25; `timeline.layout` carries it, `export._shot` renders it as zoompan,
-  `transport.dress` plays it as a CSS `scale` animation over the shot —
+  the player reads it from the playhead, `sequence.pushAt` in
+  `transport.paint`, so a paused picture holds still at its moment; it was a
+  CSS animation that kept zooming after a pause until 2026-11-12 —
   preview and export agree). `make.punches`: the hook pushes in
   (`PUSH_HOOK` 0.08), the first body shot after the drop hits (`PUSH_HIT`
   0.14), every bar's first shot pushes ±`PUSH_BAR` 0.05 alternating; no
