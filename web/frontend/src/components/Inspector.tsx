@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { CAPTION_FONTS, type CaptionFont } from '../captionFonts'
 import type { SeqItem } from '../sequence'
-import { dressOf, isDressed, KIND_META } from '../overlayDraw'
+import { dressOf, HEADING_DEFAULT, HEADINGS, isDressed, KIND_META } from '../overlayDraw'
 import { multiline, typable, wordsOf, wordsPatch } from '../captionWords'
 import type { CaptionsMode, HeadingLook, JoinInfo, LookInfo, Overlay, OverlayPlace, OverlayStyle, ResourceKind, SoundStrip } from '../types'
 import { Button, cx } from '../ui'
@@ -60,7 +60,7 @@ export function Inspector(p: {
   captionSample: string
   /** the caption clicked on the picture or the timeline */
   caption: Overlay | null
-  onCaptionEdit: (patch: { text?: string; sub?: string; look?: HeadingLook; unsure?: string[] }, label: string) => void
+  onCaptionEdit: (patch: { text?: string; sub?: string; look?: HeadingLook; unsure?: string[]; lines?: Partial<Record<LineRole, LineLook | null>> }, label: string) => void
   onCaptionPick: (id: string) => void
   onCaptionDelete: () => void
   onCaptionAdd: () => void
@@ -232,7 +232,8 @@ export function Inspector(p: {
                          value={role ?? 'all'} onPick={(v) => p.onLine(v === 'all' ? null : v as LineRole)} />
             </Line>
           )}
-          {cap && role ? <LineLookPanel key={cap.id + role} o={cap} role={role} style={p.style} onLook={(look, label) => p.onLineLook(role, look, label)} /> : <>
+          {cap && role ? <LineLookPanel key={cap.id + role} o={cap} role={role} style={p.style} onLook={(look, label) => p.onLineLook(role, look, label)}
+                                           onTitleLook={(look, name) => p.onCaptionEdit({ look, lines: { main: { typeface: null } } }, `The chapter title is in ${name}`)} /> : <>
           {p.captionsMode !== 'off' ? <>
             {save('caption', 'caption look')}
             <Section title={p.caption ? 'Font of every caption' : 'Font'}>
@@ -381,13 +382,6 @@ function CaptionWords({ o, onEdit, onDelete, onWatch, onDone, onPlace }: {
           <Chip onClick={() => onEdit({ unsure: [] }, 'You checked the words of the subtitle')}><Icon name="check" size={17} /> Sounds right</Chip>
         </div>
       )}
-      {o.kind === 'heading' && (
-        // a chapter title has its own look; the line under it stays plain
-        <Line label="Title look">
-          <Segmented options={HEADING_LOOKS} value={o.look ?? 'spaced'}
-                     onPick={(v) => v !== o.look && onEdit({ look: v as HeadingLook }, 'You changed the chapter title\'s look')} />
-        </Line>
-      )}
       <div className="flex flex-wrap gap-2 pt-1">
         <Chip onClick={onWatch}><Icon name="play" size={17} /> See it play</Chip>
         <Chip danger onClick={onDelete}><Icon name="trash" size={17} /> Delete</Chip>
@@ -413,7 +407,16 @@ function markUnsure(text: string, unsure: string[]): ReactNode {
   return parts.map((x, i) => unsure.includes(x) ? <b key={i} className="font-medium text-amber-300">{x}</b> : <span key={i}>{x}</span>)
 }
 
-const HEADING_LOOKS: [string, string][] = [['spaced', 'Spaced'], ['script', 'Script'], ['serif', 'Serif'], ['bold', 'Bold']]
+// A chapter title's four designs, shown first in its Font grid (sarah,
+// 2026-11-12: "what is the difference between font and title look just merge
+// them together"). A design is a font with its own size, case and spacing; a
+// plain font picked after it keeps the design's case and spacing.
+const TITLE_DESIGNS: [HeadingLook, string][] = [['spaced', 'Spaced caps'], ['script', 'Script'], ['serif', 'Serif'], ['bold', 'Bold caps']]
+const titleTiles = (): FontTile[] => TITLE_DESIGNS.map(([id, name]) => {
+  const h = HEADINGS[id]
+  return { id, name, style: { fontFamily: h.family, fontWeight: h.weight, textTransform: h.case === 'upper' ? 'uppercase' : 'none',
+    letterSpacing: h.track ? `${Math.min(h.track, 0.2)}em` : undefined, fontSize: h.case === 'upper' ? 15 : 19 } }
+})
 
 // The captions' colour. Automatic reads the footage behind each caption and
 // picks what stands out; a picked colour is kept, with an edge or glow so it
@@ -479,14 +482,27 @@ function CaptionDress({ style, onPick }: { style: OverlayStyle; onPick: (patch: 
 
 // Each font shown in its own letters on a dark tile, the way it will sit on
 // the footage; one tap sets it for every caption (one font per video).
-function CaptionFonts({ value, onPick }: { value: string | null; onPick: (f: CaptionFont | null) => void }) {
+type FontTile = { id: string; name: string; style: CSSProperties }
+function CaptionFonts({ value, onPick, designs, design, onDesign }: {
+  value: string | null; onPick: (f: CaptionFont | null) => void
+  designs?: FontTile[]; design?: string; onDesign?: (t: FontTile) => void
+}) {
   const tile = (on: boolean) => cx('flex h-14 min-w-0 items-center justify-center rounded-lg border px-2 text-center',
     on ? 'border-accent ring-2 ring-accent ring-offset-2 ring-offset-panel' : 'border-black/15 hover:brightness-125')
   return (
     <div className="grid grid-cols-2 gap-2.5">
+      {designs ? designs.map((t) => {
+        const on = !value && design === t.id
+        return (
+          <button key={t.id} type="button" title={t.name} aria-label={t.name} aria-pressed={on}
+                  onClick={() => !on && onDesign?.(t)} className={tile(on)} style={{ background: '#1d1d22' }}>
+            <span className="truncate leading-[1.1] text-white" style={t.style}>{t.name}</span>
+          </button>
+        )
+      }) : (
       <button type="button" aria-pressed={!value} onClick={() => value && onPick(null)}
               className={cx('flex h-14 items-center justify-center rounded-lg border px-2 font-serif text-[16px]',
-                !value ? 'border-accent bg-accent text-accent-ink' : 'border-line bg-panel text-zinc-100 hover:bg-raised')}>Style's own</button>
+                !value ? 'border-accent bg-accent text-accent-ink' : 'border-line bg-panel text-zinc-100 hover:bg-raised')}>Style's own</button>)}
       {CAPTION_FONTS.map((f) => (
         <button key={f.id} type="button" title={f.name} aria-label={f.name} aria-pressed={value === f.id}
                 onClick={() => value !== f.id && onPick(f)} className={tile(value === f.id)} style={{ background: '#1d1d22' }}>
@@ -782,9 +798,11 @@ export function Chip({ children, onClick, on, danger, disabled, title }: {
 // group of captions, and we can tune it independently"): the same controls
 // as every caption's, for this line only, plus its size. Dragging the line on
 // the picture moves it away from the rest of the group.
-function LineLookPanel({ o, role, style, onLook }: {
+function LineLookPanel({ o, role, style, onLook, onTitleLook }: {
   o: Overlay; role: LineRole; style: OverlayStyle; onLook: (look: LineLook | null, label: string) => void
+  onTitleLook: (look: HeadingLook, name: string) => void
 }) {
+  const title = o.kind === 'heading' && role === 'main'
   const L: LineLook = o.lines?.[role] ?? {}
   const name = lineName(o, role)
   const Name = name[0].toUpperCase() + name.slice(1)
@@ -796,7 +814,9 @@ function LineLookPanel({ o, role, style, onLook }: {
   return <>
     <Hint>Only {name} changes. The rest stays as it is and moves with it.</Hint>
     <Section title="Font">
-      <CaptionFonts value={L.typeface ?? null} onPick={(f) => onLook({ typeface: f?.id ?? null }, f ? `${Name} is in ${f.name}` : `${Name} is back to its own font`)} />
+      <CaptionFonts value={L.typeface ?? null} onPick={(f) => onLook({ typeface: f?.id ?? null }, f ? `${Name} is in ${f.name}` : `${Name} is back to its own font`)}
+                    {...(title ? { designs: titleTiles(), design: o.look ?? HEADING_DEFAULT,
+                                   onDesign: (t: FontTile) => onTitleLook(t.id as HeadingLook, t.name) } : {})} />
     </Section>
     <Section title="Colour">
       <CaptionColours value={L.text_color ?? null} onPick={(c) => onLook({ text_color: c }, c ? `You changed the colour of ${name}` : `${Name} is back to its own colour`)} />

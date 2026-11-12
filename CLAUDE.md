@@ -1431,7 +1431,11 @@ The promise to a user is therefore *not* "this will be beautiful." It is
   Guy, Bangers, Permanent Marker and Lobster left it (`RETIRED`: still drawn
   for videos that use them, still accepted by the backend). The taste set
   measured size and case (small, a quarter capitals), not the faces, so the
-  picks are by eye.
+  picks are by eye. A chapter title has one Font grid, no separate Title
+  look (sarah, 2026-11-12: "just merge them together"): its four designs
+  (Spaced caps, Script, Serif, Bold caps = `look`) are the first tiles, then
+  the fonts (`lines.main.typeface`, keeping the design's case and spacing);
+  picking a design clears the font.
   **Caption text panel** (sarah, 2026-10-18: "pick different fonts, colors,
   outlining, shadows, backgrounds and adjust how thick they are"; plain
   controls, no video behind them; word art shown on a frame). Captions tab:
