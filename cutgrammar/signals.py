@@ -125,6 +125,25 @@ def _small_grey(frames: np.ndarray, w: int) -> np.ndarray:
     return _grey(area_resize(frames, w, h))
 
 
+def voiced_of(m: Media, n_sec: int) -> tuple[list[float], list[list[float]]]:
+    """Speech from the level: the voiced share of each second, and the
+    voiced intervals at 10 ms (blips under 80 ms dropped). One function,
+    so a pro's edit (taste/cuts.py) is heard the way a clip is."""
+    speech = [0.0] * n_sec
+    voiced: list[list[float]] = []
+    if m.has_audio:
+        mask = features.speech_mask(m, 0.01)
+        if mask.size:
+            for k in range(n_sec):
+                seg = mask[k * 100:(k + 1) * 100]
+                speech[k] = float(seg.mean()) if seg.size else 0.0
+            edges = np.flatnonzero(np.diff(np.concatenate([[0], mask.astype(np.int8), [0]])))
+            for a, b in zip(edges[::2], edges[1::2]):
+                if b - a >= 8:  # ignore blips under 80 ms
+                    voiced.append([round(a * 0.01, 2), round(b * 0.01, 2)])
+    return speech, voiced
+
+
 def from_media(m: Media) -> ClipSignals:
     frames = m.preview if m.preview is not None else m.frames
     times = m.times if m.times is not None else np.arange(len(frames)) / max(m.fps, 1e-6)
@@ -152,19 +171,7 @@ def from_media(m: Media) -> ClipSignals:
                 out.append(float(x[int(np.argmin(np.abs(times - (k + 0.5))))]))
         return out
 
-    # speech: 10 ms voiced mask -> per-second fraction and voiced intervals
-    speech = [0.0] * n_sec
-    voiced: list[list[float]] = []
-    if m.has_audio:
-        mask = features.speech_mask(m, 0.01)
-        if mask.size:
-            for k in range(n_sec):
-                seg = mask[k * 100:(k + 1) * 100]
-                speech[k] = float(seg.mean()) if seg.size else 0.0
-            edges = np.flatnonzero(np.diff(np.concatenate([[0], mask.astype(np.int8), [0]])))
-            for a, b in zip(edges[::2], edges[1::2]):
-                if b - a >= 8:  # ignore blips under 80 ms
-                    voiced.append([round(a * 0.01, 2), round(b * 0.01, 2)])
+    speech, voiced = voiced_of(m, n_sec)
 
     best = int(np.argmax(fs["total"])) if len(frames) else 0
     thumb = _small_grey(frames[best:best + 1], 16)[0].ravel() if len(frames) else np.zeros(144)
@@ -205,10 +212,19 @@ def with_voice(sig: ClipSignals, voice: list[float]) -> ClipSignals:
     """
     if not voice or sig.n == 0:
         return sig
-    v = np.asarray(voice[:sig.n] + [voice[-1]] * max(0, sig.n - len(voice)), dtype=np.float64)
-    gate = np.clip((v - VOICE_LO) / (VOICE_HI - VOICE_LO), 0, 1)
+    gate = voice_gate(voice, sig.n)
     d = sig.to_json()
     d["speech"] = [round(float(s * g), 4) for s, g in zip(sig.speech, gate)]
-    d["voiced"] = [w for w in sig.voiced
-                   if gate[min(int((w[0] + w[1]) / 2), sig.n - 1)] > 0]
+    d["voiced"] = gated(sig.voiced, gate)
     return ClipSignals.from_json(d)
+
+
+def voice_gate(voice: list[float], n: int) -> np.ndarray:
+    """0..1 per second: how surely the loud seconds are a voice."""
+    v = np.asarray(list(voice[:n]) + [voice[-1]] * max(0, n - len(voice)), dtype=np.float64)
+    return np.clip((v - VOICE_LO) / (VOICE_HI - VOICE_LO), 0, 1)
+
+
+def gated(voiced: list[list[float]], gate: np.ndarray) -> list[list[float]]:
+    """The voiced intervals whose middle second has a voice in it."""
+    return [w for w in voiced if gate[min(int((w[0] + w[1]) / 2), len(gate) - 1)] > 0]

@@ -94,6 +94,16 @@ deliberately not adopted. Here a reference is only *measured*
 (cutgrammar/style.py) and applied to the creator's own footage
 (web/backend/restyle.py, reference.py, export.py).
 
+Learning to Cut — https://github.com/PardoAlejo/LearningToCut
+Pardo, Caba Heilbron, León Alcázar, Thabet, Ghanem, "Learning to Cut by
+Watching Movies", ICCV 2021. Code licensed under the MIT License.
+
+Method only: a finished edit's real cuts are the positives and the other
+moments the editor could have cut at are the negatives, ranked by a
+softmax over each cut's candidates, with nothing read about where in the
+shot a moment sits. No code, weights or data are included; the readings
+and the scorer are VibeCut's own (taste/cuts.py).
+
 Caption fonts — web/frontend/public/fonts/
 TikTok Sans, Montserrat, Poppins, Bebas Neue, Anton, Archivo Black,
 Bangers, Fredoka, Pacifico, Lobster, Caveat, Playfair Display and Courier

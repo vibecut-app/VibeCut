@@ -299,3 +299,49 @@ a cold opening is caught 14% → 34% of the time; swapped shots 89% → 78%
 and talk left running 78% → 72%. Story jobs on long: 48% against 28% for
 guessing the commonest. At seed 0 the saved models read 93% / 87%, as the
 Mac's own retrain did with the non-vlogs still in.
+
+## Where pros cut in and out (2026-11-19, `cuts.py`)
+
+sarah: "Do the MIT learn to cut". Make keeps a few seconds of each clip and
+today puts its busiest second mid-window (`select.window`), a guess. The
+method of Learning to Cut (Pardo et al., ICCV 2021, MIT; method only, see
+NOTICE): each real cut in a pro's vlog is a decision, and the other moments
+they could have cut at are the negatives -- for the cut out of a shot, its
+earlier moments; for the cut into the next, its later ones. A conditional
+logit per side (numpy, Newton) learns to rank the pro's moment first.
+
+It reads only what a phone clip has at Make time, so what it learns can be
+asked of a clip: voiced intervals at 10 ms (gated by the classifier's
+voice), laughter once a second, movement / subject / edge once a second
+(signals' own definitions). Nothing says where in the shot a moment sits:
+a cut out is read looking back only, in the shot's second half; a cut in
+looking ahead only, in its first half (a late cut-in candidate reading
+ahead would read the run-up to the pro's cut out); nothing within 50 ms of
+the cut; a candidate without room for a reading is dropped, else that
+reading is left out for the whole cut. On made-up edits where nothing
+marks the cuts it ranks at chance (`tests/test_cuts.py`).
+
+Decided by rank, not "top hit": how often the pro's moment beats a moment
+more than 0.3 s away (50% = no idea). The pro's moment is always at an end
+of the candidates and the top of a smooth curve lands at an end more often
+than chance, so "top within 0.3 s" flatters any scorer by ~4 points on that
+made-up set; it is reported, never used. Gate (`wins`): beats the better of
+the rule's two readings (busiest second; busiest and never mid-word) on
+creators it never saw, the bootstrap's low end above zero, 8+ creators,
+200+ cuts, per side. Only a trusted side is used, and in Make only to move
+the rule's window by up to `NUDGE` 1 s (`place`): the rule still picks the
+part of the clip, the scorer the exact cut. Not wired into `select.window`
+until a real run wins.
+
+On her Mac (fetches each measured vlog again, keeps numbers, deletes it,
+then tests and fits; free):
+
+    cd ~/Desktop/VibeCut/repo && caffeinate -i .venv/bin/python -m taste.collect --only cuts
+
+→ `cuts/<id>.json` (cut times, each shot's own stretch and once-a-second
+readings, voiced intervals, laughter, a 10 Hz movement and level curve kept
+for looking into later; no frame, word or sound), `model/cuts.json` and
+`model/cuts-report.md`. `python -m taste.cuts train` reruns the test.
+Known: a pro's mix carries music and J / L cuts a phone clip doesn't; the
+picture is read once a second, so below a second only the words can tell
+moments apart.

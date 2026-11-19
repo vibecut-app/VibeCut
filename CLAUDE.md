@@ -60,7 +60,15 @@ The promise to a user is therefore *not* "this will be beautiful." It is
   `app.REDRESS` and the picked version gets it too, inside the pick's turn
   (#47's "From your profile" needs that one line when the two meet).
   `tests/test_prefer.py`. Every threshold
-  a prior. See `taste/README.md`.
+  a prior. See `taste/README.md`. **Where to cut** (`taste/cuts.py`, sarah
+  2026-11-19 "Do the MIT learn to cut"; Learning to Cut's method, MIT,
+  method only): pros' real cut points vs the other moments of the same shot,
+  read from what a clip has at Make time (voiced intervals, laughter, the
+  once-a-second movement), never where in the shot a moment sits; ranked by
+  a conditional logit per side, tested leave-one-creator-out against the
+  busiest-second rule (`wins`). `taste.collect --only cuts` on her Mac.
+  Not wired into `select.window` until a real run wins; then only to nudge
+  the rule's window ≤ `NUDGE` 1 s (`place`). `tests/test_cuts.py`.
 - `web/` — the app (FastAPI + Vite/React). Built at the user's explicit
   request despite the "no web UI" non-goal below; scope is deliberately one
   path: **Projects → Footage → (style questions) → Story → Export**, the rough trim automatic

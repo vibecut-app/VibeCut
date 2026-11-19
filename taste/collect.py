@@ -33,6 +33,9 @@ three options:
   spends past it. What's said (English only, the
   Mac's own recogniser) goes into that one call and nowhere else.
 - `--train`: retrain the taste model (taste.model) at the end.
+- `--only cuts`: every measured vlog is fetched again and where its cuts
+  fall is read into taste/cuts/<id>.json (taste.cuts: numbers only), then
+  the cut scorer is tested on unseen creators against Make's rule. Free.
 
 Nothing of anyone's video is kept, and nothing here calls a paid model
 unless --ai is given with a cap.
@@ -713,6 +716,63 @@ def describe_all(log, ai: AIRun | None = None) -> None:
             _fetch_and_describe(row, log, ai)
 
 
+# --- cuts -------------------------------------------------------------------
+
+def _cut_needs(row: dict) -> bool:
+    from . import cuts
+    out = cuts.OUT / f"{row['id']}.json"
+    try:
+        return json.loads(out.read_text()).get("v") != cuts.VERSION
+    except (OSError, ValueError):
+        return True
+
+
+def _fetch_and_cut(row: dict, log) -> bool:
+    """One measured row fetched again, where its cuts fall read into
+    numbers (taste.cuts), the video deleted. -> False when the fetch itself
+    failed, which is worth another try."""
+    from . import cuts
+    tmp = Path(tempfile.mkdtemp(prefix="taste-"))
+    try:
+        try:
+            path = _download(row, tmp)
+        except Exception as e:   # a link gone private, a dropped connection: tried again
+            log(f"{row['id']}: cuts not read ({_why(e)})")
+            return False
+        try:
+            rec = cuts.read_video(path, id=row["id"], group=row["group"], creator=row.get("creator") or row["id"],
+                                  limit_s=LONG_S if row["group"] == "long" else None, mac=True, log=log)
+            cuts.save(rec, cuts.OUT / f"{row['id']}.json")
+            log(f"{row['id']}: cuts read")
+        except Exception as e:   # one unreadable video must not stop the batch
+            log(f"{row['id']}: cuts not read ({type(e).__name__}: {str(e)[:120]})")
+        return True
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def cuts_all(log) -> None:
+    """`--only cuts`: every measured vlog (a link, a creator not struck) is
+    fetched again and its cuts read into taste/cuts/<id>.json, then the
+    cut scorer is tested and fitted (taste.cuts). Resumable: the record is
+    the mark that a video is done. Free: nothing is sent anywhere."""
+    from . import cuts
+    off = _struck()
+    todo = []
+    for group, path in GROUPS.items():
+        _, rows = _rows(path)
+        todo += [r for r in rows if r.get("status") == "measured" and r.get("url_or_file", "").startswith("http")
+                 and not _off(r, off)]
+    left = [r for r in todo if _cut_needs(r)]
+    log(f"cuts: {len(todo) - len(left)} of {len(todo)} vlogs read already, {len(left)} to go")
+    again = [r for r in left if not _fetch_and_cut(r, log)]
+    for row in again:
+        if _cut_needs(row):
+            log(f"{row['id']}: trying the download once more")
+            _fetch_and_cut(row, log)
+    cuts.train(log=log)
+
+
 def _quit(signum, frame) -> None:
     # a closed Terminal window or a kill stops the run the way Ctrl-C does:
     # yt-dlp runs in its own group (_run), so it is stopped from here, and
@@ -722,7 +782,8 @@ def _quit(signum, frame) -> None:
 
 def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(prog="python -m taste.collect")
-    ap.add_argument("--only", choices=["discover", "measure"])
+    ap.add_argument("--only", choices=["discover", "measure", "cuts"],
+                    help="cuts: read where each measured vlog's cuts fall, then test the cut scorer (free)")
     ap.add_argument("--describe", action="store_true",
                     help="also write each measured video down shot by shot (descriptions/<id>.json)")
     ap.add_argument("--ai", action="store_true",
@@ -747,6 +808,10 @@ def main(argv: list[str] | None = None) -> None:
         ai = AIRun(a.cap, log=log, spent=before)
         log(f"AI editor on {oai.model()}, up to ${a.cap:.2f} in all"
             + (f"; ${before:.3f} of it spent by earlier runs" if before else ""))
+    if a.only == "cuts":
+        cuts_all(log)
+        log("done")
+        return
     describe = a.describe or a.ai
     sync(log)
     if a.only != "measure":
