@@ -45,6 +45,10 @@ os.environ["VIBECUT_CACHE"] = str(TMP / "cache")
 os.environ["VIBECUT_EXPORTS"] = str(TMP / "out")
 os.environ["VIBECUT_BED"] = "0"
 os.environ["VIBECUT_REMIX_JUDGE"] = "0"
+# Which version wins here is pinned on made-up clips, like the taste model
+# trained below; where the pros' cut scorer on disk moves a window depends
+# on its last training on the Mac, so it stays out (tests/test_cuts.py).
+os.environ["VIBECUT_CUTS"] = "0"
 os.environ["ANTHROPIC_API_KEY"] = ""
 os.environ["OPENAI_API_KEY"] = ""
 os.environ.pop("VIBECUT_TASTE", None)

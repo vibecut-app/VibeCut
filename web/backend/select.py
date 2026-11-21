@@ -32,10 +32,13 @@ numbers are right.
 from __future__ import annotations
 
 import math
+import os
 from dataclasses import dataclass, field
 from datetime import datetime
 
 import numpy as np
+
+from taste import cuts as pro_cuts
 
 from . import storyboard as sb
 
@@ -69,6 +72,7 @@ class Pick:
     session: int = 0
     short: bool = False             # filmed shorter than the pace asked for
     room: tuple[float, float] | None = None   # a teaser glimpse: the source seconds it may use (make.teaser)
+    job: str | None = None          # its job in the story (beats.py): setup | step | detail | talk | payoff | signoff | hook
 
     @property
     def duration(self) -> float:
@@ -187,7 +191,11 @@ def contrast(clips: dict[str, dict], s: sb.Shot) -> float:
 
 
 def window(clips: dict[str, dict], s: sb.Shot, want: float) -> tuple[float, float, bool]:
-    """A `want`-second window that cuts in just before the busiest second."""
+    """A `want`-second window that cuts in just before the busiest second,
+    then slid at most `pro_cuts.NUDGE` to where the pros would cut: the rule
+    picks the part of the clip, the scorer learnt from pros' vlogs
+    (taste/cuts.py) the exact moment, on the sides where it beat this rule
+    on creators it never saw. `VIBECUT_CUTS=0` keeps the rule's moment."""
     lo, hi = s.start, s.end
     if hi - lo <= want + 1e-3:
         return lo, hi, True
@@ -195,6 +203,10 @@ def window(clips: dict[str, dict], s: sb.Shot, want: float) -> tuple[float, floa
         lo = lo + EDGE_S
     t = busiest(clips, s, lo + LEAD_IN * want, hi - (1 - LEAD_IN) * want)
     a = float(np.clip(t - LEAD_IN * want, lo, hi - want))
+    if os.environ.get("VIBECUT_CUTS", "1") != "0":
+        p = pro_cuts.place(clips.get(s.clip_id) or {}, s.start, s.end, want, lo, hi, around=a)
+        if p is not None:
+            a = p
     return round(a, 3), round(a + want, 3), False
 
 
