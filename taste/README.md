@@ -330,8 +330,23 @@ the rule's two readings (busiest second; busiest and never mid-word) on
 creators it never saw, the bootstrap's low end above zero, 8+ creators,
 200+ cuts, per side. Only a trusted side is used, and in Make only to move
 the rule's window by up to `NUDGE` 1 s (`place`): the rule still picks the
-part of the clip, the scorer the exact cut. Not wired into `select.window`
-until a real run wins.
+part of the clip, the scorer the exact cut.
+
+**First run, 2026-11-19** (her Mac, `model/cuts-report.md`; 87 vlogs, 32
+creators, ~1,440 cuts a side). Cut out: the pro's moment beats one more
+than 0.3 s away 56.9% of the time for the scorer, 49.9% for the busiest
+second (chance: what Make did), 54.6% for busiest and never mid-word;
++2.3 points over the better rule (+0.6 to +4.0), so **trusted**. It leans
+on a clear subject still in frame (+0.45), not mid-word (-0.38) and less
+talk in the last second (-0.30). Cut in: 56.0% vs 55.4%, +0.6 (-2.4 to
++3.4), not trusted; it would lean on talk just starting and movement.
+Shorts alone are too few to tell (161 cuts out: -0.2). So
+`select.window` now slides the rule's window up to 1 s so it ends where
+the pros would cut out (same length; the cut in moves with it), only for a
+clip the voice classifier has read (the scorer learnt gated words; the
+level alone reads music as talk). `VIBECUT_CUTS=0` gives the rule back.
+The records (`cuts/*.json`) stay on her Mac (git ignores .json there), so
+retraining runs there.
 
 On her Mac (fetches each measured vlog again, keeps numbers, deletes it,
 then tests and fits; free):

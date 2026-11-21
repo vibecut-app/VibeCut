@@ -67,8 +67,11 @@ The promise to a user is therefore *not* "this will be beautiful." It is
   once-a-second movement), never where in the shot a moment sits; ranked by
   a conditional logit per side, tested leave-one-creator-out against the
   busiest-second rule (`wins`). `taste.collect --only cuts` on her Mac.
-  Not wired into `select.window` until a real run wins; then only to nudge
-  the rule's window ≤ `NUDGE` 1 s (`place`). `tests/test_cuts.py`.
+  First run (2026-11-19, 87 vlogs / 32 creators): the cut out won (56.9%
+  vs 54.6% for the better rule, +0.6 to +4.0 points), the cut in didn't;
+  so `select.window` slides the rule's window ≤ `NUDGE` 1 s to where the
+  pros cut out (`place`, only for clips with a voice reading;
+  `VIBECUT_CUTS=0` = the rule). `tests/test_cuts.py`.
 - `web/` — the app (FastAPI + Vite/React). Built at the user's explicit
   request despite the "no web UI" non-goal below; scope is deliberately one
   path: **Projects → Footage → (style questions) → Story → Export**, the rough trim automatic

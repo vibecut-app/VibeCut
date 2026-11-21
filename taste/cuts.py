@@ -40,7 +40,9 @@ no sound is kept.
 
 The scorer is used only on the side (in, out) where it finds the pros'
 cuts more often than the rule does on creators it never saw, by a margin
-the bootstrap over creators can't explain away (`trusted`). Every
+the bootstrap over creators can't explain away (`trusted`); select.window
+asks `place` to slide its window by at most NUDGE. First run (2026-11-19,
+87 vlogs, 32 creators): the cut out is trusted, the cut in isn't. Every
 constant here is a prior.
 """
 
@@ -596,10 +598,13 @@ def place(rec: dict, start: float, end: float, want: float, lo: float, hi: float
     cut in plus the cut out, on the sides it's trusted on. `around`: the
     rule's own start, which the scorer may move by at most NUDGE (the rule
     still decides which part of the clip; the scorer, the exact cut). None
-    when there's nothing to decide or no trusted scorer."""
+    when there's nothing to decide, no trusted scorer, or no voice reading
+    for the clip (sound.json, the Mac's classifier)."""
     mdl = model if model is not None else load()
     if not mdl or hi - lo < want + STEP - 1e-9:
         return None
+    if not (rec.get("sound") or {}).get("voice"):
+        return None     # it learnt words a voice classifier vouched for; the level alone reads music as talk
     ok = mdl.get("trusted") or {}
     if not any(ok.values()):
         return None
@@ -609,6 +614,8 @@ def place(rec: dict, start: float, end: float, want: float, lo: float, hi: float
     if a1 < a0:
         return None
     starts = np.round(np.arange(a0, a1 + 1e-6, STEP), 3)
+    if around is not None:                          # the rule's own moment is always a candidate
+        starts = np.unique(np.append(starts, round(float(np.clip(around, a0, a1)), 3)))
     tr = clip_track(rec, start, end)
     total = np.zeros(len(starts))
     if ok.get("in"):

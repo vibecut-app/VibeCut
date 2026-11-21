@@ -14,7 +14,9 @@ Made-up edits built to differ in one respect (taste/cuts.py):
 
 A clip in Make and a pro's shot with the same numbers read the same; the
 scorer in Make only moves the rule's window within NUDGE, only on a side
-it's trusted on, and keeps the rule's choice when it can't tell. A real
+it's trusted on, only for a clip the voice classifier has read, and keeps
+the rule's choice when it can't tell; select.window takes it, and
+VIBECUT_CUTS=0 gives the rule back. A real
 file made with ffmpeg is read into a record of numbers (its cuts where
 they were built, its talking where the tone was), and the collector's
 `--only cuts` fetches, reads, deletes and trains.
@@ -173,15 +175,23 @@ def make_tests() -> None:
     model = {"v": C.VERSION, "out": {**flat, "w": w}, "in": {**flat, "w": [0.0] * len(C.NAMES)},
              "trusted": {"out": True, "in": False}}
     word = [[3.0, 4.6]]
-    clip2 = {"signals": {"motion": [5.0] * n, "subject": [0.5] * n, "edge": [0.1] * n, "voiced": word}}
+    clip2 = {"signals": {"motion": [5.0] * n, "subject": [0.5] * n, "edge": [0.1] * n, "voiced": word},
+             "sound": {"voice": [0.9] * n, "laughter": [0.0] * n}}
     rule_a, want = 2.0, 2.2          # the rule's window ends at 4.2, mid-word
     got = C.place(clip2, 0.0, 11.6, want, 0.6, 11.6, around=rule_a, model=model)
     check("the cut out moves off the word", got is not None and not (3.0 < got + want - C.GAP < 4.6), f"start {got}")
     check("by no more than NUDGE", got is not None and abs(got - rule_a) <= C.NUDGE + 1e-6)
     still = C.place(clip2, 0.0, 11.6, 1.5, 0.6, 11.6, around=5.5, model=model)    # ends at 7.0: nothing to fix
     check("a tie keeps the rule's choice", still == 5.5, f"start {still}")
+    off = C.place(clip2, 0.0, 11.6, 1.5, 0.6, 11.6, around=0.97, model=model)     # the edge clips the grid
+    check("…even off the 0.1 s grid", off == 0.97, f"start {off}")
+    deaf = {**clip2, "sound": None}
+    check("a clip with no voice reading keeps the rule's moment",
+          C.place(deaf, 0.0, 11.6, want, 0.6, 11.6, around=rule_a, model=model) is None)
     check("an untrusted scorer changes nothing",
           C.place(clip2, 0.0, 11.6, want, 0.6, 11.6, around=rule_a, model={**model, "trusted": {}}) is None)
+    window_test(model, n, word)
+
     with tempfile.TemporaryDirectory() as t:
         missing = Path(t) / "none.json"
         check("no scorer on disk: not trusted", not C.trusted(missing))
@@ -189,6 +199,37 @@ def make_tests() -> None:
         check("a scorer that lost: not trusted", not C.trusted(Path(t) / "m.json"))
         (Path(t) / "w.json").write_text(json.dumps(model))
         check("a scorer that won: trusted", C.trusted(Path(t) / "w.json"))
+
+
+def window_test(model: dict, n: int, word: list) -> None:
+    """Make's own window (select.window) takes the nudge from the scorer on
+    disk, and VIBECUT_CUTS=0 gives the rule's moment back."""
+    from datetime import datetime
+    from web.backend import select as sel
+    from web.backend import storyboard as sb
+    sub = [0.1] * n
+    sub[2] = 0.9                       # the busiest second: 2.5 s, so the rule's 2.2 s window is 1.4..3.6
+    clips = {"c1": {"signals": {"motion": [5.0] * n, "subject": sub, "edge": [0.1] * n, "voiced": word},
+                    "sound": {"voice": [0.9] * n, "laughter": [0.0] * n}}}
+    s = sb.Shot(id="c1:0", clip_id="c1", clip_name="IMG_1.MOV", index=0, start=0.0, end=11.6, thumb="",
+                quality=0.8, aesthetic=None, utility=False, when=datetime(2026, 11, 1, 12), gps=None, labels={},
+                faces=0, face_area=0.0, activity=5.0, vec=np.zeros(4, dtype=np.float32))
+    old = C.MODEL
+    with tempfile.TemporaryDirectory() as t:
+        C.MODEL = Path(t) / "cuts.json"
+        C.MODEL.write_text(json.dumps(model))
+        try:
+            os.environ["VIBECUT_CUTS"] = "0"
+            ra, rb, _ = sel.window(clips, s, 2.2)
+            os.environ.pop("VIBECUT_CUTS")
+            a, b, _ = sel.window(clips, s, 2.2)
+        finally:
+            C.MODEL = old
+            os.environ.pop("VIBECUT_CUTS", None)
+    check("switched off, Make cuts out where the rule does (mid-word)", (ra, rb) == (1.4, 3.6), f"{ra}..{rb}")
+    mid = lambda e: C.features(C.clip_track(clips["c1"], 0.0, 11.6), e, "out")[0]   # noqa: E731
+    check("with the scorer, Make's cut out is off the word", mid(rb) == 1.0 and mid(b) == 0.0, f"{a}..{b}")
+    check("the same length, moved no more than NUDGE", abs((b - a) - 2.2) < 1e-6 and abs(a - ra) <= C.NUDGE + 1e-6)
 
 
 # --------------------------------------------------------------------------
