@@ -299,3 +299,145 @@ a cold opening is caught 14% → 34% of the time; swapped shots 89% → 78%
 and talk left running 78% → 72%. Story jobs on long: 48% against 28% for
 guessing the commonest. At seed 0 the saved models read 93% / 87%, as the
 Mac's own retrain did with the non-vlogs still in.
+
+## Where pros cut in and out (2026-11-19, `cuts.py`)
+
+sarah: "Do the MIT learn to cut". Make keeps a few seconds of each clip and
+today puts its busiest second mid-window (`select.window`), a guess. The
+method of Learning to Cut (Pardo et al., ICCV 2021, MIT; method only, see
+NOTICE): each real cut in a pro's vlog is a decision, and the other moments
+they could have cut at are the negatives -- for the cut out of a shot, its
+earlier moments; for the cut into the next, its later ones. A conditional
+logit per side (numpy, Newton) learns to rank the pro's moment first.
+
+It reads only what a phone clip has at Make time, so what it learns can be
+asked of a clip: voiced intervals at 10 ms (gated by the classifier's
+voice), laughter once a second, movement / subject / edge once a second
+(signals' own definitions). Nothing says where in the shot a moment sits:
+a cut out is read looking back only, in the shot's second half; a cut in
+looking ahead only, in its first half (a late cut-in candidate reading
+ahead would read the run-up to the pro's cut out); nothing within 50 ms of
+the cut; a candidate without room for a reading is dropped, else that
+reading is left out for the whole cut. On made-up edits where nothing
+marks the cuts it ranks at chance (`tests/test_cuts.py`).
+
+Decided by rank, not "top hit": how often the pro's moment beats a moment
+more than 0.3 s away (50% = no idea). The pro's moment is always at an end
+of the candidates and the top of a smooth curve lands at an end more often
+than chance, so "top within 0.3 s" flatters any scorer by ~4 points on that
+made-up set; it is reported, never used. Gate (`wins`): beats the better of
+the rule's two readings (busiest second; busiest and never mid-word) on
+creators it never saw, the bootstrap's low end above zero, 8+ creators,
+200+ cuts, per side. Only a trusted side is used, and in Make only to move
+the rule's window by up to `NUDGE` 1 s (`place`): the rule still picks the
+part of the clip, the scorer the exact cut.
+
+**First run, 2026-11-19** (her Mac, `model/cuts-report.md`; 87 vlogs, 32
+creators, ~1,440 cuts a side). Cut out: the pro's moment beats one more
+than 0.3 s away 56.9% of the time for the scorer, 49.9% for the busiest
+second (chance: what Make did), 54.6% for busiest and never mid-word;
++2.3 points over the better rule (+0.6 to +4.0), so **trusted**. It leans
+on a clear subject still in frame (+0.45), not mid-word (-0.38) and less
+talk in the last second (-0.30). Cut in: 56.0% vs 55.4%, +0.6 (-2.4 to
++3.4), not trusted; it would lean on talk just starting and movement.
+Shorts alone are too few to tell (161 cuts out: -0.2). So
+`select.window` now slides the rule's window up to 1 s so it ends where
+the pros would cut out (same length; the cut in moves with it), only for a
+clip the voice classifier has read (the scorer learnt gated words; the
+level alone reads music as talk). `VIBECUT_CUTS=0` gives the rule back.
+The records (`cuts/*.json`) stay on her Mac (git ignores .json there), so
+retraining runs there.
+
+On her Mac (fetches each measured vlog again, keeps numbers, deletes it,
+then tests and fits; free):
+
+    cd ~/Desktop/VibeCut/repo && caffeinate -i .venv/bin/python -m taste.collect --only cuts
+
+→ `cuts/<id>.json` (cut times, each shot's own stretch and once-a-second
+readings, voiced intervals, laughter, a 10 Hz movement and level curve kept
+for looking into later; no frame, word or sound), `model/cuts.json` and
+`model/cuts-report.md`. `python -m taste.cuts train` reruns the test.
+Known: a pro's mix carries music and J / L cuts a phone clip doesn't; the
+picture is read once a second, so below a second only the words can tell
+moments apart.
+
+## Where in a clip editors cut, from screen recordings (2026-11-24, `tutorial.py`)
+
+sarah: "vibecut needs to learn and imitate how humans edit", then, of the
+"edit my vlog with me" videos, "build 1". A finished vlog shows only what
+was kept. A screen recording of the editor at work also shows the raw clips
+playing in the editor's preview window before they were cut. Matching each
+shot of the finished vlog back to where its footage played (`pairs.align`,
+the raw-clip matcher) gives, for every clip they looked at, the seconds
+they kept and the seconds around them they left out. That is Make's own
+choice for every phone clip.
+
+Reading a recording (`read_video`, free, picture only):
+
+- **The preview window.** The screen at 2 fps, grey, 192 px wide. The
+  editor's screen is what stays put. The host talking, the finished vlog
+  full screen and a zoom-in are "away". The preview window is the rectangle
+  that keeps changing while the rest stays put. A timeline strip scrolling
+  sideways under a fixed playhead (CapCut / 剪映 on a phone) is told apart
+  because a sideways shift explains its change. A face cam changes too
+  little.
+- **Playbacks.** The preview at 10 fps, 48 x 27, cut into runs of one clip
+  playing: no cut, no pause, no time away.
+- **The finished vlog.** It is the posted vlog when the list links it.
+  Otherwise it is whichever stretch away from the editor the playbacks
+  explain best, or the last 20 s+ run of the timeline playing through. It
+  must explain 30% of its seconds.
+- **The match.** Each shot is placed in the playback that showed the most
+  of its clip. The recording's own speed-up comes from what most shots
+  agree on. A shot the editor sped up or slowed is marked, as is a shot
+  the recording's edge clipped.
+
+The record (`tutorials/<id>.json`, stays on her Mac) holds numbers only:
+where the preview sits, each clip played (its seconds on the clip's own
+clock), the windows kept, once-a-second movement / subject / edge as Make's
+index reads a clip, the clips played and dropped, and when everything
+played.
+
+**Learning.** Each kept window is a choice among the clip's other windows
+of its length, ranked by a conditional logit on movement, subject and edge
+around the cut in, the cut out and inside it. It is tested leave-one-creator-out
+against Make's rule (`select.window`), the clip's middle and chance.
+
+Where a window sits is never read, nor how far it is from the rule's. A
+playback starts where the editor clicked, so an editor who scrubbed to the
+part they wanted and pressed play makes both rules look bad: on made-up
+records like that the rule scored 21% and the middle 1%. Against the rule
+alone, a scorer that knew nothing would have been trusted at +32 points.
+
+A window is learnt from only with 1.5 s of the clip before it and 1 s after
+(`ROOM`), so every reading around it exists. Before that, windows at a
+playback's start were told apart by what was missing: 55% on made-up records
+with nothing to learn. Now windows placed at random, at the playback's
+start, or a beat after it all score within 2 points of chance, and none is
+trusted. A planted habit ("cut in as the camera settles") is found at 100%
+(`tests/test_tutorial.py`).
+
+Gate (`wins`): it must beat the best of rule, middle and chance on unseen
+creators, with the bootstrap's low end above zero, 8+ creators and 200+
+choices. Once trusted, `select.window` lets it pick which part of the
+clip (`place`, among the windows it can read whole), then the cut-out
+scorer nudges the end. `VIBECUT_CUTS=0` gives both back to the rule.
+
+**The list** (`data/tutorials.csv`, 2026-11-24): 44 recordings by 43
+creators: 32 on YouTube (English, Korean, Japanese) and 12 on Bilibili;
+Final Cut, Premiere, DaVinci, CapCut / 剪映, LumaFusion, iMovie, VLLO,
+Vegas, Filmora. None links its finished vlog. Xiaohongshu is missing: its
+pages refuse readers and yt-dlp needs a signed-in cookie there. Not
+listed: a talking-head edit (not a vlog), the 剪映 app's own account, and
+a YouTube copy of a Bilibili recording.
+
+On her Mac (fetches each recording at 480p without sound, the first hour,
+reads it, deletes it, then tests and fits; free):
+
+    cd ~/Desktop/VibeCut/repo && caffeinate -i .venv/bin/python -m taste.collect --only tutorials
+
+→ `tutorials/<id>.json`, `model/tutorials.json`, `model/tutorials-report.md`.
+`python -m taste.tutorial train` reruns the test. Known: many recordings
+skim clips rather than play them, or never show the finished vlog, and
+those give nothing. The picture is read once a second on the clip's clock,
+as in Make, so the scorer can't place a window more finely than its readings.

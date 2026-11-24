@@ -290,24 +290,15 @@ def _read_sound(sound, binary, path: str, limit_s: float | None, n: int) -> dict
     return {k: sound.per_second(ws, n, k) for k in ("voice", "music", "laughter")}
 
 
-def from_video(path: str, *, id: str | None = None, group: str | None = None, limit_s: float | None = None,
-               workdir: str | Path | None = None, mac: bool = True, log=print,
-               loaded=None) -> tuple[dict, dict]:
-    """One reference video -> (description, extras). Read once at 48x27
-    (media.load); joins from style.transitions (+ jump cuts), so shot
-    lengths come from the same reading as the measurements. With the Mac's
-    readers (`mac`), frames at 2 fps go to Vision (words, faces, labels)
-    and the sound to the classifier. `extras` = {"stills": a mid-frame jpg
-    per shot, "frames_dir", "times"} while the frames exist (Vision there,
-    or a `workdir` given); the caller deletes `frames_dir`. `loaded`: the
-    same file already read by media.load with the same `limit_s` (the
-    collector measures it first), so its pixels are decoded once."""
-    from cutgrammar import media, shots as shots_mod, style
-
-    m = loaded if loaded is not None else media.load(path, limit_s=limit_s)
+def joins_of(m, log=print) -> tuple[list[dict], list[dict]]:
+    """How a finished edit's shots meet: (joins, fades). Joins are
+    [{t, kind, dur}] in JOIN_KINDS, from style.transitions plus the jump
+    cuts inside hard-cut shots; fades are the opening / closing fades.
+    Shared with taste/cuts.py, which reads the same cuts for where they
+    fall."""
+    from cutgrammar import shots as shots_mod, style
     dur = float(m.duration)
     fps = m.fps or 30.0
-    cutoff = bool(limit_s and m.duration >= limit_s - 1)
     sh = shots_mod.detect(m)
     trans = style.transitions(m, sh)
     fades = [x for x in trans if x["kind"] in ("fade_in", "fade_out")]
@@ -321,7 +312,28 @@ def from_video(path: str, *, id: str | None = None, group: str | None = None, li
     for x in joins:          # two readings of one boundary: the first stands
         if (x["t"] - (kept[-1]["t"] if kept else 0.0)) * fps >= 1:
             kept.append(x)
-    joins = [x for x in kept if (dur - x["t"]) * fps >= 1]
+    return [x for x in kept if (dur - x["t"]) * fps >= 1], fades
+
+
+def from_video(path: str, *, id: str | None = None, group: str | None = None, limit_s: float | None = None,
+               workdir: str | Path | None = None, mac: bool = True, log=print,
+               loaded=None) -> tuple[dict, dict]:
+    """One reference video -> (description, extras). Read once at 48x27
+    (media.load); joins from style.transitions (+ jump cuts), so shot
+    lengths come from the same reading as the measurements. With the Mac's
+    readers (`mac`), frames at 2 fps go to Vision (words, faces, labels)
+    and the sound to the classifier. `extras` = {"stills": a mid-frame jpg
+    per shot, "frames_dir", "times"} while the frames exist (Vision there,
+    or a `workdir` given); the caller deletes `frames_dir`. `loaded`: the
+    same file already read by media.load with the same `limit_s` (the
+    collector measures it first), so its pixels are decoded once."""
+    from cutgrammar import media, style
+
+    m = loaded if loaded is not None else media.load(path, limit_s=limit_s)
+    dur = float(m.duration)
+    fps = m.fps or 30.0
+    cutoff = bool(limit_s and m.duration >= limit_s - 1)
+    joins, fades = joins_of(m, log)
 
     mo, skip = _motion(m, joins, fades)
     edges = [0.0, *[x["t"] for x in joins], dur]

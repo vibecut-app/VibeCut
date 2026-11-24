@@ -60,7 +60,28 @@ The promise to a user is therefore *not* "this will be beautiful." It is
   `app.REDRESS` and the picked version gets it too, inside the pick's turn
   (#47's "From your profile" needs that one line when the two meet).
   `tests/test_prefer.py`. Every threshold
-  a prior. See `taste/README.md`.
+  a prior. See `taste/README.md`. **Where to cut** (`taste/cuts.py`, sarah
+  2026-11-19 "Do the MIT learn to cut"; Learning to Cut's method, MIT,
+  method only): pros' real cut points vs the other moments of the same shot,
+  read from what a clip has at Make time (voiced intervals, laughter, the
+  once-a-second movement), never where in the shot a moment sits; ranked by
+  a conditional logit per side, tested leave-one-creator-out against the
+  busiest-second rule (`wins`). `taste.collect --only cuts` on her Mac.
+  First run (2026-11-19, 87 vlogs / 32 creators): the cut out won (56.9%
+  vs 54.6% for the better rule, +0.6 to +4.0 points), the cut in didn't;
+  so `select.window` slides the rule's window ≤ `NUDGE` 1 s to where the
+  pros cut out (`place`, only for clips with a voice reading;
+  `VIBECUT_CUTS=0` = the rule). `tests/test_cuts.py`.
+  **What editors keep of a clip** (`taste/tutorial.py`, sarah 2026-11-24
+  "build 1": "learn and imitate how humans edit"): screen recordings of
+  editors at work (`data/tutorials.csv`, 44 on YouTube / Bilibili). The
+  preview window is found, its playbacks are read, and the finished vlog is
+  matched back to them (`pairs.align`), giving each clip's kept and
+  left-out seconds and the clips dropped. A scorer of which window to keep
+  (movement / subject / edge, never position, never the rule's distance)
+  must beat the rule, the middle and chance on unseen creators; once
+  trusted, `select.window` lets it pick the part of the clip. Not yet
+  run: `taste.collect --only tutorials` on her Mac. `tests/test_tutorial.py`.
 - `web/` — the app (FastAPI + Vite/React). Built at the user's explicit
   request despite the "no web UI" non-goal below; scope is deliberately one
   path: **Projects → Footage → (style questions) → Story → Export**, the rough trim automatic
@@ -965,6 +986,40 @@ The promise to a user is therefore *not* "this will be beautiful." It is
   scene's labels and holds — the calibration record — and `habits.derive`
   reads cut / longer as removed / held; `launchlog.summary` counts them).
   Tested in `tests/test_vlog.py` and the wide Make in `test_make.py`.
+- **The beat sheet** (`web/backend/beats.py`, 2026-11-10; sarah: Make "doesnt
+  understand how to develop films like a filmmaker, it just takes the final
+  taste and turn it into a mashed video", then Build it on "beat sheet
+  first"). A tall or wide Make plans the spine before picking a moment:
+  chapters from the day's stops (closest-filmed join first; a stop under
+  `MIN_STORY` 3 moments joins its nearest), their share of the time (one
+  peak, the chapter with the strongest moment, at the pros' ~1.9x; the
+  first ~1x; the last ~0.86x, the wind-down) and each chapter filled as a
+  setup (of its first 3 moments, the one that looks most like a place) ->
+  steps (wide -> medium -> close, then `vlog.flow` for smooth cuts; setup
+  and payoff never move) -> payoff (its strongest moment, held at least the
+  pros' payoff length) -> on the last chapter, a sign-off (someone talking
+  to the lens in its last third). The reason to watch is held back from the
+  chapters to open the video. Every ratio is read from `taste/descriptions`
+  (the AI editor's shot jobs on 87 pro vlogs, `beats.measured`; the shorts'
+  spine, read whole, the length of ours); `Pick.job` carries the job; the
+  Make reply says the plan. What a moment shows can't name its job (a
+  reader of faces / voice / motion / labels names pros' setups 11% right on
+  an unseen creator), so jobs come from position. Rules only (the Claude
+  judge re-picks old sessions, not chapters). A chapter gets no more moments
+  than its clips can give (one a clip, two from a long one) and at most
+  `SEAT_SLACK` 1.25 of its share. The taste model's order changes
+  (`tastepick` filming order / strongest last / wide first / another
+  opening) move only the steps between a chapter's setup and its payoff
+  (`_pinned`), and the plan's sheet rides through `copy_plan`; the reply
+  says only what the cut does (`beats.describe` reads the made plan).
+  `VIBECUT_BEATS=0` = the scene grammar above. `tests/test_beats.py`;
+  `design/eval/beats_eval.py [--modes …]` scores it on a real shoot with the
+  taste model. On her 115-clip shoot (2026-11-10, AI off): -9.1, against
+  -10.2 with the setup and payoff free to move and -12.1 for the scene
+  grammar; every version still under every good vlog (-3.8 to 18.5).
+  Holding each chapter to its share of the seconds (stretching its b-roll)
+  scored -13.0 there and was taken out: the seats set the share, the holds
+  follow what each shot is.
   **The house style** (`web/backend/house.py`, 2026-10-24; the user: "how
   can we make that kind of vlog that people love?"). The Oct 23 merge
   (449ce21) kept main's `make.py`, which never had the vlog grammar, so
