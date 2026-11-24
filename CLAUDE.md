@@ -559,6 +559,32 @@ The promise to a user is therefore *not* "this will be beautiful." It is
   (rail, inspector, timeline). A hand-cut video opens in the editor as
   before. Same player wiring (`player(true)`), so nothing is duplicated.
   `design/eval/2026-10-18-watch.png`.
+  **Watch it edit** (sarah, 2026-11-24: "instead of making it generating
+  immediate, can you show the specific moves youre doing … with all the
+  existing functions to get to the final result"; `web/backend/show.py`,
+  `GET /api/make/show`, `makeShow.ts`, `ShowBar.tsx`): after Make lands,
+  the editor plays back how the edit was put together on its own panels,
+  then opens Watch as before. The moves are read from the Make turn (and
+  the Smoother cuts / From your profile / check turns after it): an empty
+  timeline; every clip laid whole (≤ `WHOLE_MAX_S` 12 s around its window)
+  in the order it was filmed, one at a time (`reveal`); each part trimmed
+  to the windows as picked (`MAKE["show"].raw`, before the beat moved
+  them); the hook to the front; the parts' own order; the teaser; then the
+  turn's ops by kind (song, fill, look, each caption typed, push-ins,
+  speed, joins). Ops apply with the replay's ids (`n{turn}{letter}`), so
+  the last step is exactly the edit that landed. Each step is a *view*
+  (board, timeline, overlays, music, mix without a sound to render, the
+  computed diff); the session's turns stay the real ones. The page is
+  covered by a clear layer while it plays (nothing can be changed), the
+  panel in use opens and lights, the timeline holds one scale for the
+  whole show (`Timeline` `fit`), one line above the timeline says the move
+  and Skip / Escape goes to the result. About 20–30 s whatever the shoot:
+  clips share 5 s, trims 4 s, lines 6 s, and past 36 / 10 / 8 of a kind
+  they land in handfuls (`compact`). Nothing to play once the edit was
+  touched by hand. Priors. `tests/test_show.py`, `makeShow.test.ts`.
+  Also found then: a paused jump inside the clip already loaded waited 4 s
+  for a `loadeddata` that had come long ago (`transport.ensureClip` now
+  also takes `seeked`).
 - **Music that matches a reel's feel** (2026-10-18): `music.brightness`
   (median spectral centroid over the middle minute, Hz) joins every track's
   features (`FEATURE_VERSION` 3: cached folders re-analyse once) and the

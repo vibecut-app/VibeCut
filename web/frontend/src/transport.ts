@@ -124,15 +124,20 @@ export class Transport {
     const v = this.video
     if (!v) return
     const url = mediaUrl(it), clipId = it.clip_id!
-    if (v.getAttribute('src') === url && v.readyState >= 2) return
+    const same = v.getAttribute('src') === url
+    if (same && v.readyState >= 2) return
     // Wait for a decodable frame, not just the metadata: Safari paints black
     // for a seek made before any frame data has arrived (the first jump on
     // the timeline after loading). Never wait forever on a stuck load.
+    // The clip already in the element drops below a frame while it seeks, and
+    // its 'loadeddata' came long ago: its frame comes with 'seeked'. Waiting
+    // for 'loadeddata' there held every jump inside one clip for 4 s.
+    const evs = same ? ['loadeddata', 'seeked'] : ['loadeddata']
     await new Promise<void>((res) => {
-      const done = () => { clearTimeout(timer); v.removeEventListener('loadeddata', done); res() }
+      const done = () => { clearTimeout(timer); for (const e of evs) v.removeEventListener(e, done); res() }
       const timer = setTimeout(done, 4000)
-      v.addEventListener('loadeddata', done)
-      if (v.getAttribute('src') !== url) swapSource(v, url, srcT == null ? null : this.sampleAt(clipId, srcT))
+      for (const e of evs) v.addEventListener(e, done)
+      if (!same) swapSource(v, url, srcT == null ? null : this.sampleAt(clipId, srcT))
       else if (v.readyState >= 2) done()
     })
   }

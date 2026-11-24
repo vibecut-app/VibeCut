@@ -53,7 +53,7 @@ function growOf(it: SeqItem, ed: { edge: 'in' | 'out'; to: number }): number {
 export function Timeline({ tl, marks, marksOf, selected, flash, alt, onSelect, onReorder,
   onInsertShot, onClear, onHelp, overlays = [], graphics = [], selectedOverlay = null, onSelectOverlay, onOverlayEdit, onExport, onTrimEdge,
   selectedAudio = null, onSelectAudio, onAudioMove, joins = [], selectedJoin = null, onSelectJoin,
-  music = null, onSelectMusic, onSplit, onDelete, onTap, onRecord, recording = null, height = 290 }: {
+  music = null, onSelectMusic, onSplit, onDelete, onTap, onRecord, recording = null, height = 290, fit = null }: {
   tl: TimelineData
   marks: Marks
   marksOf: Record<string, 'added' | 'moved' | 'trimmed' | undefined>
@@ -97,6 +97,9 @@ export function Timeline({ tl, marks, marksOf, selected, flash, alt, onSelect, o
   recording?: { from: number; count: number; live: boolean } | null
   onDelete?: () => void
   height?: number
+  /** Watch it edit (makeShow.ts): fitted to the longest the edit gets while it's being put together, so
+   *  clips landing and trims shrinking are seen at one scale; back to the edit itself when it's gone */
+  fit?: { total: number; count: number } | null
 }) {
   const ph = useStore(phStore)
   const tr = useStore(transportStore)
@@ -127,7 +130,10 @@ export function Timeline({ tl, marks, marksOf, selected, flash, alt, onSelect, o
   // ones after it, it doesn't squeeze every shot to fit again (sarah,
   // 2026-10-17). It is fitted to the edit only when the timeline's width
   // changes, a different edit is shown, or she zooms herself.
-  const fitNow = () => tl.total > 0 ? Math.max(0.5, (width - 2 * PAD - items.length * GAP) / tl.total) : 10
+  const fitNow = () => {
+    const total = fit?.total ?? tl.total
+    return total > 0 ? Math.max(0.5, (width - 2 * PAD - (fit?.count ?? items.length) * GAP) / total) : 10
+  }
   const [scale, setScale] = useState<number | null>(null)
   const seen = useRef<{ keys: Set<string>; edit: number }>({ keys: new Set(), edit: 0 })
   const edit = useMemo(() => {
@@ -137,7 +143,7 @@ export function Timeline({ tl, marks, marksOf, selected, flash, alt, onSelect, o
     return s.edit
   }, [items])
   const hasEdit = tl.total > 0
-  useEffect(() => { if (hasEdit) setScale(fitNow()) }, [width, edit, hasEdit]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (hasEdit || fit) setScale(fitNow()) }, [width, edit, hasEdit, fit?.total, fit?.count]) // eslint-disable-line react-hooks/exhaustive-deps
   // A zoom keeps one moment where it was on screen: the one under the
   // pointer for scroll / pinch, the playhead for the buttons and slider.
   const anchor = useRef<{ t: number; offset: number } | null>(null)
