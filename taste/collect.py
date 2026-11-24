@@ -36,6 +36,11 @@ three options:
 - `--only cuts`: every measured vlog is fetched again and where its cuts
   fall is read into taste/cuts/<id>.json (taste.cuts: numbers only), then
   the cut scorer is tested on unseen creators against Make's rule. Free.
+- `--only tutorials`: every screen recording of an editor at work listed
+  in data/tutorials.csv (and its posted vlog, when linked) is fetched at
+  480p without sound, read into taste/tutorials/<id>.json (taste.tutorial:
+  what they kept of each clip, numbers only) and deleted; then where
+  editors cut inside a clip is tested on unseen creators. Free.
 
 Nothing of anyone's video is kept, and nothing here calls a paid model
 unless --ai is given with a cap.
@@ -76,6 +81,9 @@ SHORT_MAX = 180            # ...and a short one
 DOWNLOAD_S = 600       # give up on one video's download after this long
 FORMAT = "bv*[height<=480]+ba/b[height<=480]/b"
 BRANCH = "origin/claude/vlog-taste-model-i4z3mi"
+TUTORIAL_FORMAT = "bv*[height<=480]/b[height<=480]/b"   # the picture is all a recording is read for
+TUTORIAL_S = 3600      # a recording is read for its first hour (taste.tutorial.MAX_S)
+TUTORIAL_DOWNLOAD_S = 1800
 TRANSCRIBE_S = 900     # give up on hearing one video's words after this long (it's only a hint)
 AI_FAILS = 2           # this many paid calls failing in a row (a rejected key, no budget) stop the AI
 
@@ -773,6 +781,61 @@ def cuts_all(log) -> None:
     cuts.train(log=log)
 
 
+# --- tutorials ----------------------------------------------------------------
+
+def _fetch_video(url: str, tmp: Path, name: str, limit_s: float) -> str:
+    cmd = [ytdlp(), "-q", "--no-warnings", "--no-playlist", "--socket-timeout", "30", "--retries", "3",
+           "-f", TUTORIAL_FORMAT, "--download-sections", f"*0-{int(limit_s)}", "-o", str(tmp / f"{name}.%(ext)s")]
+    r = _run(cmd + [url], TUTORIAL_DOWNLOAD_S)
+    if r.returncode:
+        raise subprocess.CalledProcessError(r.returncode, cmd + [url])
+    return str(next(p for p in tmp.iterdir() if p.name.startswith(f"{name}.")))
+
+
+def _fetch_and_read_tutorial(row: dict, log) -> bool:
+    """One recording (and its posted vlog) fetched, read into numbers
+    (taste.tutorial), deleted. -> False when a fetch failed, worth another
+    try; a recording that can't be read is saved as such, not tried again."""
+    from . import tutorial
+    tmp = Path(tempfile.mkdtemp(prefix="taste-"))
+    try:
+        try:
+            path = _fetch_video(row["url"], tmp, "rec", TUTORIAL_S)
+            final = _fetch_video(row["final_url"], tmp, "final", TUTORIAL_S) if row.get("final_url") else None
+        except Exception as e:   # a link gone, a site refusing, a dropped connection: tried again
+            log(f"{row['id']}: not fetched ({_why(e)})")
+            return False
+        log(f"{row['id']} ({row.get('creator')}, {row.get('app') or 'app not named'}):")
+        try:
+            rec = tutorial.read_video(path, id=row["id"], creator=row.get("creator") or row["id"], final_path=final,
+                                      app=row.get("app") or "", limit_s=TUTORIAL_S, log=log)
+        except Exception as e:   # one unreadable recording must not stop the batch
+            rec = {"v": tutorial.VERSION, "id": row["id"], "creator": row.get("creator") or row["id"],
+                   "error": f"{type(e).__name__}: {str(e)[:160]}"}
+            log(f"  not read ({rec['error']})")
+        tutorial.save(rec, tutorial.OUT / f"{row['id']}.json")
+        return True
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def tutorials_all(log) -> None:
+    """`--only tutorials`: every listed recording read into
+    taste/tutorials/<id>.json, then the window scorer tested and fitted
+    (taste.tutorial). Resumable: the record is the mark that a recording is
+    done. Free: nothing is sent anywhere."""
+    from . import tutorial
+    _, rows = _rows(tutorial.LIST)
+    todo = [r for r in rows if r.get("url", "").startswith("http")]
+    left = [r for r in todo if tutorial.needs(r)]
+    log(f"tutorials: {len(todo) - len(left)} of {len(todo)} read already, {len(left)} to go")
+    again = [r for r in left if not _fetch_and_read_tutorial(r, log)]
+    for row in again:
+        log(f"{row['id']}: trying the download once more")
+        _fetch_and_read_tutorial(row, log)
+    tutorial.train(log=log)
+
+
 def _quit(signum, frame) -> None:
     # a closed Terminal window or a kill stops the run the way Ctrl-C does:
     # yt-dlp runs in its own group (_run), so it is stopped from here, and
@@ -782,8 +845,9 @@ def _quit(signum, frame) -> None:
 
 def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(prog="python -m taste.collect")
-    ap.add_argument("--only", choices=["discover", "measure", "cuts"],
-                    help="cuts: read where each measured vlog's cuts fall, then test the cut scorer (free)")
+    ap.add_argument("--only", choices=["discover", "measure", "cuts", "tutorials"],
+                    help="cuts: read where each measured vlog's cuts fall, then test the cut scorer (free); "
+                         "tutorials: read what editors kept of each clip in screen recordings (free)")
     ap.add_argument("--describe", action="store_true",
                     help="also write each measured video down shot by shot (descriptions/<id>.json)")
     ap.add_argument("--ai", action="store_true",
@@ -810,6 +874,10 @@ def main(argv: list[str] | None = None) -> None:
             + (f"; ${before:.3f} of it spent by earlier runs" if before else ""))
     if a.only == "cuts":
         cuts_all(log)
+        log("done")
+        return
+    if a.only == "tutorials":
+        tutorials_all(log)
         log("done")
         return
     describe = a.describe or a.ai

@@ -72,6 +72,16 @@ The promise to a user is therefore *not* "this will be beautiful." It is
   so `select.window` slides the rule's window ≤ `NUDGE` 1 s to where the
   pros cut out (`place`, only for clips with a voice reading;
   `VIBECUT_CUTS=0` = the rule). `tests/test_cuts.py`.
+  **What editors keep of a clip** (`taste/tutorial.py`, sarah 2026-11-24
+  "build 1": "learn and imitate how humans edit"): screen recordings of
+  editors at work (`data/tutorials.csv`, 44 on YouTube / Bilibili). The
+  preview window is found, its playbacks are read, and the finished vlog is
+  matched back to them (`pairs.align`), giving each clip's kept and
+  left-out seconds and the clips dropped. A scorer of which window to keep
+  (movement / subject / edge, never position, never the rule's distance)
+  must beat the rule, the middle and chance on unseen creators; once
+  trusted, `select.window` lets it pick the part of the clip. Not yet
+  run: `taste.collect --only tutorials` on her Mac. `tests/test_tutorial.py`.
 - `web/` — the app (FastAPI + Vite/React). Built at the user's explicit
   request despite the "no web UI" non-goal below; scope is deliberately one
   path: **Projects → Footage → (style questions) → Story → Export**, the rough trim automatic

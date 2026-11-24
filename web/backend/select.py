@@ -39,6 +39,7 @@ from datetime import datetime
 import numpy as np
 
 from taste import cuts as pro_cuts
+from taste import tutorial as taught
 
 from . import storyboard as sb
 
@@ -195,7 +196,9 @@ def window(clips: dict[str, dict], s: sb.Shot, want: float) -> tuple[float, floa
     then slid at most `pro_cuts.NUDGE` to where the pros would cut: the rule
     picks the part of the clip, the scorer learnt from pros' vlogs
     (taste/cuts.py) the exact moment, on the sides where it beat this rule
-    on creators it never saw. `VIBECUT_CUTS=0` keeps the rule's moment."""
+    on creators it never saw. Once the scorer learnt from editors' screen
+    recordings (taste/tutorial.py) is trusted, it picks the part of the
+    clip instead of the rule. `VIBECUT_CUTS=0` keeps the rule's moment."""
     lo, hi = s.start, s.end
     if hi - lo <= want + 1e-3:
         return lo, hi, True
@@ -204,6 +207,10 @@ def window(clips: dict[str, dict], s: sb.Shot, want: float) -> tuple[float, floa
     t = busiest(clips, s, lo + LEAD_IN * want, hi - (1 - LEAD_IN) * want)
     a = float(np.clip(t - LEAD_IN * want, lo, hi - want))
     if os.environ.get("VIBECUT_CUTS", "1") != "0":
+        # which part of the clip: as the editors in the screen recordings took it, once trusted
+        p = taught.place(clips.get(s.clip_id) or {}, s.start, s.end, want, lo, hi, around=a)
+        if p is not None:
+            a = p
         p = pro_cuts.place(clips.get(s.clip_id) or {}, s.start, s.end, want, lo, hi, around=a)
         if p is not None:
             a = p

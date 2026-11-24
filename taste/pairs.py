@@ -94,29 +94,41 @@ def source(m, id: str) -> Source:
                   desc=pictures(m.frames[idx], SCALES) if len(idx) else np.zeros((0, len(SCALES), GRID[0] * GRID[1])))
 
 
-def _votes(q: np.ndarray, srcs: list[Source]) -> list[list[tuple[int, float, float, int]]]:
-    """For each edit picture, its TOP_K best (source, time, similarity, scale)."""
+def _votes(q: np.ndarray, srcs: list[Source], per_source: bool = False) -> list[list[tuple[int, float, float, int]]]:
+    """For each edit picture, its TOP_K best (source, time, similarity, scale)
+    -- over all sources, or with `per_source` each source's own TOP_K (the
+    same footage played many times over, as in an editor's preview window,
+    would otherwise share four votes between all its playings)."""
     out: list[list[tuple[int, float, float, int]]] = [[] for _ in range(len(q))]
+    rows = np.arange(len(q))[:, None]
     for si, s in enumerate(srcs):
         if not len(s.times):
             continue
         sims = np.einsum("qd,nsd->qns", q, s.desc)           # (q, n, scales)
-        best_scale = sims.argmax(axis=2)
         best = sims.max(axis=2)                              # (q, n)
-        k = min(TOP_K, best.shape[1])
-        top = np.argpartition(-best, k - 1, axis=1)[:, :k]
+        if per_source and best.max() < SIM_MIN:
+            continue                                         # nothing here looks like the shot
+        best_scale = sims.argmax(axis=2)
         n = best.shape[1]
+        k = min(TOP_K, n)
+        top = np.argpartition(-best, k - 1, axis=1)[:, :k]  # (q, k)
+        y1 = best[rows, top]
+        t = s.times[top].astype(np.float64)
+        # between two compared frames: the peak of the curve through three
+        inner = (top > 0) & (top < n - 1)
+        y0 = best[rows, np.clip(top - 1, 0, n - 1)]
+        y2 = best[rows, np.clip(top + 1, 0, n - 1)]
+        den = y0 - 2 * y1 + y2
+        ok = inner & (den < -1e-6)
+        off = np.clip(0.5 * (y0 - y2) / np.where(ok, den, -1.0), -0.5, 0.5)
+        step = s.times[np.clip(top + 1, 0, n - 1)] - s.times[top]
+        t = t + np.where(ok, off * step, 0.0)
+        sc = best_scale[rows, top]
         for qi in range(len(q)):
-            for j in top[qi]:
-                t = float(s.times[j])
-                if 0 < j < n - 1:        # between two compared frames: the peak of the curve through three
-                    y0, y1, y2 = best[qi, j - 1], best[qi, j], best[qi, j + 1]
-                    den = y0 - 2 * y1 + y2
-                    if den < -1e-6:
-                        t += float(np.clip(0.5 * (y0 - y2) / den, -0.5, 0.5)) * float(s.times[j + 1] - s.times[j])
-                out[qi].append((si, t, float(best[qi, j]), int(best_scale[qi, j])))
-    for qi in range(len(q)):
-        out[qi] = sorted(out[qi], key=lambda v: -v[2])[:TOP_K]
+            out[qi].extend((si, float(t[qi, j]), float(y1[qi, j]), int(sc[qi, j])) for j in range(k))
+    if not per_source:
+        for qi in range(len(q)):
+            out[qi] = sorted(out[qi], key=lambda v: -v[2])[:TOP_K]
     return out
 
 
@@ -152,10 +164,14 @@ def _fit(ts: np.ndarray, votes, src: int) -> tuple[float, float, float, float] |
     return best
 
 
-def align(edit, cuts: list[float], srcs: list[Source]) -> list[dict]:
+def align(edit, cuts: list[float], srcs: list[Source], per_source: bool = False, choose=None) -> list[dict]:
     """Every shot of the finished edit (between `cuts`, seconds, with 0 and
     the end implied) -> {a, b, clip, src_in, src_out, speed, share, sim} or
-    {a, b, clip: None} when no raw clip explains it."""
+    {a, b, clip: None} when no raw clip explains it.
+
+    Of the sources that explain a shot, the one most of its frames agree
+    with wins; `choose(fits)` picks another way -- fits are (source index,
+    (speed, offset, share, sim)), every one explaining the shot."""
     fps = float(edit.fps or 30.0)
     dur = float(edit.duration)
     edges = [0.0, *sorted(t for t in cuts if 0 < t < dur), dur]
@@ -169,14 +185,21 @@ def align(edit, cuts: list[float], srcs: list[Source]) -> list[dict]:
         ts = np.arange(lo, hi, STEP_S)
         idx = np.clip(np.round(ts * fps).astype(int), 0, edit.n_frames - 1)
         q = pictures(edit.frames[idx])[:, 0]
-        votes = _votes(q, srcs)
-        best = None
-        for si in {v[0] for vs in votes for v in vs if v[2] >= SIM_MIN}:
-            f = _fit(ts, votes, si)
-            if f and (best is None or (f[2], f[3]) > (best[1][2], best[1][3])):
-                best = (si, f)
-        if best and best[1][2] >= AGREE:
-            si, (speed, c, share, sim) = best
+        votes = _votes(q, srcs, per_source)
+        seen: dict[int, set] = {}
+        for qi, vs in enumerate(votes):
+            for v in vs:
+                if v[2] >= SIM_MIN:
+                    seen.setdefault(v[0], set()).add(qi)
+        fits = []
+        for si in sorted(seen):
+            if len(seen[si]) < AGREE * len(ts) - 1e-9:
+                continue                     # too few of its frames look like the shot to agree
+            f = _fit(ts, [[v for v in vs if v[0] == si] for vs in votes], si)
+            if f and f[2] >= AGREE:
+                fits.append((si, f))
+        if fits:
+            si, (speed, c, share, sim) = choose(fits) if choose else max(fits, key=lambda x: (x[1][2], x[1][3]))
             s = srcs[si]
             src_in, src_out = speed * a + c, speed * b + c
             row.update(clip=s.id, src_in=round(max(0.0, src_in), 3), src_out=round(min(s.duration, src_out), 3),
