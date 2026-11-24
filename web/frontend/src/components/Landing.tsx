@@ -103,7 +103,7 @@ function jumpTop() {
 /* ---------- small parts ---------- */
 
 /** The one button on this page: solid, or an outline. */
-function Btn({ children, onClick, ghost, small, className }: {
+export function Btn({ children, onClick, ghost, small, className }: {
   children: ReactNode; onClick: () => void; ghost?: boolean; small?: boolean; className?: string
 }) {
   return (
@@ -122,7 +122,7 @@ function Btn({ children, onClick, ghost, small, className }: {
 /** VibeCut's mark: one frame cut in two on a diagonal, the second shot a
     shade lighter. Plain on purpose (the user, 2026-10-23: the clapperboard
     mascot was "too cartoonish"); the same drawing is public/favicon.svg. */
-function Mark({ className }: { className?: string }) {
+export function Mark({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 32 32" className={cx('shrink-0', className)} aria-hidden>
       <defs><clipPath id="vc-mark-frame"><rect x="6.5" y="9" width="19" height="14" rx="2.5" /></clipPath></defs>
@@ -136,7 +136,7 @@ function Mark({ className }: { className?: string }) {
 }
 
 /** A section's number and name, like a contents line. */
-function Label({ n, children }: { n: string; children: ReactNode }) {
+export function Label({ n, children }: { n: string; children: ReactNode }) {
   return (
     <div className={cx(label, 'flex items-center gap-3')}>
       <span className="text-accent">{n}</span><span className="h-px w-8 bg-line" />{children}
@@ -154,7 +154,7 @@ function Em({ children, accent }: { children: ReactNode; accent?: boolean }) {
 }
 
 /** Crop marks at a figure's corners. */
-function Ticks() {
+export function Ticks() {
   return (
     <>
       {['-top-2.5 -left-2.5 border-t border-l', '-top-2.5 -right-2.5 border-t border-r', '-bottom-2.5 -left-2.5 border-b border-l', '-bottom-2.5 -right-2.5 border-b border-r'].map((c) => (
@@ -854,7 +854,7 @@ function Closing({ onStart }: { onStart: () => void }) {
 /* ---------- motion ---------- */
 
 // Kept here rather than in index.css: nothing else in the app moves like this.
-const NOISE = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`
+export const NOISE = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`
 const CSS = `
 .lc ::selection { background: #FFD93D; color: #0b2233; }
 .lc-glow { background: radial-gradient(55% 55% at 50% 0%, rgba(255,217,61,.08), transparent 70%); }

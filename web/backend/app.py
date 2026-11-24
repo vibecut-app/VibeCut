@@ -37,7 +37,7 @@ from . import projects as pj
 from . import audiomix, bed, brief, captionmem, cloud, cutnotes, defaults, habits, make, recipes, sfx, songs, trend, vibes, vlog, tempo, ink, moment, cut, export, looks, pitch, seams, selfcheck, smooth, sound, subtitles, places, indexer, llm, locate, musiclib, oai, overlays, reference, remix, share, covers, postcopy, speech, story, storyboard, talk, timeline, vision, voiceover, youtube
 from .preferences import PreferenceError, Preferences
 from .workflow import GATE, Workflow, WorkflowError
-from . import graphics, mic, resources, reverse, transitions
+from . import graphics, mic, resources, reverse, show, transitions
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
@@ -559,8 +559,8 @@ def _lean_labels() -> set[str]:
     return set()
 
 
-def _session() -> dict:
-    """Everything the UI renders: the board (enriched for display), the log, proposals."""
+def _board_public(b: dict | None) -> dict | None:
+    """The board as the UI draws it: each shot with its clip, thumbnail and span."""
     cat = CATALOG["cat"]
     lean = _lean_labels()
 
@@ -574,12 +574,18 @@ def _session() -> dict:
                 "src_end": s.end if s else e["end"],
                 "lean": bool(s and lean and any(s.labels.get(l, 0) >= 0.2 for l in lean))}
 
-    b = SESSION.board
-    board = None if b is None else {
+    return None if b is None else {
         **{k: b[k] for k in ("option", "name", "structure")},
         "style": _style(b),
         "beats": [{**bt, "shots": [shot(x) for x in bt["shots"]]} for bt in b["beats"]],
     }
+
+
+def _session() -> dict:
+    """Everything the UI renders: the board (enriched for display), the log, proposals."""
+    cat = CATALOG["cat"]
+    b = SESSION.board
+    board = _board_public(b)
     tl = timeline.build(b, CLIPS, _track())
     tl["frame"] = export.frame_size(tl["items"], CLIPS, _want())
     last = SESSION.last_active()
@@ -714,17 +720,21 @@ def _style(b: dict | None, for_export: bool = False) -> dict | None:
 
 
 def _music_public() -> dict | None:
-    t = _track()
+    return _music_of(SESSION.board, _track())
+
+
+def _music_of(b: dict | None, t) -> dict | None:
+    """The music under board `b` (track `t`) as the UI shows it."""
     if t is None:
         return None
     from cutgrammar import openverse as ov
     lic = (t.meta or {}).get("licence")
-    m = (SESSION.board or {}).get("music") or {}
+    m = (b or {}).get("music") or {}
     guide = bool(m.get("guide")) and m.get("track") == t.id
     return {"id": t.id, "title": t.title, "duration": round(t.duration, 2),
             "bpm": t.bpm, "audio": f"/api/music/audio/{t.id}",
             # the Volume slider: 1 = as it was placed (board.set_music volume)
-            "volume": float(((SESSION.board or {}).get("music") or {}).get("volume", 1.0)),
+            "volume": float(m.get("volume", 1.0)),
             # the licence's credit line, for the caption (pasted with it on Save);
             # a trending sound (trend.py) has none: it isn't in the file
             "credit": None if guide else (ov.credit(lic) if lic else None),
@@ -760,12 +770,14 @@ def _keep_mix(sp: dict) -> str:
     return k
 
 
-def _mix_public(b: dict | None, tl: dict) -> dict | None:
-    """What the preview plays: the same sound export will write."""
-    sp = _mix_spec(b, tl["items"])
+def _mix_public(b: dict | None, tl: dict, track=_SESSION_TRACK, keep: bool = True) -> dict | None:
+    """What the preview plays: the same sound export will write. `keep`
+    False: the joins and transitions only, with no sound to fetch (Watch it
+    edit's steps, show.py, play nothing)."""
+    sp = _mix_spec(b, tl["items"], track)
     if sp is None:
         return None
-    k = _keep_mix(sp)
+    k = _keep_mix(sp) if keep else ""
     joins = audiomix.joins_for(sp["items"], sp["joins"])
     # The picture side of the same plan export renders (plan_transitions):
     # per shot, frames of handle for a dissolve and any dip or flash, so the
@@ -778,7 +790,7 @@ def _mix_public(b: dict | None, tl: dict) -> dict | None:
              if p["head"] or p["tail"] or p["fade_in"] or p["fade_out"]]
     size = tl.get("frame") or {"w": 1920, "h": 1080}
     bar = export._bar(size, _style(b))
-    return {"key": k, "audio": f"/api/mix/{k}.wav", "transitions": trans,
+    return {"key": k, "audio": f"/api/mix/{k}.wav" if keep else "", "transitions": trans,
             "bars": round(bar / size["h"], 4) if bar else 0.0,
             # `fits`: False where a carry was asked for but the shot wasn't
             # filmed long enough past the cut -- it plays as a clean break, and says so
@@ -1153,6 +1165,30 @@ def api_project_poster(pid: str) -> FileResponse:
         raise HTTPException(404, "not exported")
     try:
         return FileResponse(recent.poster(v[1]), media_type="image/jpeg")
+    except ValueError as e:
+        raise HTTPException(500, str(e)) from e
+
+
+@app.get("/api/projects/{pid}/picture")
+def api_project_picture(pid: str) -> FileResponse:
+    """The picture on a video's card at Home: the edit at its clearest, a
+    full-size frame of the original clip (recent.pick_still). A clip that
+    has moved is a 404, and the card falls back to the next picture."""
+    from . import recent
+    cur = PROJECT["p"]
+    if cur is not None and cur.id == pid:
+        st = pj.snapshot_of(CLIPS, SESSION.board).get("still")
+    else:
+        try:
+            st = (pj.load(pid).snapshot or {}).get("still")
+        except pj.ProjectError as e:
+            raise HTTPException(404, str(e)) from e
+    if not st:
+        raise HTTPException(404, "no picture yet")
+    try:
+        return FileResponse(recent.clip_still(st), media_type="image/jpeg")
+    except FileNotFoundError as e:
+        raise HTTPException(404, str(e)) from e
     except ValueError as e:
         raise HTTPException(500, str(e)) from e
 
@@ -1705,6 +1741,10 @@ def api_make(req: BriefAutoReq | None = None) -> dict:
             made_turn = SESSION.add({"kind": "direct", "text": MAKE_TEXT, "ops": ops_,
                                      "reply": job.result["reply"] + (" " + said if said else "")},
                                     CATALOG["cat"], _make_proposals)
+            # Watch it edit (show.py): each shot's window as picked, before the music moved it onto the beat
+            raw_ = (job.result.get("remake") or {}).get("raw")
+            MAKE["show"] = {"turn": made_turn.id, "raw": {p.shot.id: (p.start, p.end) for p in raw_.hook + [q for s_ in raw_.sessions for q in s_]}
+                            if raw_ is not None else None}
             # the songs to swap between (songs.py), and what a remake on another one needs
             _songs_set(mx, job.result.get("remake"), made_turn.id, style.get("look"), style.get("format", "tall"),
                        extra=ops_[len(job.result["ops"]):])
@@ -1983,6 +2023,74 @@ def api_vibe_get(vid: str) -> dict:
         "blueprint": blueprint,  # Full detailed analysis
         "emotional_blueprint": blueprint.get("emotional_blueprint"),  # Emotional intelligence layer
         "summary": rec.get("words", []),
+    }
+
+
+# the turns the app adds by itself right after Make (show.LATER, the AI's check)
+SHOW_LATER = ("Smoother cuts", "From your profile")
+
+
+@app.get("/api/make/show")
+def api_make_show() -> dict:
+    """Watch it edit (show.py): the moves the last Make made, one at a time,
+    each as the editor draws it (`views`, shared by steps that show the same
+    board). Changes nothing. No steps once the edit has been touched since,
+    or when the last Make wasn't one with a board to play back."""
+    with LOCK:
+        made = next((t for t in reversed(SESSION.turns) if t.text == MAKE_TEXT and not t.undone), None)
+        if made is None:
+            return {"steps": [], "views": []}
+        later = [t for t in SESSION.turns if t.id > made.id and not t.undone]
+        if any(t.ops and not (t.kind == "check" or t.text in SHOW_LATER) for t in later):
+            return {"steps": [], "views": []}
+        m = next((op for op in made.ops if op.get("op") == "set_music"), None)
+        t_ = musiclib.find(m["track"]) if m and m.get("track") else None
+        look = next((op.get("look") for op in made.ops if op.get("op") == "set_look"), None)
+        name = next((x.get("name") for x in looks.public() if x.get("id") == look), None) if look else None
+        st = MAKE.get("show") or {}
+        raw = st.get("raw") if st.get("turn") == made.id else None
+        cat = CATALOG["cat"]
+        steps = show.steps(made, later, cat, SESSION.proposals, raw, clips=len(CLIPS),
+                           names={"track": t_.title if t_ else None, "look": name})
+        if not steps:
+            return {"steps": [], "views": []}
+        tl_real = timeline.build(SESSION.board, CLIPS, _track())
+        frame = export.frame_size(tl_real["items"], CLIPS, _want())
+        real_mix = _mix_public(SESSION.board, tl_real)
+        last = SESSION.last_active()
+        boards = [s.pop("board") for s in steps]     # all held here, so no id is reused while they're told apart
+        views: list[dict] = []
+        seen: dict[int, int] = {}
+        prev = None
+        for s, b in zip(steps, boards):
+            if id(b) not in seen:
+                seen[id(b)] = len(views)
+                views.append(_view_of(b, prev, frame, real_mix, last.id if last else None))
+                prev = b
+            s["view"] = seen[id(b)]
+        return {"steps": steps, "views": views}
+
+
+def _view_of(b: dict, prev: dict | None, frame: dict, real_mix: dict | None, turn: int | None) -> dict:
+    """What the editor draws for one step of Watch it edit: the parts of the
+    session that come from the board. The picture keeps the edit's frame and
+    the sound stays the finished edit's (nothing plays while it's shown)."""
+    m = b.get("music") or {}
+    t = musiclib.find(m["track"]) if m.get("track") else None
+    tl = timeline.build(b, CLIPS, t)
+    tl["frame"] = frame
+    mix = _mix_public(b, tl, track=t, keep=False)
+    if mix is not None and real_mix is not None:
+        mix = {**mix, "key": real_mix["key"], "audio": real_mix["audio"]}
+    return {
+        "board": _board_public(b),
+        "timeline": tl,
+        "overlays": _overlays_public(b, CATALOG["cat"], tl),
+        "graphics": graphics.public(b, CATALOG["cat"], tl.get("grid"), graphics.cached_places()),
+        "music": _music_of(b, t),
+        "mix": mix if real_mix is not None else None,
+        "seams": [],
+        "last": {"turn": turn, "diff": bd.diff(prev, b) if prev is not None else None, "ghosts": [], "review": []},
     }
 
 

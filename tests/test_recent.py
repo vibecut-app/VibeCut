@@ -3,10 +3,12 @@ and Share (recent.py).
 
 The rules: the video is the last export in the edit's own frame whose file
 is still there (a version in the other frame only when that's all there
-is); the card's moment is the chosen cover's, else the hook's middle noted
-at export, else a little way in. Through the API: a made video lists its
-first shot and length before it's exported; once exported its card is a
-small JPEG of the export at the hook; after a restart (export jobs gone)
+is); the card's picture is the clearest of the edit's first shots, at its
+best frame when the edit keeps it; an export's frame is the chosen cover's,
+else the hook's middle noted at export, else a little way in. Through the
+API: a made video lists its picture (a full-size frame of the clip, never
+past the file's own size) and length before it's exported; once exported a
+chosen cover takes the card; after a restart (export jobs gone)
 Share opens the project and takes the export up again from its record, so
 the Share box works on the same file; a video with no export left to
 share is refused with what to do, and a moved file takes the card back to
@@ -57,7 +59,64 @@ def rules() -> None:
           and recent.poster_t({"seconds": 0.05}) == 0.0)
     p = recent.public("abc123abc123", ex)
     check("a card carries the file, its length and where its picture is",
-          p["file"] == "a.mp4" and p["poster"].startswith("/api/projects/abc123abc123/poster?v=") and not p["alt"], json.dumps(p))
+          p["file"] == "a.mp4" and p["poster"].startswith("/api/projects/abc123abc123/poster?v=") and not p["alt"]
+          and p["chosen"] is False, json.dumps(p))
+    check("… and says when the creator chose its cover",
+          recent.public("abc123abc123", [{"path": a, "cover": {"t": 2.0}}])["chosen"] is True)
+
+    clips = {"c1": {"shots": [{"index": 0, "best_t": 1.0, "quality": 0.4}, {"index": 1, "best_t": 6.0, "quality": 0.9}]},
+             "c2": {"shots": [{"index": 0, "best_t": 2.0, "quality": 0.7}, {"index": 1, "best_t": 3.0, "quality": 0.99}]}}
+    e = lambda i, a, b, **k: {"id": i, "start": a, "end": b, **k}  # noqa: E731
+    st = recent.pick_still([{"gap": True, "start": 0, "end": 1}, e("c1:0", 0, 2), e("c2:0", 1, 3), e("c1:1", 5, 8),
+                            e("c2:1", 2, 4)], clips)
+    check("the card's picture: the clearest of the first three shots, gaps skipped, the fourth not looked at",
+          st == {"clip": "c1", "t": 6.0, "rotate": 0, "mirror": False}, json.dumps(st))
+    st = recent.pick_still([e("c1:1", 7, 9, rotate=90, mirror=True)], clips)
+    check("… at the middle of what the edit keeps when its best frame was cut, turned as by hand",
+          st == {"clip": "c1", "t": 8.0, "rotate": 90, "mirror": True}, json.dumps(st))
+    check("… a held frame shows its one frame; nothing to show is None",
+          recent.pick_still([e("c2:0", 1.5, 4.5, freeze=True)], clips)["t"] == 1.5 and recent.pick_still([], clips) is None)
+
+    # An iPhone films 10-bit HEVC in HLG: its picture read straight to 8 bits
+    # is flat grey, so the card's frame is toned as the thumbnails are (and
+    # ten bits must not stop it being read: they did on sarah's Mac).
+    from web.backend.indexer import clip_dir
+    hlg = os.path.join(d, "hlg.mov")
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "color=c=0xbfbfbf:s=360x640:d=1:r=30",
+                    "-c:v", "libx265", "-x265-params", "log-level=error", "-pix_fmt", "yuv420p10le", "-tag:v", "hvc1",
+                    "-color_trc", "arib-std-b67", "-color_primaries", "bt2020", "-colorspace", "bt2020nc", hlg], check=True)
+    clip_dir("hlg000000000").mkdir(parents=True, exist_ok=True)
+    (clip_dir("hlg000000000") / "index.json").write_text(json.dumps({"path": hlg}))
+    jpg = recent.clip_still({"clip": "hlg000000000", "t": 0.5, "rotate": 0, "mirror": False}).read_bytes()
+    lum = lambda b: sum(subprocess.run(["ffmpeg", "-v", "error", "-i", "-", "-f", "rawvideo", "-pix_fmt", "gray", "-"],  # noqa: E731
+                                       input=b, capture_output=True).stdout[:2000]) / 2000
+    raw = subprocess.run(["ffmpeg", "-v", "error", "-ss", "0.5", "-i", hlg, "-frames:v", "1", "-f", "mjpeg", "-"],
+                         capture_output=True).stdout
+    check("an HLG clip's card picture is toned for the screen (reference white near the top), not flat grey",
+          size_of(jpg) == (360, 640) and lum(jpg) > 240 and lum(raw) < 200, f"{lum(jpg):.0f} vs {lum(raw):.0f} untoned")
+    os.remove(hlg)
+    check("… and a clip that isn't there any more is a missing picture, not a crash", _missing(recent))
+
+
+def _missing(recent) -> bool:
+    try:
+        recent.clip_still({"clip": "hlg000000000", "t": 0.5})
+    except FileNotFoundError:
+        return True
+    return False
+
+
+def size_of(data: bytes) -> tuple[int, int]:
+    out = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "stream=width,height", "-of", "csv=p=0", "-"],
+                         input=data, capture_output=True).stdout.decode().strip()
+    w, h = out.split(",") if "," in out else (0, 0)
+    return int(w), int(h)
+
+
+def card_size(w: int, h: int) -> tuple[int, int]:
+    """What covers a 540 x 960 card, at most 1280 long, never enlarged."""
+    f = min(max(540 / w, 960 / h), 1280 / max(w, h), 1.0)
+    return int(w * f / 2) * 2, int(h * f / 2) * 2
 
 
 def through_api() -> None:
@@ -83,6 +142,10 @@ def through_api() -> None:
         check("made, not exported: the card is the edit's first shot and its length, no Share",
               r["video"] is None and r["poster"] == first["thumb"] and r["seconds"] and r["seconds"] > 1,
               json.dumps({k: r[k] for k in ("video", "poster", "seconds")}))
+        pic = c.get(r["picture"] or "/nope")
+        check("… and its picture is a frame of the clip at full size, not the 216 px thumbnail",
+              pic.status_code == 200 and pic.content[:2] == b"\xff\xd8" and size_of(pic.content) == (640, 360),
+              f"{r['picture']} {pic.status_code} {size_of(pic.content) if pic.status_code == 200 else ''}")
         check("… and Share says why", c.post(f"/api/projects/{pid}/share").status_code == 409)
         check("… no export picture", c.get(f"/api/projects/{pid}/poster").status_code == 404)
 
@@ -105,14 +168,15 @@ def through_api() -> None:
         check("the edit's own length agrees with the export's", abs(r["seconds"] - job["total"]) < 0.6,
               f"{r['seconds']} vs {job['total']}")
         img = c.get(r["video"]["poster"])
-        dims = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "stream=width,height", "-of", "csv=p=0", "-"],
-                              input=img.content, capture_output=True).stdout.decode().strip()
-        check("its picture is a small JPEG of the export, long side 640", img.status_code == 200
-              and img.content[:2] == b"\xff\xd8" and dims in ("360,640", "640,360"), dims)
+        want = card_size(job["size"]["w"], job["size"]["h"])
+        check("a frame of the export, big enough to cover a card", img.status_code == 200
+              and img.content[:2] == b"\xff\xd8" and size_of(img.content) == want, f"{size_of(img.content)} vs {want}")
+        check("… but with no cover chosen the card shows the edit's own picture", r["picture"] and not r["video"]["chosen"])
         cv = c.post(f"/api/export/{jid}/cover", json={"t": 3.0}).json()
         r2 = row()
         check("a chosen cover moves the card's picture to that moment", r2["video"]["poster"] != r["video"]["poster"]
-              and "3000-" in r2["video"]["poster"] and c.get(r2["video"]["poster"]).status_code == 200, json.dumps(cv))
+              and r2["video"]["chosen"] and "3000-" in r2["video"]["poster"] and c.get(r2["video"]["poster"]).status_code == 200,
+              json.dumps(cv))
 
         # a restart: no export jobs in memory, another project open
         export.JOBS.clear()
@@ -122,7 +186,10 @@ def through_api() -> None:
         rows = {p["id"]: p for p in c.get("/api/projects").json()["projects"]}
         check("… and no picture of a video", rows[other]["video"] is None and rows[other]["poster"] is None)
         check("another video's shots still show on Home while this one is open",
-              c.get(rows[pid]["poster"]).status_code == 200 and c.get(rows[pid]["cover"]).status_code == 200)
+              c.get(rows[pid]["poster"]).status_code == 200 and c.get(rows[pid]["cover"]).status_code == 200
+              and c.get(rows[pid]["picture"]).status_code == 200)
+        check("an empty project has no picture", rows[other]["picture"] is None
+              and c.get(f"/api/projects/{other}/picture").status_code == 404)
         check("… but only real thumbnails", c.get("/api/thumbs/..%2F..%2Fx/a.jpg").status_code == 404
               and c.get(rows[pid]["poster"].rsplit("/", 1)[0] + "/nope.jpg").status_code == 404)
         j = c.post(f"/api/projects/{pid}/share")
@@ -160,7 +227,7 @@ def through_api() -> None:
         before = row()
         path = pj.DIR / f"{pid}.json"
         rec = json.loads(path.read_text())
-        rec["snapshot"].pop("poster"), rec["snapshot"].pop("seconds")
+        rec["snapshot"].pop("poster"), rec["snapshot"].pop("seconds"), rec["snapshot"].pop("still")
         rec["exports"][0]["path"] += ".gone"        # not exported any more, so the card shows the edit
         path.write_text(json.dumps(rec))
         r = c.get("/api/projects").json()
@@ -173,9 +240,9 @@ def through_api() -> None:
             time.sleep(0.25)
             r = c.get("/api/projects").json()
         new = next(p for p in r["projects"] if p["id"] == pid)
-        check("… then its first shot and length are filled from its own log", new["poster"] == before["poster"]
-              and new["seconds"] == before["seconds"] and r["filling"] == 0,
-              json.dumps({k: new[k] for k in ("poster", "seconds")}))
+        check("… then its picture, first shot and length are filled from its own log", new["poster"] == before["poster"]
+              and new["seconds"] == before["seconds"] and new["picture"] == before["picture"] and r["filling"] == 0,
+              json.dumps({k: new[k] for k in ("poster", "seconds", "picture")}))
         check("… without moving it in Home's order", abs(new["updated"] - old["updated"]) < 1e-6)
         check("… and only once", c.get("/api/projects").json()["filling"] == 0)
 

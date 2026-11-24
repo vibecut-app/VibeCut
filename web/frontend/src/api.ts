@@ -1,5 +1,6 @@
 import type { SetupData } from './components/Setup'
 import type { FaceArea } from './overlayDraw'
+import type { MakeShow } from './makeShow'
 import type { CaptionVoice, Habit, Capabilities, GraphicPiece, ProfileStart, StickerKind, Resource, ResourceFolder, ResourceKind, StartPicks, CutData, CutReport, ExportJob, Job, LengthSlider, LookFit, PrefClass, Project, ProjectMeta, RefCard, RefJob, RefSummary, Session, StyleAnswers, StyleQuestion, TalkState } from './types'
 
 // songs to swap between (songs.py), transition sounds (sfx.py), a trending sound as a guide (trend.py)
@@ -162,6 +163,8 @@ export const api = {
   checkEstimate: () => j<CheckEstimate>(fetch('/api/check/estimate')),
   check: (ai_ok: number, rid: string) => j<ChatResult>(post('/api/check', { ai_ok, rid })),
   makeStatus: (id: string) => j<MakeJob>(fetch(`/api/make/${id}`)),
+  // Watch it edit (backend show.py): the moves the last Make made, one at a time
+  makeShow: () => j<MakeShow>(fetch('/api/make/show')),
   format: (format: string) => j<Session>(post('/api/format', { format })),
   pile: (clip: string, into: boolean) => j<Session>(post('/api/pile', { clip, into })),
   captions: (on: boolean, mode?: 'describe' | 'subtitles') => j<Session>(post('/api/captions', mode ? { on, mode } : { on })),

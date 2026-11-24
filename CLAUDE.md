@@ -82,21 +82,40 @@ The promise to a user is therefore *not* "this will be beautiful." It is
   "coming soon" cards are gone (see `web/feature-roadmap.md`). What the
   machine can't do (no key, not macOS, no yt-dlp) is stated where the action
   would be, never hidden. Home is as bare as it can be (sarah, 2026-10-06:
-  "as simple as possible"): "Good morning / afternoon / evening, <profile first name>!", then
+  "as simple as possible"): "Good morning / afternoon / evening, <profile first name>.", then
   "Start with your clips", "Drag clips / folder here", Add clips + Add folder (a
   browser picker can't take both; a phone version only needs Add clips).
+  Home wears the landing page's look (sarah, 2026-11-09: it "doesn't match the
+  aesthetics of the landing page", then "all five" of five ideas): `.on-video`
+  dark with film grain and a gold glow, the greeting as a big serif headline
+  with an italic "What did you film?", the landing's gold `Btn` (Add clips,
+  Create) and outline (Add folder), the drop box a hairline frame with crop
+  marks (`Ticks`) and no line under it (sarah took "Runs on your Mac · No
+  upload · Nothing generated" off the same day), the logo (`Mark`) in the top bar, "01 — Your recent videos" as a
+  `Label`. Those four are exported from `Landing.tsx`. The editor stays bright.
   Under the box, **Your recent videos** (sarah, 2026-10-27; `web/backend/
-  recent.py`, `tests/test_recent.py`): every video as its own picture, a frame
-  of its export (the chosen cover's moment, else the hook's middle noted on
-  the export's record as `poster_t`, 640 px JPEG cached under `posters/`),
-  else the edit's first shot (`snapshot.poster`), else its first clip; its
-  length; Open, and Share once an export's file is still where it was saved.
+  recent.py`, `tests/test_recent.py`): every video upright and whole on a 9:16
+  card, the picture filling it, where it stands · its length, name and date
+  over the bottom; tapping the card opens it, Share sits on the picture once
+  an export's file is still where it was saved, ⋯ renames or deletes. The
+  picture (2026-11-09, sarah: "so blurry ... a really ugly cover"; the
+  216 px index thumbnails were blown up and padded with a blurred copy): the
+  clearest of the edit's first `OPENING` 3 shots by the indexer's best-frame
+  `quality`, at its `best_t` when the edit keeps it (`recent.pick_still`,
+  kept on the snapshot as `still`), read from the original clip big enough to
+  cover a 540 × 960 card (`FIT`, ≤ 1280, never enlarged), HDR toned by
+  `media.to_sdr` as the thumbnails are, cached under `posters/`
+  (`/api/projects/{pid}/picture`). A cover the creator chose to post with
+  takes the card instead (`video.chosen`, a frame of the export at that
+  moment, same size); a clip that has moved falls back to the export's frame
+  at the hook's middle (`poster_t`), then the old thumbnails.
   Share opens the project (the words, credit and cover are read from it) and
   takes the export up again from its record when the job is gone after a
   restart (`recent.revive`), then shows the video and the same Share box.
-  Videos saved before this get their first shot and length filled once in
-  the background from their own log (`projects.refresh_snapshot`, keeps
-  `updated`); a picture that won't load falls back to the next one.
+  Videos saved before this get their picture, first shot and length filled
+  once in the background from their own log (`projects.refresh_snapshot`,
+  keeps `updated`; `stale` = no `still` on the snapshot); a picture that
+  won't load falls back to the next one.
   Footage has no preview panel: an opened stack is a vertical column on its own side (Kept left, Left out right), the other stack shrinks opposite as the drop target; a clicked clip plays in place with a "Move to …" button (no double-click). See `web/README.md`.
   **The edit screen** (sarah, 2026-10-16: "change the layout to this
   reference photo", same colours; `App.tsx` frames view, `Inspector.tsx`,
@@ -140,7 +159,7 @@ The promise to a user is therefore *not* "this will be beautiful." It is
   each a move the editor has under its menu name, drawn as CSS over made-up
   scenes (no faces); it advances by itself until touched. Both
   sides of the before/after are drawn in CSS because every real screenshot
-  shows the creator's face. The app's home (`#/`) stays bare; the page is
+  shows the creator's face. The app's home (`#/`) stays bare (in the page's look since 2026-11-09); the page is
   linked only from the profile page ("About VibeCut"). Copy keeps to "no amateur tells", never "beautiful".
 - Chat editing rule: a turn applies operations to the working storyboard
   (`web/backend/board.py`), never regenerates it. The LLM only emits ops;
@@ -285,7 +304,9 @@ The promise to a user is therefore *not* "this will be beautiful." It is
 - **Motion on the beat and a deliberate ending** (`make.py`, 2026-10-18):
   `punch` is a shot fix like speed or mirror (`board.SHOT_FX`, ±`PUNCH_MAX`
   0.25; `timeline.layout` carries it, `export._shot` renders it as zoompan,
-  `transport.dress` plays it as a CSS `scale` animation over the shot —
+  the player reads it from the playhead, `sequence.pushAt` in
+  `transport.paint`, so a paused picture holds still at its moment; it was a
+  CSS animation that kept zooming after a pause until 2026-11-12 —
   preview and export agree). `make.punches`: the hook pushes in
   (`PUSH_HOOK` 0.08), the first body shot after the drop hits (`PUSH_HIT`
   0.14), every bar's first shot pushes ±`PUSH_BAR` 0.05 alternating; no
@@ -538,6 +559,32 @@ The promise to a user is therefore *not* "this will be beautiful." It is
   (rail, inspector, timeline). A hand-cut video opens in the editor as
   before. Same player wiring (`player(true)`), so nothing is duplicated.
   `design/eval/2026-10-18-watch.png`.
+  **Watch it edit** (sarah, 2026-11-24: "instead of making it generating
+  immediate, can you show the specific moves youre doing … with all the
+  existing functions to get to the final result"; `web/backend/show.py`,
+  `GET /api/make/show`, `makeShow.ts`, `ShowBar.tsx`): after Make lands,
+  the editor plays back how the edit was put together on its own panels,
+  then opens Watch as before. The moves are read from the Make turn (and
+  the Smoother cuts / From your profile / check turns after it): an empty
+  timeline; every clip laid whole (≤ `WHOLE_MAX_S` 12 s around its window)
+  in the order it was filmed, one at a time (`reveal`); each part trimmed
+  to the windows as picked (`MAKE["show"].raw`, before the beat moved
+  them); the hook to the front; the parts' own order; the teaser; then the
+  turn's ops by kind (song, fill, look, each caption typed, push-ins,
+  speed, joins). Ops apply with the replay's ids (`n{turn}{letter}`), so
+  the last step is exactly the edit that landed. Each step is a *view*
+  (board, timeline, overlays, music, mix without a sound to render, the
+  computed diff); the session's turns stay the real ones. The page is
+  covered by a clear layer while it plays (nothing can be changed), the
+  panel in use opens and lights, the timeline holds one scale for the
+  whole show (`Timeline` `fit`), one line above the timeline says the move
+  and Skip / Escape goes to the result. About 20–30 s whatever the shoot:
+  clips share 5 s, trims 4 s, lines 6 s, and past 36 / 10 / 8 of a kind
+  they land in handfuls (`compact`). Nothing to play once the edit was
+  touched by hand. Priors. `tests/test_show.py`, `makeShow.test.ts`.
+  Also found then: a paused jump inside the clip already loaded waited 4 s
+  for a `loadeddata` that had come long ago (`transport.ensureClip` now
+  also takes `seeked`).
 - **Music that matches a reel's feel** (2026-10-18): `music.brightness`
   (median spectral centroid over the middle minute, Hz) joins every track's
   features (`FEATURE_VERSION` 3: cached folders re-analyse once) and the

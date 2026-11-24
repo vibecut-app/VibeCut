@@ -223,5 +223,3 @@ body {
   to { opacity: 1; }
 }
 
-/* the camera's push over a shot (board punch), the same slow scale export's zoompan renders */
-@keyframes vc-push { from { scale: var(--push-from, 1); } to { scale: var(--push-to, 1); } }

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { beatAt, clock, fromMedia, locate, mediaEnd, mediaUrl, parseTimecode, readout, smpte, toMedia, toSource, type SeqItem } from './sequence.ts'
+import { beatAt, clock, fromMedia, locate, mediaEnd, mediaUrl, parseTimecode, pushAt, readout, smpte, toMedia, toSource, type SeqItem } from './sequence.ts'
 
 test('typed timecodes: seconds, m:ss, h:mm:ss and SMPTE frames', () => {
   assert.equal(parseTimecode('21.3', 30), 21.3)
@@ -73,4 +73,26 @@ test('a steadied shot: the file is its span with 1.5 s either side, tools still 
   assert.equal(mediaUrl(back), '/api/steady/c?a=101&b=105&s=0.6&rev=1')
   assert.equal(toMedia(back, 11), 1)
   assert.equal(mediaEnd(back), 4)
+})
+
+// The push over a shot is read from the playhead, not run as an animation:
+// paused, the picture holds the scale of its own moment, the one export's
+// zoompan renders on that frame (z = 1 + punch * frame / frames), and a
+// click on a frame shows it without zooming on (sarah, 2026-11-12).
+test('the push over a shot: the scale at a moment, as export renders it', () => {
+  const shot = (punch?: number): SeqItem => ({ key: 'a:0', kind: 'shot', shot_id: 'a:0', clip_id: 'a', src_start: 0, src_end: 2,
+    seq_start: 2, seq_end: 4, beat_id: 'b', beat_title: '', n: 1, punch })
+  const zoompan = (z: number, t: number) => {   // export.py's zexpr at the frame under t (30 fps, 60 frames)
+    const i = Math.round((t - 2) * 30), n = 60
+    return z > 0 ? 1 + z * i / n : (1 - z) - (-z) * i / n
+  }
+  for (const z of [0.08, 0.14, -0.05]) {
+    for (const t of [2, 2.5, 3, 3.5, 4]) assert.ok(Math.abs(pushAt(shot(z), t) - zoompan(z, t)) < 1e-9, `${z} at ${t}`)
+  }
+  assert.equal(pushAt(shot(0.08), 1), 1, 'before the shot: where it starts')
+  assert.ok(Math.abs(pushAt(shot(0.08), 9) - 1.08) < 1e-9, 'after it: where it ends')
+  assert.equal(pushAt(shot(0.08), 3), pushAt(shot(0.08), 3), 'the same moment, the same picture, however long it stays paused')
+  assert.equal(pushAt(shot(), 3), 1)
+  assert.equal(pushAt({ ...shot(0.08), kind: 'gap' }, 3), 1)
+  assert.equal(pushAt(null, 3), 1)
 })

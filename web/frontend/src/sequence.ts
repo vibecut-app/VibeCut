@@ -156,3 +156,15 @@ export function readout(items: SeqItem[], grid: Grid, t: number): string {
   if (b) parts.push(`beat ${b.beat} of 4`)
   return parts.join(' · ')
 }
+
+/** How far the camera's push over a shot (board punch) has gone at t: the
+ *  scale export's zoompan renders on that frame, rising evenly over the shot
+ *  (+ in: 1 to 1 + punch; - out: 1 - punch back to 1). Read from the
+ *  playhead, so a paused picture holds still at its own moment (sarah,
+ *  2026-11-12: it kept zooming in after a pause and a click). 1 = no push. */
+export function pushAt(it: SeqItem | null | undefined, t: number): number {
+  const push = it?.kind === 'shot' ? (it.punch ?? 0) : 0
+  if (!it || !push) return 1
+  const f = Math.max(0, Math.min(1, (t - it.seq_start) / Math.max(0.2, it.seq_end - it.seq_start)))
+  return push > 0 ? 1 + push * f : 1 - push * (1 - f)
+}

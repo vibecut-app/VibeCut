@@ -30,6 +30,8 @@ import { Shelf } from './components/Shelf'
 import { SmoothButton, Story, type PlayItem, type Selection } from './components/Story'
 import { CutNotes } from './components/CutNotes'
 import { Timeline, type Marks } from './components/Timeline'
+import { ShowBar } from './components/ShowBar'
+import { compact, dwell, panelOf, showFit, viewOf, type MakeShow } from './makeShow'
 import { TONES, toneOf } from './tone'
 import { Inspector, Slider, type InspectorTab, type JoinPick } from './components/Inspector'
 import { PreviewBar, type FrameChoice } from './components/PreviewBar'
@@ -490,11 +492,22 @@ export default function App({ id, view }: { id: string; view: 'story' | 'frames'
         setSetup((x) => x && { ...x, progress: job })
       }
       if (job.stage === 'error') throw new Error(job.error ?? 'Making the video failed')
-      playOnLand.current = true
-      setSession(await api.session())
+      const real = await api.session()
+      // Watch it edit: the moves play in the editor first, then the video opens as before
+      const got = await api.makeShow().catch(() => null)
+      const plan = got && { ...got, steps: compact(got.steps) }
       setSetup(null)
-      setWatching(true)
       setLevel('frames')
+      if (plan?.steps.length) {
+        transport.stop()
+        setWatching(false)
+        setSession(viewOf(real, plan, 0))
+        setShow({ plan, k: 0, real, side, fit: showFit(plan) })
+      } else {
+        playOnLand.current = true
+        setSession(real)
+        setWatching(true)
+      }
     } catch (e) {
       note((e as Error).message)
       setSetup((x) => x && { ...x, busy: false, progress: null })
@@ -508,6 +521,57 @@ export default function App({ id, view }: { id: string; view: 'story' | 'frames'
     const t = window.setTimeout(() => { snapStore.set(null); transport.seek(0); transport.play(1) }, 400)
     return () => window.clearTimeout(t)
   }, [level, session?.board, tl.total])
+  // Watch it edit (makeShow.ts): after Make, the editor plays back the moves
+  // it made, one step at a time, then opens the video as before. The edit has
+  // already landed; `real` is it, and nothing can be touched until it's back.
+  const [show, setShow] = useState<{ plan: MakeShow; k: number; real: Session; side: typeof side; fit: { total: number; count: number } } | null>(null)
+  const showRef = useRef(show)
+  showRef.current = show
+  const endShow = () => {
+    const x = showRef.current
+    if (!x) return
+    setShow(null)
+    setSelected(null); setSelOverlay(null); setSelJoin(null); setSelAudio(null)
+    if (!narrow) setSide(x.side)
+    setInsTab('edit')
+    setSession(x.real)
+    api.session().then(setSession, () => {})
+    playOnLand.current = true
+    setWatching(true)
+  }
+  useEffect(() => {
+    if (!show) return
+    const { plan, k } = show
+    const s = plan.steps[k]
+    if (!s) { endShow(); return }
+    setSession(viewOf(show.real, plan, k))
+    const p = panelOf(s.kind)
+    if (p.side && !narrow) setSide(p.side)
+    setInsTab(p.tab)
+    setSelected(s.shot ?? null)
+    setSelOverlay(s.overlay ?? null)
+    setSelJoin(s.join ?? null)
+    setSelAudio(null)
+    const t = window.setTimeout(() => setShow((x) => (x && x.k === k ? { ...x, k: k + 1 } : x)), dwell(s, plan.steps))
+    return () => window.clearTimeout(t)
+  }, [show?.k, show?.plan]) // eslint-disable-line react-hooks/exhaustive-deps
+  // the playhead on what just changed, once the transport has the step's shots
+  const showAt = show?.plan.steps[show.k]?.at
+  useEffect(() => { if (showAt != null) transport.seek(showAt) }, [tl, showAt])
+  useEffect(() => {
+    if (!show) return
+    // nothing reaches the editor while the moves play; Escape skips to the end
+    const key = (e: KeyboardEvent) => {
+      e.stopImmediatePropagation()        // the browser's own (⌘R, ⌘W) still work; the editor's (⌘Z) don't
+      if (e.code === 'Space') e.preventDefault()
+      if (e.type === 'keydown' && e.key === 'Escape') endShow()
+    }
+    window.addEventListener('keydown', key, true)
+    window.addEventListener('keyup', key, true)
+    return () => { window.removeEventListener('keydown', key, true); window.removeEventListener('keyup', key, true) }
+  }, [!!show]) // eslint-disable-line react-hooks/exhaustive-deps
+  const lit = show ? panelOf(show.plan.steps[show.k]?.kind ?? 'other').lit : []
+  const LIT = 'ring-2 ring-accent ring-offset-2 ring-offset-ink'
   // Opening a project that's waiting on them: the questions are simply there.
   useEffect(() => {
     if (shown === 'brief' && !brief && clips.length && !asking) startQuestions()
@@ -1792,7 +1856,7 @@ export default function App({ id, view }: { id: string; view: 'story' | 'frames'
                 ))}
               </nav>
               {side && (
-                <div className={cx(card, narrow && 'absolute bottom-0 left-[80px] top-3 z-30 shadow-2xl')} style={{ width: narrow ? Math.min(layout.side, 340) : layout.side }}>
+                <div className={cx(card, narrow && 'absolute bottom-0 left-[80px] top-3 z-30 shadow-2xl', lit.includes('side') && LIT)} style={{ width: narrow ? Math.min(layout.side, 340) : layout.side }}>
                   {sidePanel}
                 </div>
               )}
@@ -1800,7 +1864,7 @@ export default function App({ id, view }: { id: string; view: 'story' | 'frames'
                 ? <Handle axis="x" size={layout.side} onSize={(v, save) => setSize('side', v, save)}
                           max={() => window.innerWidth - layout.inspector - 560} label="Drag to make the left panel wider or narrower" />
                 : <div className="w-2 shrink-0" />}
-              <div ref={stageRef} className="relative flex min-h-0 min-w-[280px] flex-1 flex-col overflow-hidden rounded-2xl bg-[#121212]">
+              <div ref={stageRef} className={cx('relative flex min-h-0 min-w-[280px] flex-1 flex-col overflow-hidden rounded-2xl bg-[#121212]', lit.includes('preview') && LIT)}>
                 {player(true)}
                 {rec && rec.count > 0 && (
                   <div className="pointer-events-none absolute inset-0 z-30 grid place-items-center bg-black/35" aria-live="assertive">
@@ -1813,12 +1877,14 @@ export default function App({ id, view }: { id: string; view: 'story' | 'frames'
               </div>
               <Handle axis="x" size={layout.inspector} grow={-1} onSize={(v, save) => setSize('inspector', v, save)}
                       max={() => window.innerWidth - (side && !narrow ? layout.side : 0) - 480} label="Drag to make the right panel wider or narrower" />
-              <div className={card} style={{ width: narrow ? Math.min(layout.inspector, 320) : layout.inspector }}>{inspector}</div>
+              <div className={cx(card, lit.includes('inspector') && LIT)} style={{ width: narrow ? Math.min(layout.inspector, 320) : layout.inspector }}>{inspector}</div>
             </div>
-            <Handle axis="y" size={layout.timeline} grow={-1} onSize={(v, save) => setSize('timeline', v, save)}
-                    max={() => window.innerHeight - 56 - 300} label="Drag to make the timeline taller or shorter" />
-            <div className={card}>
+            {show ? <ShowBar say={show.plan.steps[show.k]?.say ?? 'Done'} k={show.k} n={show.plan.steps.length} onSkip={endShow} />
+              : <Handle axis="y" size={layout.timeline} grow={-1} onSize={(v, save) => setSize('timeline', v, save)}
+                        max={() => window.innerHeight - 56 - 300} label="Drag to make the timeline taller or shorter" />}
+            <div className={cx(card, lit.includes('timeline') && LIT)}>
               <Timeline tl={tl} marks={marks} marksOf={marksOf} selected={selected} flash={flash} alt={alt} height={layout.timeline}
+                        fit={show?.fit ?? null}
                         onTrimEdge={(key, edge, to) => {
                           const it = tl.items.find((x) => x.key === key)
                           const longer = edge === 'out' ? to > (it?.src_end ?? to) : to < (it?.src_start ?? to)
