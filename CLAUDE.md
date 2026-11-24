@@ -1431,7 +1431,9 @@ The promise to a user is therefore *not* "this will be beautiful." It is
   Guy, Bangers, Permanent Marker and Lobster left it (`RETIRED`: still drawn
   for videos that use them, still accepted by the backend). The taste set
   measured size and case (small, a quarter capitals), not the faces, so the
-  picks are by eye. A chapter title has one Font grid, no separate Title
+  picks are by eye. Inter at regular weight sits next to Inter Light (sarah,
+  2026-11-24: "ok add"): the plain caption most vloggers use; the quiet
+  default caption look is unchanged. A chapter title has one Font grid, no separate Title
   look (sarah, 2026-11-12: "just merge them together"): its four designs
   (Spaced caps, Script, Serif, Bold caps = `look`) are the first tiles, then
   the fonts (`lines.main.typeface`, keeping the design's case and spacing);

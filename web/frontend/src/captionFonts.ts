@@ -19,6 +19,7 @@ const F = (id: string, name: string, weight: number, size = 1, fallback = 'sans-
 // geometric sans, a soft italic serif, a rounded sans, a thin hand.
 export const CAPTION_FONTS: CaptionFont[] = [
   F('inter-light', 'Inter Light', 300, 1, 'sans-serif', 'Inter'),
+  F('inter', 'Inter', 400, 1, 'sans-serif'),
   F('montserrat-light', 'Montserrat Light', 300, 0.95, 'sans-serif', 'Montserrat'),
   F('poppins-light', 'Poppins Light', 300, 0.95, 'sans-serif', 'Poppins'),
   F('cormorant-italic', 'Cormorant Italic', 500, 1.2, 'serif', 'Cormorant Garamond Italic'),
